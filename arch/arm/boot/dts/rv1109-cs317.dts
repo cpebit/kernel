@@ -2,6 +2,7 @@
 
 #include "rv1109.dtsi"
 #include "rv1126.dtsi"
+#include "rv1126-pinctrl.dtsi"
 #include <dt-bindings/display/drm_mipi_dsi.h>
 #include <dt-bindings/input/input.h>
 
@@ -10,7 +11,9 @@
 	compatible = "rockchip,rv1109-CS317", "rockchip,rv1126";
 
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff570000 console=ttyFIQ0 root=PARTUUID=614e0000-0000 rootfstype=ext4 rootwait snd_aloop.index=7";
+		bootargs = "earlycon=uart8250,mmio32,0xff570000 console=ttyFIQ0 root=/dev/mmcblk0p6 rw rootfstype=ext4 rootwait";
+		//bootargs = "earlycon=uart8250,mmio32,0xff570000 console=ttyFIQ0 root=PARTUUID=614e0000-0000 rootfstype=ext4 rootwait snd_aloop.index=7";
+		//bootargs = "earlycon=uart8250,mmio32,0xfe660000 console=ttyFIQ0 root=/dev/mmcblk0p6 rw rootfstype=ext4 rootwait";
 	};
 
 	dummy_codec: dummy-codec {
@@ -43,7 +46,7 @@
 		regulator-boot-on;
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
-		vin-supply = <&vcc_io>;
+		vin-supply = <&vcc5v0_sys>;
 	};
 
 	vccio_flash: vccio-flash {
@@ -62,7 +65,7 @@
         regulator-boot-on;
         regulator-min-microvolt = <1800000>;
         regulator-max-microvolt = <1800000>;
-        vin-supply = <&vcc_io>;
+        vin-supply = <&vcc5v0_sys>;
     };
 
 	vdd_arm: vdd-arm {
@@ -132,23 +135,25 @@
 
 	wireless_bluetooth: wireless-bluetooth {
 		compatible = "bluetooth-platdata";
-		uart_rts_gpios = <&gpio1 RK_PC0 GPIO_ACTIVE_LOW>;	//GPIO1_C0----UART0_RTSN
+		rockchip,pmugrf = <&pmugrf>;
+		clocks = <&pmucru CLK_32K_IOE>;
+		assigned-clocks = <&pmucru CLK_32K_IOE>;
+		assigned-clock-parents = <&pmucru CLK_RTC32K>;
+		uart_rts_gpios = <&gpio1 RK_PC0 GPIO_ACTIVE_LOW>;
 		pinctrl-names = "default", "rts_gpio";
 		pinctrl-0 = <&uart0_rtsn>;
 		pinctrl-1 = <&uart0_rtsn_gpio>;
-		BT,power_gpio    = <&gpio3 RK_PA5 GPIO_ACTIVE_HIGH>;	//gpio3_a5----BT_RST
-		BT,wake_host_irq = <&gpio3 RK_PA4 GPIO_ACTIVE_HIGH>;	//gpio3_a4----BT_WAKE_HOST
+		BT,power_gpio    = <&gpio3 RK_PA5 GPIO_ACTIVE_HIGH>;
+		BT,wake_host_irq = <&gpio3 RK_PA4 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
 
 	wireless_wlan: wireless-wlan {
 		compatible = "wlan-platdata";
 		rockchip,grf = <&grf>;
-		// clocks = <&clk_32k>;
-		// clock-names = "clk_wifi";
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_wake_host>;
-		wifi_chip_type = "ap6255";
+		wifi_chip_type = "ap6256";
 		/* WIFI,poweren_gpio = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>; */
 		WIFI,host_wake_irq = <&gpio1 RK_PD1 GPIO_ACTIVE_HIGH>;	//GPIO1_D1----WIFI_WAKE_HOST
 		status = "okay";
@@ -279,7 +284,14 @@
 
 &pinctrl {
 	pinctrl-names = "default";
-	pinctrl-0 = <&clk_32k>;
+	pinctrl-0 = <&rtc_32k>;
+
+	//32.768kHz
+	rtc {
+    	rtc_32k: rtc-32k {
+               rockchip,pins =<0 RK_PA2 RK_FUNC_1 &pcfg_pull_none>;
+    	};
+    };
 
 	sdio-pwrseq {
 		///omit-if-no-ref/
@@ -305,15 +317,13 @@
 };
 
 &pmu_io_domains {
-	status = "okay";
-
-	vccio1-supply=<&vccio_flash>;	//VCCIO_FLASH
-	vccio2-supply=<&vcc_1v8>;	//VCCIO_SD
-	vccio3-supply=<&vccio_sdio>;	//VCC_1V8
-	vccio4-supply=<&vcc_1v8>;	//VCC_1V8
-	vccio5-supply=<&vcc_io>;	//VCC_3V3
-	vccio6-supply=<&vccio_sdio>;	//VCC_1V8
-	vccio7-supply=<&vcc_io>;	//VCC_3V3
+	vccio1-supply = <&vcc_1v8_codec>;
+	vccio2-supply = <&vccio_sdio>;
+	vccio3-supply = <&vcc_1v8_codec>;
+	vccio4-supply = <&vcc_1v8_codec>;
+	vccio5-supply = <&vcc_3v3_codec>;
+	vccio6-supply = <&vcc_1v8_codec>;
+	vccio7-supply = <&vcc_3v3_codec>;
 };
 
 &pwm0 {
