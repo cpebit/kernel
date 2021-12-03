@@ -113,9 +113,9 @@ const chip_name_map_t chip_name_map[] = {
 	{BCM4324_CHIP_ID,	5,	DONT_CARE,	"bcm43241b4_ag",	"ap62x2"},
 	{BCM4335_CHIP_ID,	2,	DONT_CARE,	"bcm4339a0_ag",		"AP6335"},
 	{BCM4339_CHIP_ID,	1,	DONT_CARE,	"bcm4339a0_ag",		"AP6335"},
-	{BCM4345_CHIP_ID,	6,	DONT_CARE,	"bcm43455c0_ag",	"ap6255"},
-	{BCM43454_CHIP_ID,	6,	DONT_CARE,	"bcm43455c0_ag",	""},
-	{BCM4345_CHIP_ID,	9,	DONT_CARE,	"bcm43456c5_ag",	"ap6256"},
+	{BCM4345_CHIP_ID,	6,	DONT_CARE,	"ap6255_ag",	"ap6255"},
+	{BCM43454_CHIP_ID,	6,	DONT_CARE,	"ap6254_ag",	"ap6254"},
+	{BCM4345_CHIP_ID,	9,	DONT_CARE,	"ap6256_ag",	"ap6256"},
 	{BCM43454_CHIP_ID,	9,	DONT_CARE,	"bcm43456c5_ag",	""},
 	{BCM4354_CHIP_ID,	1,	DONT_CARE,	"bcm4354a1_ag",		"ap6354"},
 	{BCM4354_CHIP_ID,	2,	DONT_CARE,	"bcm4356a2_ag",		"ap6356"},
@@ -4883,7 +4883,7 @@ dhd_conf_preinit(dhd_pub_t *dhd)
 			conf->chip == BCM4354_CHIP_ID || conf->chip == BCM4356_CHIP_ID ||
 			conf->chip == BCM4345_CHIP_ID || conf->chip == BCM4371_CHIP_ID ||
 			conf->chip == BCM43569_CHIP_ID || conf->chip == BCM4359_CHIP_ID ||
-			conf->chip == BCM4375_CHIP_ID) {
+			conf->chip == BCM4375_CHIP_ID || conf->chip == BCM43454_CHIP_ID) {
 		strcpy(conf->cspec.country_abbrev, "CN");
 		strcpy(conf->cspec.ccode, "CN");
 		conf->cspec.rev = 38;
