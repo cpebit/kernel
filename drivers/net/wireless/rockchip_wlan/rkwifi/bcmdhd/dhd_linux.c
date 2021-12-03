@@ -19441,6 +19441,21 @@ lbtxp_onoff(struct dhd_info *dev, const char *buf, size_t count)
 }
 
 #endif /* DHD_LB_TXP */
+
+static ssize_t
+chip_show(struct dhd_info *dev, char *buf)
+{
+    dhd_info_t *dhd = (dhd_info_t *)dev;
+    return sprintf(buf, "%#x\n", dhd_conf_get_chip(&dhd->pub));
+}
+
+static ssize_t
+chiprev_show(struct dhd_info *dev, char *buf)
+{
+    dhd_info_t *dhd = (dhd_info_t *)dev;
+    return sprintf(buf, "%#x\n", dhd_conf_get_chiprev(&dhd->pub));
+}
+
 /*
  * Generic Attribute Structure for DHD.
  * If we have to add a new sysfs entry under /sys/bcm-dhd/, we have
@@ -19466,6 +19481,9 @@ static struct dhd_attr dhd_attr_lbtxp =
 	__ATTR(lbtxp, 0660, show_lbtxp, lbtxp_onoff);
 #endif /* DHD_LB_TXP */
 
+static struct dhd_attr dhd_attr_chip = __ATTR_RO(chip);
+static struct dhd_attr dhd_attr_chiprev = __ATTR_RO(chiprev);
+
 /* Attribute object that gets registered with "bcm-dhd" kobject tree */
 static struct attribute *default_attrs[] = {
 #if defined(DHD_TRACE_WAKE_LOCK)
@@ -19474,6 +19492,8 @@ static struct attribute *default_attrs[] = {
 #if defined(DHD_LB_TXP)
 	&dhd_attr_lbtxp.attr,
 #endif /* DHD_LB_TXP */
+    &dhd_attr_chip.attr,
+    &dhd_attr_chiprev.attr,
 	NULL
 };
 
