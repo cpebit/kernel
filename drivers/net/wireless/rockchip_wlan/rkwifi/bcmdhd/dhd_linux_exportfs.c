@@ -1033,6 +1033,20 @@ done:
 #endif /* PWRSTATS_SYSFS */
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0) */
 
+static ssize_t
+chip_show(struct dhd_info *dev, char *buf)
+{
+    dhd_info_t *dhd = (dhd_info_t *)dev;
+    return sprintf(buf, "%#x\n", dhd_conf_get_chip(&dhd->pub));
+}
+
+static ssize_t
+chiprev_show(struct dhd_info *dev, char *buf)
+{
+    dhd_info_t *dhd = (dhd_info_t *)dev;
+    return sprintf(buf, "%#x\n", dhd_conf_get_chiprev(&dhd->pub));
+}
+
 /*
  * Generic Attribute Structure for DHD.
  * If we have to add a new sysfs entry under /sys/bcm-dhd/, we have
@@ -2260,6 +2274,9 @@ static struct dhd_attr dhd_attr_wl_dbg_level =
 __ATTR(wl_dbg_level, 0660, show_wl_debug_level, set_wl_debug_level);
 #endif /* WL_CFG80211 */
 
+static struct dhd_attr dhd_attr_chip = __ATTR_RO(chip);
+static struct dhd_attr dhd_attr_chiprev = __ATTR_RO(chiprev);
+
 /* Attribute object that gets registered with "wifi" kobject tree */
 static struct attribute *default_file_attrs[] = {
 #ifdef DHD_MAC_ADDR_EXPORT
@@ -2361,6 +2378,8 @@ static struct attribute *default_file_attrs[] = {
 	&dhd_attr_agg_h2d_db_inflight_thresh.attr,
 	&dhd_attr_agg_h2d_db_timeout.attr,
 #endif /* AGG_H2D_DB */
+    &dhd_attr_chip.attr,
+    &dhd_attr_chiprev.attr,
 	NULL
 };
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0) */
