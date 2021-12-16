@@ -25,9 +25,6 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rockpis-i2s-out.dtbo \
 	rockpis-spdif-out.dtbo
 
-scr-$(CONFIG_ARCH_ROCKCHIP) += \
-	rockchip-fixup.scr
-
 dtbotxt-$(CONFIG_ARCH_ROCKCHIP) += \
 	README.rockchip-overlays
 
