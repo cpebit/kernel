@@ -10,12 +10,6 @@
 	model = "Radxa CS317 Board";
 	compatible = "rockchip,rv1109-CS317", "rockchip,rv1126";
 
-	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff570000 console=ttyFIQ0 root=/dev/mmcblk0p6 rw rootfstype=ext4 rootwait";
-		//bootargs = "earlycon=uart8250,mmio32,0xff570000 console=ttyFIQ0 root=PARTUUID=614e0000-0000 rootfstype=ext4 rootwait snd_aloop.index=7";
-		//bootargs = "earlycon=uart8250,mmio32,0xfe660000 console=ttyFIQ0 root=/dev/mmcblk0p6 rw rootfstype=ext4 rootwait";
-	};
-
 	dummy_codec: dummy-codec {
 		compatible = "rockchip,dummy-codec";
 		#sound-dai-cells = <0>;
@@ -164,38 +158,38 @@
 		status = "okay";
 
 		blue-led {
-			label = "green:user";
+			label = "blue";
 			gpios = <&gpio3 29 GPIO_ACTIVE_HIGH>;	//GPIO3_D5
-			linux,default-trigger = "default-on";
-			default-state = "on";
+			linux,default-trigger = "none";
+			default-state = "off";
 		};
 
 		green-led {
-			label = "blue:power";
+			label = "green";
 			gpios = <&gpio3 30 GPIO_ACTIVE_HIGH>;	//GPIO3_D6
-			linux,default-trigger = "timer";
-			default-state = "on";
+			linux,default-trigger = "none";
+			default-state = "off";
 		};
 		
 		rgb-red {
-			label = "rgb-red:user";
+			label = "rgb-red";
 			gpios = <&gpio3 26 GPIO_ACTIVE_LOW>;	//GPIO3_D2
-			linux,default-trigger = "default-on";
+			linux,default-trigger = "none";
 			default-state = "off";
 		};
 
 		rgb-blue {
-			label = "rgb-blue:user";
+			label = "rgb-blue";
 			gpios = <&gpio3 27 GPIO_ACTIVE_LOW>;	//GPIO3_D3
-			linux,default-trigger = "default-on";
+			linux,default-trigger = "none";
 			default-state = "off";
 		};
 
 		rgb-green {
-			label = "rgb-green:user";
+			label = "rgb-green";
 			gpios = <&gpio3 28 GPIO_ACTIVE_LOW>;	//GPIO3_D4
 			linux,default-trigger = "default-on";
-			default-state = "off";
+			default-state = "on";
 		};
 	};
 
@@ -244,10 +238,6 @@
 	supports-emmc;
 	/delete-property/ pinctrl-names;
 	/delete-property/ pinctrl-0;
-	status = "okay";
-};
-
-&fiq_debugger {
 	status = "okay";
 };
 
@@ -419,6 +409,7 @@
 	status = "okay";
 	vup-gpios = <&gpio0 RK_PC1 GPIO_ACTIVE_LOW>;
 	u2phy_otg: otg-port {
+	    rockchip,vbus-always-on;
 		status = "okay";
 	};
 };
@@ -437,6 +428,10 @@
 	status = "okay";
 };
 
+&uart2 {
+    status = "okay";
+};
+
 &usb_host0_ehci {
 	status = "okay";
 };
@@ -452,4 +447,5 @@
 &usbdrd_dwc3 {
 	status = "okay";
 	extcon = <&u2phy0>;
+	dr_mode = "peripheral";
 };
