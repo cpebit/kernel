@@ -12,10 +12,6 @@
 / {
 	model = "Radxa CS307";
 	compatible = "radxa,cs307", "rockchip,rk3308";
-
-	chosen {	
-		bootargs = "append  earlyprintk console=ttyFIQ0,1500000n8 rw root=/dev/mmcblk0p6 rootfstype=squashfs init=/sbin/init rootwait";
-	};
 	
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
@@ -150,35 +146,35 @@
 		status = "okay";
 
 		green-led {
-			label = "rockpis:green:power";
+			label = "green";
 			gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "default-on";
-			default-state = "on";
+			linux,default-trigger = "none";
+			default-state = "off";
 		};
 
 		blue-led {
-			label = "rockpis:blue:user";
+			label = "blue";
 			gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "heartbeat";
-			default-state = "on";
+			linux,default-trigger = "none";
+			default-state = "off";
 		};
 		
 		rgb-red {
-			label = "rockpis:rgb-red:user";
+			label = "rgb-red";
 			gpios = <&gpio4 28 GPIO_ACTIVE_LOW>;
-			linux,default-trigger = "default-on";
-			default-state = "on";
+			linux,default-trigger = "none";
+			default-state = "off";
 		};
 
 		rgb-blue {
-			label = "rockpis:rgb-blue:user";
+			label = "rgb-blue";
 			gpios = <&gpio4 24 GPIO_ACTIVE_LOW>;
-			linux,default-trigger = "default-on";
-			default-state = "on";
+			linux,default-trigger = "none";
+			default-state = "off";
 		};
 
 		rgb-green {
-			label = "rockpis:rgb-green:user";
+			label = "rgb-green";
 			gpios = <&gpio4 25 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "default-on";
 			default-state = "on";
@@ -233,7 +229,6 @@
 &emmc {
 	bus-width = <8>;
 	cap-mmc-highspeed;
-	//mmc-hs200-1_8v;
 	supports-emmc;
 	disable-wp;
 	non-removable;
@@ -345,6 +340,7 @@
 
 	u2phy_otg: otg-port {
 		vbus-supply = <&vcc_otg_vbus>;
+        rockchip,vbus-always-on;
 		status = "okay";
 	};
 };
@@ -356,7 +352,7 @@
 };
 
 &usb20_otg {
-	dr_mode = "otg";
+	dr_mode = "peripheral";
 	status = "okay";
 };
 
@@ -382,11 +378,3 @@
 &uart0 {
     status = "okay";
 };
-
-&fiq_debugger{
-    status = "okay";
-    rockchip,serial-id = <0>;
-    pinctrl-names = "default";
-    inctrl-0 = <&uart0_xfer>;
-};
-
