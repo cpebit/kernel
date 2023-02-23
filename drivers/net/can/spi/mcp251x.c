@@ -1410,6 +1410,8 @@ static int mcp251x_can_probe(struct spi_device *spi)
 		goto error_probe;
 
 	netdev_info(net, "MCP%x successfully initialized.\n", priv->model);
+
+	printk("rpdkzj_spi-can successfully!!!");
 	return 0;
 
 error_probe:

@@ -261,15 +261,10 @@ static int kernel_map_user_io_pages(struct kbase_context *kctx,
 
 	queue->user_io_addr = vmap(page_list, ARRAY_SIZE(page_list), VM_MAP, cpu_map_prot);
 
-	if (!queue->user_io_addr) {
-		dev_err(kctx->kbdev->dev,
-			"%s(): queue->user_io_addr is NULL, queue: %p",
-			__func__,
-			queue);
+	if (!queue->user_io_addr)
 		ret = -ENOMEM;
-	} else {
+	else
 		atomic_add(ARRAY_SIZE(page_list), &kctx->permanent_mapped_pages);
-	}
 
 unlock:
 	kbase_gpu_vm_unlock(kctx);

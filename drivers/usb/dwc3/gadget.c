@@ -748,101 +748,6 @@ void dwc3_gadget_clear_tx_fifos(struct dwc3 *dwc)
 	dwc->num_ep_resized = 0;
 }
 
-/**
- * __dwc3_gadget_resize_tx_fifos - reallocate fifo spaces for Rockchip platform
- *
- * @dep: pointer to dwc3_ep structure
- *
- * According to the different USB transfer type and Speed,
- * this function will a best effort FIFO allocation in order
- * to improve FIFO usage and throughput, while still allowing
- * us to enable as many endpoints as possible.
- */
-static int __dwc3_gadget_resize_tx_fifos(struct dwc3_ep *dep)
-{
-	struct dwc3 *dwc = dep->dwc;
-	u32 fifo_0_start, last_fifo_depth, ram1_depth;
-	u32 fifo_size, maxpacket, mdwidth, mult;
-	u32 tmp;
-
-	if (usb_endpoint_xfer_isoc(dep->endpoint.desc)) {
-		/*
-		 * Set enough tx fifos for Isochronous endpoints to get better
-		 * performance and more compliance with bus latency.
-		 */
-		maxpacket = dep->endpoint.maxpacket;
-		if (gadget_is_superspeed(dwc->gadget))
-			mult = dep->endpoint.mult * dep->endpoint.maxburst;
-		else
-			mult = dep->endpoint.mult;
-
-		mult = mult > 0 ? mult * 2 : 3;
-		if (mult > 6)
-			mult = 6;
-	} else if (usb_endpoint_xfer_bulk(dep->endpoint.desc)) {
-		/*
-		 * Set enough tx fifos for Bulk endpoints to get
-		 * better transmission performance.
-		 */
-		mult = 3;
-		if (gadget_is_superspeed(dwc->gadget)) {
-			if (dep->endpoint.maxburst > mult) {
-				mult = dep->endpoint.maxburst;
-				if (mult > 6)
-					mult = 6;
-			}
-			maxpacket = 1024;
-		} else {
-			maxpacket = 512;
-		}
-	} else if (usb_endpoint_xfer_int(dep->endpoint.desc)) {
-		/*
-		 * REVIST: we assume that the maxpacket of interrupt
-		 * endpoint is 64 Bytes for MTP and the other functions.
-		 */
-		mult = 1;
-		maxpacket = 64;
-	} else {
-		goto out;
-	}
-
-	mdwidth = dwc3_mdwidth(dwc);
-	mdwidth >>= 3; /* bits convert to bytes */
-	ram1_depth = dwc3_gadget_get_tx_fifos_size(dwc);
-	last_fifo_depth = dwc->last_fifo_depth;
-
-	/* Calculate the fifo size for this EP */
-	tmp = mult * (maxpacket + mdwidth);
-	tmp += mdwidth;
-	fifo_size = DIV_ROUND_UP(tmp, mdwidth);
-
-	/* Check if TXFIFOs start at non-zero addr */
-	tmp = dwc3_readl(dwc->regs, DWC3_GTXFIFOSIZ(0));
-	fifo_0_start = DWC3_GTXFIFOSIZ_TXFSTADDR(tmp);
-	fifo_size |= (fifo_0_start + (last_fifo_depth << 16));
-
-	if (DWC3_IP_IS(DWC3))
-		last_fifo_depth += DWC3_GTXFIFOSIZ_TXFDEP(fifo_size);
-	else
-		last_fifo_depth += DWC31_GTXFIFOSIZ_TXFDEP(fifo_size);
-
-	/* Check fifo size allocation doesn't exceed available RAM size. */
-	if (last_fifo_depth >= ram1_depth) {
-		dev_err(dwc->dev, "Fifosize(0x%x) > RAM size(0x%x) %s depth(0x%x)\n",
-			last_fifo_depth, ram1_depth,
-			dep->endpoint.name, fifo_size & 0xfff);
-		return -ENOMEM;
-	}
-
-	dwc3_writel(dwc->regs, DWC3_GTXFIFOSIZ(dep->number >> 1), fifo_size);
-	dep->flags |= DWC3_EP_TXFIFO_RESIZED;
-	dwc->last_fifo_depth = last_fifo_depth;
-	dwc->num_ep_resized++;
-
-out:
-	return 0;
-}
-
 /*
  * dwc3_gadget_resize_tx_fifos - reallocate fifo spaces for current use-case
  * @dwc: pointer to our context structure
@@ -887,9 +792,6 @@ static int dwc3_gadget_resize_tx_fifos(struct dwc3_ep *dep)
 	/* bail if already resized */
 	if (dep->flags & DWC3_EP_TXFIFO_RESIZED)
 		return 0;
-
-	if (IS_REACHABLE(CONFIG_ARCH_ROCKCHIP))
-		return __dwc3_gadget_resize_tx_fifos(dep);
 
 	ram1_depth = dwc3_gadget_get_tx_fifos_size(dwc);
 
@@ -3080,14 +2982,6 @@ static int dwc3_gadget_init_in_endpoint(struct dwc3_ep *dep)
 	else
 		size /= 2;
 
-	/*
-	 * If enable tx fifos resize, set each in ep maxpacket
-	 * to 1024, it can avoid being dependent on the default
-	 * fifo size, and more flexible use of endpoints.
-	 */
-	if (dwc->do_fifo_resize)
-		size = 1024;
-
 	usb_ep_set_maxpacket_limit(&dep->endpoint, size);
 
 	dep->endpoint.max_streams = 16;
@@ -3154,24 +3048,13 @@ static int dwc3_gadget_init_endpoint(struct dwc3 *dwc, u8 epnum)
 	bool				direction = epnum & 1;
 	int				ret;
 	u8				num = epnum >> 1;
-	u8				num_in_eps, num_out_eps, min_eps;
 
 	dep = kzalloc(sizeof(*dep), GFP_KERNEL);
 	if (!dep)
 		return -ENOMEM;
 
-	num_in_eps = DWC3_NUM_IN_EPS(&dwc->hwparams);
-	num_out_eps = dwc->num_eps - num_in_eps;
-	min_eps = min_t(u8, num_in_eps, num_out_eps);
-
-	/* reconfig direction and num if num_out_eps != num_in_eps */
-	if (num + 1 > min_eps && num_in_eps != num_out_eps) {
-		num = epnum - min_eps;
-		direction = num + 1 > num_out_eps ? 1 : 0;
-	}
-
 	dep->dwc = dwc;
-	dep->number = num << 1 | direction;
+	dep->number = epnum;
 	dep->direction = direction;
 	dep->regs = dwc->regs + DWC3_DEP_BASE(epnum);
 	dwc->eps[epnum] = dep;

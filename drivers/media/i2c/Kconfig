@@ -346,17 +346,6 @@ config VIDEO_KS0127
 	  To compile this driver as a module, choose M here: the
 	  module will be called ks0127.
 
-config VIDEO_IT6616
-	tristate "ITE IT6616 decoder"
-	depends on VIDEO_V4L2 && I2C && VIDEO_V4L2_SUBDEV_API
-	select HDMI
-	select V4L2_FWNODE
-	help
-	  Support for the ITE IT6616 series HDMI to MIPI CSI-2 bridge.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called IT6616.
-
 config VIDEO_LT6911UXC
 	tristate "Lontium LT6911UXC decoder"
 	depends on VIDEO_V4L2 && I2C && VIDEO_V4L2_SUBDEV_API
@@ -408,16 +397,6 @@ config VIDEO_NVP6158
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called nvp6158_drv.
-
-config VIDEO_NVP6188
-	tristate "NEXTCHIP nvp6188 driver support"
-	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
-	help
-	  Support for the Nextchip NVP6188 multi channels digital decode to
-	  MIPI CSI-2 bridge.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called nvp6188.
 
 config VIDEO_NVP6324
 	tristate "NEXTCHIP nvp6324 driver support"
@@ -488,19 +467,6 @@ config VIDEO_TC35874X
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called tc35874x.
-
-config VIDEO_THCV244
-	tristate "Thine THCV244 decoder"
-	depends on VIDEO_V4L2 && I2C
-	select MEDIA_CONTROLLER
-	select VIDEO_V4L2_SUBDEV_API
-	select HDMI
-	select V4L2_FWNODE
-	help
-	  Support for the Thine THCV244 deserializer.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called thcv244.
 
 config VIDEO_TVP514X
 	tristate "Texas Instruments TVP514x video decoder"
@@ -606,17 +572,6 @@ config VIDEO_MAX96714
 	  To compile this driver as a module, choose M here: the
 	  module will be called max96714.
 
-config VIDEO_MAX96722
-	tristate "Maxim MAX96722 GMSL deserializer support"
-	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
-	depends on MEDIA_CAMERA_SUPPORT
-	select V4L2_FWNODE
-	help
-	  This driver supports the Maxim MAX96722 GMSL deserializer.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called max96722.
-
 comment "Video and audio decoders"
 
 config VIDEO_SAA717X
@@ -629,7 +584,6 @@ config VIDEO_SAA717X
 	  module will be called saa717x.
 
 source "drivers/media/i2c/cx25840/Kconfig"
-source "drivers/media/i2c/it66353/Kconfig"
 
 endmenu
 
@@ -1246,28 +1200,6 @@ config VIDEO_IMX355
 	  To compile this driver as a module, choose M here: the
 	  module will be called imx355.
 
-config VIDEO_IMX577
-	tristate "Sony IMX577 sensor support"
-	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
-	depends on MEDIA_CAMERA_SUPPORT
-	help
-	  This is a Video4Linux2 sensor driver for the Sony
-	  IMX577 camera.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called imx577.
-
-config VIDEO_IMX586
-	tristate "Sony IMX586 sensor support"
-	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
-	depends on MEDIA_CAMERA_SUPPORT
-	help
-	  This is a Video4Linux2 sensor driver for the Sony
-	  IMX586 camera.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called imx586.
-
 config VIDEO_JX_K17
 	tristate "Soi JX_K17 sensor support"
 	depends on I2C && VIDEO_V4L2
@@ -1781,17 +1713,6 @@ config VIDEO_MT9V111
 	  To compile this driver as a module, choose M here: the
 	  module will be called mt9v111.
 
-config VIDEO_SC132GS
-	tristate "SmartSens SC132GS sensor support"
-	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
-	depends on MEDIA_CAMERA_SUPPORT
-	select V4L2_FWNODE
-	help
-	  Support for the SmartSens SC132GS sensor.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called sc132gs.
-
 config VIDEO_SC230AI
 	tristate "SmartSens SC230AI sensor support"
 	depends on I2C && VIDEO_V4L2
@@ -1980,14 +1901,6 @@ config VIDEO_S5C73M3
 	  This is a V4L2 sensor driver for Samsung S5C73M3
 	  8 Mpixel camera.
 
-config VIDEO_PREISP_DUMMY_SENSOR
-	tristate "Preisp dummy sensor support"
-	depends on VIDEO_V4L2 && I2C && VIDEO_V4L2_SUBDEV_API
-	help
-	  Support for the preisp dummy sensor.
-	  To compile this driver as a module, choose M here: the
-	  module will be called pisp_dmy.
-
 endmenu
 
 menu "Lens drivers"
@@ -2023,17 +1936,6 @@ config VIDEO_AW8601
 	  capability. This is designed for linear control of
 	  voice coil motors, controlled via I2C serial interface.
 
-config VIDEO_CN3927V
-	tristate "CN3927V lens voice coil support"
-	depends on I2C && VIDEO_V4L2
-	select MEDIA_CONTROLLER
-	select VIDEO_V4L2_SUBDEV_API
-	help
-	  This is a driver for the CN3927V camera lens voice coil.
-	  CN3927V is a 10 bit DAC with 120mA output current sink
-	  capability. This is designed for linear control of
-	  voice coil motors, controlled via I2C serial interface.
-
 config VIDEO_DW9714
 	tristate "DW9714 lens voice coil support"
 	depends on I2C && VIDEO_V4L2
@@ -2054,18 +1956,6 @@ config VIDEO_DW9768
 	help
 	  This is a driver for the DW9768 camera lens voice coil.
 	  DW9768 is a 10 bit DAC with 100mA output current sink
-	  capability. This is designed for linear control of
-	  voice coil motors, controlled via I2C serial interface.
-
-config VIDEO_DW9800W
-	tristate "DW9800W lens voice coil support"
-	depends on I2C && VIDEO_V4L2
-	select MEDIA_CONTROLLER
-	select VIDEO_V4L2_SUBDEV_API
-	select V4L2_FWNODE
-	help
-	  This is a driver for the DW9800W camera lens voice coil.
-	  DW9800W is a 10 bit DAC with ±100mA output current sink
 	  capability. This is designed for linear control of
 	  voice coil motors, controlled via I2C serial interface.
 

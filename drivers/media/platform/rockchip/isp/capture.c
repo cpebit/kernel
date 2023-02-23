@@ -11,7 +11,6 @@
 #include <media/videobuf2-dma-contig.h>
 #include "dev.h"
 #include "regs.h"
-#include "rkisp_tb_helper.h"
 
 #define STREAM_MAX_MP_RSZ_OUTPUT_WIDTH		4416
 #define STREAM_MAX_MP_RSZ_OUTPUT_HEIGHT		3312
@@ -1144,7 +1143,6 @@ int rkisp_fh_open(struct file *filp)
 	struct rkisp_stream *stream = video_drvdata(filp);
 	int ret;
 
-	stream->is_using_resmem = false;
 	ret = v4l2_fh_open(filp);
 	if (!ret) {
 		ret = v4l2_pipeline_pm_get(&stream->vnode.vdev.entity);
@@ -1451,14 +1449,16 @@ static int rkisp_set_wrap_line(struct rkisp_stream *stream, int *line)
 {
 	struct rkisp_device *dev = stream->ispdev;
 
-	if (dev->isp_ver != ISP_V32 ||
-	    dev->hw_dev->dev_link_num > 1 ||
-	    !stream->ops->set_wrap) {
+	if (dev->isp_ver != ISP_V32)
+		return -EINVAL;
+
+	if (dev->hw_dev->dev_link_num > 1 || stream->id != RKISP_STREAM_MP) {
 		v4l2_err(&dev->v4l2_dev,
 			 "wrap only support for single sensor and mainpath\n");
 		return -EINVAL;
 	}
-	return stream->ops->set_wrap(stream, *line);
+	dev->cap_dev.wrap_line = *line;
+	return 0;
 }
 
 static int rkisp_set_fps(struct rkisp_stream *stream, int *fps)
@@ -1468,7 +1468,8 @@ static int rkisp_set_fps(struct rkisp_stream *stream, int *fps)
 	if (dev->isp_ver != ISP_V32)
 		return -EINVAL;
 
-	return rkisp_rockit_fps_set(fps, stream);
+	rkisp_rockit_fps_set(fps, stream->id);
+	return 0;
 }
 
 static int rkisp_get_fps(struct rkisp_stream *stream, int *fps)
@@ -1478,35 +1479,8 @@ static int rkisp_get_fps(struct rkisp_stream *stream, int *fps)
 	if (dev->isp_ver != ISP_V32)
 		return -EINVAL;
 
-	return rkisp_rockit_fps_get(fps, stream);
-}
-
-int rkisp_get_tb_stream_info(struct rkisp_stream *stream,
-			     struct rkisp_tb_stream_info *info)
-{
-	struct rkisp_device *dev = stream->ispdev;
-
-	if (stream->id != RKISP_STREAM_MP) {
-		v4l2_err(&dev->v4l2_dev, "fast only support for MP\n");
-		return -EINVAL;
-	}
-
-	if (!dev->tb_stream_info.buf_max) {
-		v4l2_err(&dev->v4l2_dev, "thunderboot no enough memory for image\n");
-		return -EINVAL;
-	}
-	stream->is_using_resmem = false;
-	memcpy(info, &dev->tb_stream_info, sizeof(*info));
+	rkisp_rockit_fps_get(fps, stream->id);
 	return 0;
-}
-
-int rkisp_free_tb_stream_buf(struct rkisp_stream *stream)
-{
-	struct rkisp_device *dev = stream->ispdev;
-	struct rkisp_isp_subdev *sdev = &dev->isp_sdev;
-	struct v4l2_subdev *sd = &sdev->sd;
-
-	return sd->ops->core->ioctl(sd, RKISP_CMD_FREE_SHARED_BUF, NULL);
 }
 
 static long rkisp_ioctl_default(struct file *file, void *fh,
@@ -1515,7 +1489,7 @@ static long rkisp_ioctl_default(struct file *file, void *fh,
 	struct rkisp_stream *stream = video_drvdata(file);
 	long ret = 0;
 
-	if (!arg && cmd != RKISP_CMD_FREE_TB_STREAM_BUF)
+	if (!arg)
 		return -EINVAL;
 
 	switch (cmd) {
@@ -1572,12 +1546,6 @@ static long rkisp_ioctl_default(struct file *file, void *fh,
 		break;
 	case RKISP_CMD_GET_FPS:
 		ret = rkisp_get_fps(stream, arg);
-		break;
-	case RKISP_CMD_GET_TB_STREAM_INFO:
-		ret = rkisp_get_tb_stream_info(stream, arg);
-		break;
-	case RKISP_CMD_FREE_TB_STREAM_BUF:
-		ret = rkisp_free_tb_stream_buf(stream);
 		break;
 	default:
 		ret = -EINVAL;
@@ -1828,45 +1796,6 @@ static const struct v4l2_ioctl_ops rkisp_v4l2_ioctl_ops = {
 	.vidioc_default = rkisp_ioctl_default,
 };
 
-static void rkisp_stream_fast(struct work_struct *work)
-{
-	struct rkisp_capture_device *cap_dev =
-		container_of(work, struct rkisp_capture_device, fast_work);
-	struct rkisp_stream *stream = &cap_dev->stream[0];
-	struct vb2_queue *q = &stream->vnode.buf_queue;
-	struct rkisp_device *ispdev = cap_dev->ispdev;
-	struct rkisp_tb_stream_info *info = &ispdev->tb_stream_info;
-	u32 i;
-
-	v4l2_pipeline_pm_get(&stream->vnode.vdev.entity);
-	rkisp_chk_tb_over(ispdev);
-	if (ispdev->tb_head.complete != RKISP_TB_OK) {
-		v4l2_pipeline_pm_put(&stream->vnode.vdev.entity);
-		return;
-	}
-	stream->is_pre_on = true;
-	stream->is_using_resmem = true;
-	info->width = stream->out_fmt.width;
-	info->height = stream->out_fmt.height;
-	info->bytesperline = stream->out_fmt.plane_fmt[0].bytesperline;
-	info->frame_size = info->bytesperline * ALIGN(info->height, 16) * 3 / 2;
-	info->buf_max = ispdev->resmem_size / info->frame_size;
-	if (!info->buf_max) {
-		stream->is_using_resmem = false;
-		v4l2_warn(&ispdev->v4l2_dev,
-			  "resmem size:%zu no enough for image:%d\n",
-			  ispdev->resmem_size, info->frame_size);
-	} else {
-		ispdev->tb_addr_idx = 0;
-		info->buf_cnt = 0;
-		if (info->buf_max > RKISP_TB_STREAM_BUF_MAX)
-			info->buf_max = RKISP_TB_STREAM_BUF_MAX;
-		for (i = 0; i < info->buf_max; i++)
-			info->buf[i].dma_addr = ispdev->resmem_addr + i * info->frame_size;
-	}
-	q->ops->start_streaming(q, 1);
-}
-
 void rkisp_unregister_stream_vdev(struct rkisp_stream *stream)
 {
 	media_entity_cleanup(&stream->vnode.vdev.entity);
@@ -1973,8 +1902,6 @@ int rkisp_register_stream_vdevs(struct rkisp_device *dev)
 		st_cfg->max_rsz_height = CIF_ISP_INPUT_H_MAX_V32;
 		ret = rkisp_register_stream_v32(dev);
 	}
-
-	INIT_WORK(&cap_dev->fast_work, rkisp_stream_fast);
 	return ret;
 }
 

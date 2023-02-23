@@ -86,7 +86,7 @@
 
 #define DRIVER_MAJOR_VERISON		1
 #define DRIVER_MINOR_VERSION		2
-#define DRIVER_REVISION_VERSION		15
+#define DRIVER_REVISION_VERSION		13
 
 #define DRIVER_VERSION (STR(DRIVER_MAJOR_VERISON) "." STR(DRIVER_MINOR_VERSION) \
 			"." STR(DRIVER_REVISION_VERSION))
@@ -145,6 +145,7 @@ struct rga_dma_buffer {
 	void *vmap_ptr;
 
 	struct iommu_domain *domain;
+	struct rga_iommu_dma_cookie *cookie;
 
 	enum dma_data_direction dir;
 
@@ -157,8 +158,10 @@ struct rga_dma_buffer {
 	 */
 	size_t offset;
 
-	/* The scheduler of the mapping */
-	struct rga_scheduler_t *scheduler;
+	/* The core of the mapping */
+	int core;
+
+	struct device *dev;
 };
 
 struct rga_virt_addr {
@@ -185,9 +188,6 @@ struct rga_internal_buffer {
 
 	/* physical address */
 	uint64_t phys_addr;
-
-	/* buffer size */
-	unsigned long size;
 
 	struct rga_memory_parm memory_parm;
 

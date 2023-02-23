@@ -113,7 +113,6 @@ static int rockchip_init_wifi_mem(void)
 {
 	int i;
 	int j;
-
 	for (i = 0; i < WLAN_SKB_BUF_NUM; i++) {
 		wlan_static_skb[i] =
 			dev_alloc_skb(((i < (WLAN_SKB_BUF_NUM / 2)) ?
@@ -176,7 +175,6 @@ int rfkill_set_wifi_bt_power(int on)
 {
 	struct rfkill_wlan_data *mrfkill = g_rfkill;
 	struct rksdmmc_gpio *vbat;
-
 	LOG("%s: %d\n", __func__, on);
 
 	if (!mrfkill) {
@@ -205,7 +203,6 @@ int rfkill_set_wifi_bt_power(int on)
 int rfkill_get_wifi_power_state(int *power)
 {
 	struct rfkill_wlan_data *mrfkill = g_rfkill;
-
 	if (!mrfkill) {
 		LOG("%s: rfkill-wlan driver has not Successful initialized\n",
 		    __func__);
@@ -232,7 +229,6 @@ int rockchip_wifi_power(int on)
 	struct regulator *ldo = NULL;
 	int bt_power = 0;
 	bool toggle = false;
-
 	LOG("%s: %d\n", __func__, on);
 
 	if (!mrfkill) {
@@ -355,7 +351,6 @@ int rockchip_wifi_get_oob_irq(void)
 {
 	struct rfkill_wlan_data *mrfkill = g_rfkill;
 	struct rksdmmc_gpio *wifi_int_irq;
-
 	LOG("%s: Enter\n", __func__);
 
 	if (!mrfkill) {
@@ -381,7 +376,6 @@ int rockchip_wifi_get_oob_irq_flag(void)
 	struct rfkill_wlan_data *mrfkill = g_rfkill;
 	struct rksdmmc_gpio *wifi_int_irq;
 	int gpio_flags = -1;
-
 	if (mrfkill) {
 		wifi_int_irq = &mrfkill->pdata->wifi_int_b;
 		if (gpio_is_valid(wifi_int_irq->io))
@@ -417,7 +411,6 @@ static int get_wifi_addr_vendor(unsigned char *addr)
 {
 	int ret;
 	int count = 5;
-
 	while (count-- > 0) {
 		if (is_rk_vendor_ready())
 			break;
@@ -456,7 +449,6 @@ static int get_wifi_addr_vendor(unsigned char *addr)
 int rockchip_wifi_mac_addr(unsigned char *buf)
 {
 	char mac_buf[20] = { 0 };
-
 	LOG("%s: enter.\n", __func__);
 
 	// from vendor storage
@@ -501,7 +493,6 @@ static struct cntry_locales_custom country_cloc;
 void *rockchip_wifi_country_code(char *ccode)
 {
 	struct cntry_locales_custom *mcloc;
-
 	LOG("%s: set country code [%s]\n", __func__, ccode);
 	mcloc = &country_cloc;
 	memcpy(mcloc->custom_locale, ccode, 4);
@@ -539,7 +530,6 @@ static int wlan_platdata_parse_dt(struct device *dev,
 	int gpio, ret;
 	enum of_gpio_flags flags;
 	u32 ext_clk_value = 0;
-
 	if (!node)
 		return -ENODEV;
 
@@ -716,7 +706,6 @@ static int rfkill_wlan_fb_event_notify(struct notifier_block *self,
 {
 	struct fb_event *event = data;
 	int blank_mode = *((int *)event->data);
-
 	switch (blank_mode) {
 	case FB_BLANK_UNBLANK:
 		rfkill_wlan_later_resume();
@@ -744,7 +733,6 @@ static ssize_t wifi_power_show(struct class *cls, struct class_attribute *attr, 
 static ssize_t wifi_power_store(struct class *cls, struct class_attribute *attr, const char *_buf, size_t _count)
 {
 	long poweren = 0;
-
 	if (kstrtol(_buf, 10, &poweren) < 0)
 		return -EINVAL;
 
@@ -768,7 +756,6 @@ static ssize_t wifi_bt_vbat_show(struct class *cls, struct class_attribute *attr
 static ssize_t wifi_bt_vbat_store(struct class *cls, struct class_attribute *attr, const char *_buf, size_t _count)
 {
 	long vbat = 0;
-
 	if (kstrtol(_buf, 10, &vbat) < 0)
 		return -EINVAL;
 
@@ -787,7 +774,6 @@ static CLASS_ATTR_RW(wifi_bt_vbat);
 static ssize_t wifi_set_carddetect_store(struct class *cls, struct class_attribute *attr, const char *_buf, size_t _count)
 {
 	long val = 0;
-
 	if (kstrtol(_buf, 10, &val) < 0)
 		return -EINVAL;
 
@@ -869,14 +855,19 @@ static int rfkill_wlan_probe(struct platform_device *pdev)
 
 	rfkill_set_wifi_bt_power(1);
 
-#ifdef CONFIG_SDIO_KEEPALIVE
-	if (gpio_is_valid(pdata->power_n.io) &&
+//#ifdef CONFIG_SDIO_KEEPALIVE
+	if (gpio_is_valid(pdata->power_n.io))
+	{
 		gpio_direction_output(pdata->power_n.io, pdata->power_n.enable);
-#endif
+	}
+//#endif
+
 
 
 	if (pdata->wifi_power_remain)
+	{
 		rockchip_wifi_power(1);
+		}
 
 #if BCM_STATIC_MEMORY_SUPPORT
 	rockchip_init_wifi_mem();

@@ -47,7 +47,6 @@ module_param_named(dbg_level, dbg_enable, int, 0644);
 #define MAX_CHARGEVOLTAGE		16800000
 #define MAX_CHARGECURRETNT		8128000
 #define MAX_OTGVOLTAGE			20800000
-#define MIN_OTGVOLTAGE			4280000
 #define MAX_OTGCURRENT			6350000
 
 enum bq25700_fields {
@@ -507,13 +506,7 @@ struct bq25700_lookup {
 	u32 size;
 };
 
-static const struct bq25700_range sc8886_otg_range = {
-	.min = 1280000,
-	.max = 20800000,
-	.step = 128000,
-};
-
-static union {
+static const union {
 	struct bq25700_range  rt;
 	struct bq25700_lookup lt;
 } bq25700_tables[] = {
@@ -942,25 +935,12 @@ static int bq25700_fw_read_u32_props(struct bq25700_device *charger)
 			dev_err(charger->dev, "ti,input-current is error\n");
 			return -ENODEV;
 		}
-		if (props[i].tbl_id == TBL_OTGVOL) {
-			if (of_device_is_compatible(charger->dev->of_node,
-						    "southchip,sc8886")) {
-				bq25700_tables[TBL_OTGVOL].rt = sc8886_otg_range;
-
-				if (property < MIN_OTGVOLTAGE) {
-					dev_err(charger->dev,
-						"ti,otg-voltage is error");
-					return -ENODEV;
-				}
-			}
-
-			if (property > MAX_OTGVOLTAGE) {
-				dev_err(charger->dev, "ti,otg-voltage is error\n");
-				return -ENODEV;
-			};
+		if ((props[i].tbl_id == TBL_OTGVOL) &&
+		    (property > MAX_OTGVOLTAGE)) {
+			dev_err(charger->dev, "ti,ti,otg-voltage is error\n");
+			return -ENODEV;
 		}
-
-		if ((props[i].tbl_id == TBL_OTGCUR) &&
+		if ((props[i].tbl_id == TBL_OTGVOL) &&
 		    (property > MAX_OTGCURRENT)) {
 			dev_err(charger->dev, "ti,otg-current is error\n");
 			return -ENODEV;

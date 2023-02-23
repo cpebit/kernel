@@ -1111,7 +1111,7 @@ static int arb_gpu_clk_notifier_register(struct kbase_device *kbdev,
 }
 
 /**
- * arb_gpu_clk_notifier_unregister() - Unregister clock rate change notifier
+ * gpu_clk_notifier_unregister() - Unregister clock rate change notifier
  * @kbdev:           kbase_device pointer
  * @gpu_clk_handle:  Handle unique to the enumerated GPU clock
  * @nb:              notifier block containing the callback function pointer

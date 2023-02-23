@@ -112,6 +112,8 @@ static void rga_job_put_current_mm(struct rga_job *job)
 
 static void rga_job_free(struct rga_job *job)
 {
+	rga_dma_fence_put(job->out_fence);
+
 	if (~job->flags & RGA_JOB_USE_HANDLE)
 		rga_job_put_current_mm(job);
 
@@ -182,7 +184,7 @@ static int rga_job_judgment_support_core(struct rga_job *job)
 			mm_flag = (uint32_t)ret;
 
 		if (~mm_flag & RGA_MEM_UNDER_4G) {
-			job->flags |= RGA_JOB_UNSUPPORT_RGA_MMU;
+			job->flags |= RGA_JOB_UNSUPPORT_RGA2;
 			goto out_finish;
 		}
 	}
@@ -195,7 +197,7 @@ static int rga_job_judgment_support_core(struct rga_job *job)
 			mm_flag = (uint32_t)ret;
 
 		if (~mm_flag & RGA_MEM_UNDER_4G) {
-			job->flags |= RGA_JOB_UNSUPPORT_RGA_MMU;
+			job->flags |= RGA_JOB_UNSUPPORT_RGA2;
 			goto out_finish;
 		}
 	}
@@ -208,7 +210,7 @@ static int rga_job_judgment_support_core(struct rga_job *job)
 			mm_flag = (uint32_t)ret;
 
 		if (~mm_flag & RGA_MEM_UNDER_4G) {
-			job->flags |= RGA_JOB_UNSUPPORT_RGA_MMU;
+			job->flags |= RGA_JOB_UNSUPPORT_RGA2;
 			goto out_finish;
 		}
 	}
@@ -423,9 +425,6 @@ void rga_job_done(struct rga_scheduler_t *scheduler, int ret)
 
 	spin_unlock_irqrestore(&scheduler->irq_lock, flags);
 
-	if (DEBUGGER_EN(DUMP_IMAGE))
-		rga_dump_job_image(job);
-
 	rga_job_finish_and_next(scheduler, job, ret);
 }
 
@@ -579,11 +578,11 @@ static inline int rga_job_wait(struct rga_job *job)
 	return ret;
 }
 
-static int rga_job_alloc_release_fence(struct dma_fence **release_fence)
+static int rga_job_alloc_release_fence(struct dma_fence **release_fence, spinlock_t *lock)
 {
 	struct dma_fence *fence;
 
-	fence = rga_dma_fence_alloc();
+	fence = rga_dma_fence_alloc(lock);
 	if (IS_ERR(fence)) {
 		pr_err("Can not alloc release fence!\n");
 		return IS_ERR(fence);
@@ -604,10 +603,9 @@ static int rga_job_add_acquire_fence_callback(int acquire_fence_fd, void *privat
 		pr_info("acquire_fence_fd = %d", acquire_fence_fd);
 
 	acquire_fence = rga_get_dma_fence_from_fd(acquire_fence_fd);
-	if (IS_ERR_OR_NULL(acquire_fence)) {
-		pr_err("%s: failed to get acquire dma_fence from[%d]\n",
-		       __func__, acquire_fence_fd);
-		return -EINVAL;
+	if (IS_ERR(acquire_fence)) {
+		pr_err("%s: failed to get acquire dma_fence\n", __func__);
+		return PTR_ERR(acquire_fence);
 	}
 	/* close acquire fence fd */
 	ksys_close(acquire_fence_fd);
@@ -644,7 +642,6 @@ struct rga_job *rga_job_commit(struct rga_req *rga_command_base, struct rga_requ
 	job->use_batch_mode = request->use_batch_mode;
 	job->request_id = request->id;
 	job->session = request->session;
-	job->out_fence = request->release_fence;
 
 	if (!(job->flags & RGA_JOB_USE_HANDLE)) {
 		ret = rga_mm_get_external_buffer(job);
@@ -804,6 +801,16 @@ int rga_request_commit(struct rga_request *request)
 	int i = 0;
 	struct rga_job *job = NULL;
 
+	if (request->sync_mode == RGA_BLIT_ASYNC) {
+		ret = rga_job_alloc_release_fence(&request->release_fence, &request->fence_lock);
+		if (ret < 0) {
+			pr_err("Failed to alloc release fence fd!\n");
+			return ret;
+		}
+
+		request->release_fence_fd = ret;
+	}
+
 	if (request->use_batch_mode) {
 		for (i = 0; i < request->task_count; i++) {
 			job = rga_job_commit(&(request->task_list[i]), request);
@@ -948,12 +955,10 @@ struct rga_request *rga_request_config(struct rga_user_request *user_request)
 
 	spin_lock_irqsave(&request->lock, flags);
 
-	request->use_batch_mode = true;
 	request->task_list = task_list;
 	request->task_count = user_request->task_num;
 	request->sync_mode = user_request->sync_mode;
 	request->mpi_config_flags = user_request->mpi_config_flags;
-	request->acquire_fence_fd = user_request->acquire_fence_fd;
 
 	spin_unlock_irqrestore(&request->lock, flags);
 
@@ -982,47 +987,30 @@ int rga_request_submit(struct rga_request *request)
 		return -EINVAL;
 	}
 
+	request->use_batch_mode = true;
 	request->is_running = true;
 
 	spin_unlock_irqrestore(&request->lock, flags);
 
-	if (request->sync_mode == RGA_BLIT_ASYNC) {
-		ret = rga_job_alloc_release_fence(&request->release_fence);
-		if (ret < 0) {
-			pr_err("Failed to alloc release fence fd!\n");
+	if (request->sync_mode == RGA_BLIT_ASYNC && request->acquire_fence_fd > 0) {
+		ret = rga_job_add_acquire_fence_callback(request->acquire_fence_fd,
+							 (void *)request,
+							 rga_request_acquire_fence_signaled_cb);
+		if (ret == 1) {
+			goto request_commit;
+		} else {
+			pr_err("Failed to wait acquire fence fd[%d]!\n", request->acquire_fence_fd);
 			return ret;
 		}
-		request->release_fence_fd = ret;
-
-		if (request->acquire_fence_fd > 0) {
-			ret = rga_job_add_acquire_fence_callback(
-				request->acquire_fence_fd,
-				(void *)request,
-				rga_request_acquire_fence_signaled_cb);
-			if (ret == 0) {
-				return ret;
-			} else if (ret == 1) {
-				goto request_commit;
-			} else {
-				pr_err("Failed to add callback with acquire fence fd[%d]!\n",
-				       request->acquire_fence_fd);
-				goto error_release_fence_put;
-			}
-		}
-
 	}
 
 request_commit:
 	ret = rga_request_commit(request);
 	if (ret < 0) {
 		pr_err("rga request commit failed!\n");
-		goto error_release_fence_put;
+		return ret;
 	}
 
-	return 0;
-
-error_release_fence_put:
-	rga_dma_fence_put(request->release_fence);
 	return ret;
 }
 
@@ -1075,8 +1063,6 @@ static void rga_request_kref_release(struct kref *ref)
 	request = container_of(ref, struct rga_request, refcount);
 
 	spin_lock_irqsave(&request->lock, flags);
-
-	rga_dma_fence_put(request->release_fence);
 
 	if (!request->is_running || request->finished_task_count >= request->task_count) {
 		spin_unlock_irqrestore(&request->lock, flags);

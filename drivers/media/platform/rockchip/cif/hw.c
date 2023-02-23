@@ -1197,11 +1197,6 @@ static int rkcif_plat_hw_probe(struct platform_device *pdev)
 			return PTR_ERR(cif_hw->base_addr);
 	}
 
-	if (of_property_read_bool(np, "rockchip,android-usb-camerahal-enable")) {
-		dev_info(dev, "config cif adapt to android usb camera hal!\n");
-		cif_hw->adapt_to_usbcamerahal = true;
-	}
-
 	cif_hw->grf = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");
 	if (IS_ERR(cif_hw->grf))
 		dev_warn(dev, "unable to get rockchip,grf\n");
@@ -1243,7 +1238,6 @@ static int rkcif_plat_hw_probe(struct platform_device *pdev)
 	cif_hw->is_dma_contig = true;
 	mutex_init(&cif_hw->dev_lock);
 	spin_lock_init(&cif_hw->group_lock);
-	atomic_set(&cif_hw->power_cnt, 0);
 
 	cif_hw->iommu_en = is_iommu_enable(dev);
 	ret = of_reserved_mem_device_init(dev);
@@ -1269,6 +1263,8 @@ static int rkcif_plat_hw_probe(struct platform_device *pdev)
 		if (ret)
 			return ret;
 	}
+
+	rkcif_hw_soft_reset(cif_hw, true);
 
 	mutex_init(&cif_hw->dev_lock);
 
@@ -1334,8 +1330,6 @@ static int __maybe_unused rkcif_runtime_suspend(struct device *dev)
 {
 	struct rkcif_hw *cif_hw = dev_get_drvdata(dev);
 
-	if (atomic_dec_return(&cif_hw->power_cnt))
-		return 0;
 	rkcif_disable_sys_clk(cif_hw);
 
 	return pinctrl_pm_select_sleep_state(dev);
@@ -1346,13 +1340,10 @@ static int __maybe_unused rkcif_runtime_resume(struct device *dev)
 	struct rkcif_hw *cif_hw = dev_get_drvdata(dev);
 	int ret;
 
-	if (atomic_inc_return(&cif_hw->power_cnt) > 1)
-		return 0;
 	ret = pinctrl_pm_select_default_state(dev);
 	if (ret < 0)
 		return ret;
 	rkcif_enable_sys_clk(cif_hw);
-	rkcif_hw_soft_reset(cif_hw, true);
 
 	return 0;
 }
@@ -1390,11 +1381,7 @@ static void __exit rk_cif_plat_drv_exit(void)
 	rkcif_csi2_plat_drv_exit();
 }
 
-#if defined(CONFIG_VIDEO_ROCKCHIP_THUNDER_BOOT_ISP) && !defined(CONFIG_INITCALL_ASYNC)
-subsys_initcall(rk_cif_plat_drv_init);
-#else
 module_init(rk_cif_plat_drv_init);
-#endif
 module_exit(rk_cif_plat_drv_exit);
 
 MODULE_AUTHOR("Rockchip Camera/ISP team");

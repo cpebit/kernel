@@ -2078,47 +2078,55 @@ void rga2_soft_reset(struct rga_scheduler_t *scheduler)
 		pr_err("soft reset timeout.\n");
 }
 
-static int rga2_check_param(const struct rga_hw_data *data, const struct rga2_req *req)
+static int rga2_check_param(const struct rga2_req *req)
 {
 	if (!((req->render_mode == COLOR_FILL_MODE))) {
-		if (unlikely(rga_hw_out_of_range(&data->input_range,
-						 req->src.act_w, req->src.act_h))) {
+		if (unlikely
+			((req->src.act_w <= 0) || (req->src.act_w > 8192)
+			 || (req->src.act_h <= 0) || (req->src.act_h > 8192))) {
 			pr_err("invalid src resolution act_w = %d, act_h = %d\n",
 				 req->src.act_w, req->src.act_h);
 			return -EINVAL;
 		}
+	}
 
-		if (unlikely(req->src.vir_w * rga_get_pixel_stride_from_format(req->src.format) >
-			     data->max_byte_stride * 8)) {
-			pr_err("invalid src stride, stride = %d, max_byte_stride = %d\n",
-			       req->src.vir_w, data->max_byte_stride);
-			return -EINVAL;
-		}
-
-		if (unlikely(req->src.vir_w < req->src.act_w)) {
-			pr_err("invalid src_vir_w act_w = %d, vir_w = %d\n",
-			       req->src.act_w, req->src.vir_w);
+	if (!((req->render_mode == COLOR_FILL_MODE))) {
+		if (unlikely
+			((req->src.vir_w <= 0) || (req->src.vir_w > 8192)
+			 || (req->src.vir_h <= 0) || (req->src.vir_h > 8192))) {
+			pr_err("invalid src resolution vir_w = %d, vir_h = %d\n",
+				 req->src.vir_w, req->src.vir_h);
 			return -EINVAL;
 		}
 	}
 
-	if (unlikely(rga_hw_out_of_range(&data->output_range, req->dst.act_w, req->dst.act_h))) {
+	/* check dst width and height */
+	if (unlikely
+		((req->dst.act_w <= 0) || (req->dst.act_w > 4096)
+		 || (req->dst.act_h <= 0) || (req->dst.act_h > 4096))) {
 		pr_err("invalid dst resolution act_w = %d, act_h = %d\n",
-		       req->dst.act_w, req->dst.act_h);
+			 req->dst.act_w, req->dst.act_h);
 		return -EINVAL;
 	}
 
-	if (unlikely(req->dst.vir_w * rga_get_pixel_stride_from_format(req->dst.format) >
-		     data->max_byte_stride * 8)) {
-		pr_err("invalid dst stride, stride = %d, max_byte_stride = %d\n",
-		       req->dst.vir_w, data->max_byte_stride);
+	if (unlikely
+		((req->dst.vir_w <= 0) || (req->dst.vir_w > 4096)
+		 || (req->dst.vir_h <= 0) || (req->dst.vir_h > 4096))) {
+		pr_err("invalid dst resolution vir_w = %d, vir_h = %d\n",
+			 req->dst.vir_w, req->dst.vir_h);
 		return -EINVAL;
 	}
-
+	//check src_vir_w
+	if (unlikely(req->src.vir_w < req->src.act_w)) {
+		pr_err("invalid src_vir_w act_w = %d, vir_w = %d\n",
+			 req->src.act_w, req->src.vir_w);
+		return -EINVAL;
+	}
+	//check dst_vir_w
 	if (unlikely(req->dst.vir_w < req->dst.act_w)) {
 		if (req->rotate_mode != 1) {
 			pr_err("invalid dst_vir_w act_h = %d, vir_h = %d\n",
-			       req->dst.act_w, req->dst.vir_w);
+				 req->dst.act_w, req->dst.vir_w);
 			return -EINVAL;
 		}
 	}
@@ -2208,10 +2216,12 @@ int rga2_init_reg(struct rga_job *job)
 	int ret = 0;
 	struct rga_scheduler_t *scheduler = NULL;
 
-	scheduler = job->scheduler;
-	if (unlikely(scheduler == NULL)) {
-		pr_err("failed to get scheduler, %s(%d)\n", __func__, __LINE__);
-		return -EINVAL;
+	scheduler = rga_job_get_scheduler(job);
+	if (scheduler == NULL) {
+		pr_err("failed to get scheduler, %s(%d)\n", __func__,
+				__LINE__);
+		ret = -EINVAL;
+		return ret;
 	}
 
 	memset(&req, 0x0, sizeof(req));
@@ -2222,7 +2232,7 @@ int rga2_init_reg(struct rga_job *job)
 	       sizeof(job->pre_intr_info));
 
 	/* check value if legal */
-	ret = rga2_check_param(scheduler->data, &req);
+	ret = rga2_check_param(&req);
 	if (ret == -EINVAL) {
 		pr_err("req argument is inval\n");
 		return ret;

@@ -539,15 +539,12 @@ static int nand_blk_register(struct nand_blk_ops *nand_ops)
 	nand_ops->quit = 0;
 	nand_ops->nand_th_quited = 0;
 
+	mtd_read_temp_buffer = kmalloc(MTD_RW_SECTORS * 512,
+				       GFP_KERNEL | GFP_DMA);
+
 	ret = register_blkdev(nand_ops->major, nand_ops->name);
 	if (ret)
-		return ret;
-
-	mtd_read_temp_buffer = kmalloc(MTD_RW_SECTORS * 512, GFP_KERNEL | GFP_DMA);
-	if (!mtd_read_temp_buffer) {
-		ret = -ENOMEM;
-		goto mtd_buffer_error;
-	}
+		return -1;
 
 	init_completion(&nand_ops->thread_exit);
 	init_waitqueue_head(&nand_ops->thread_wq);
@@ -558,10 +555,8 @@ static int nand_blk_register(struct nand_blk_ops *nand_ops)
 	INIT_LIST_HEAD(&nand_ops->rq_list);
 
 	nand_ops->tag_set = kzalloc(sizeof(*nand_ops->tag_set), GFP_KERNEL);
-	if (!nand_ops->tag_set) {
-		ret = -ENOMEM;
+	if (!nand_ops->tag_set)
 		goto tag_set_error;
-	}
 
 	nand_ops->rq = blk_mq_init_sq_queue(nand_ops->tag_set, &rk_nand_mq_ops, 1,
 					   BLK_MQ_F_SHOULD_MERGE | BLK_MQ_F_BLOCKING);
@@ -606,9 +601,6 @@ static int nand_blk_register(struct nand_blk_ops *nand_ops)
 rq_init_error:
 	kfree(nand_ops->tag_set);
 tag_set_error:
-	kfree(mtd_read_temp_buffer);
-	mtd_read_temp_buffer = NULL;
-mtd_buffer_error:
 	unregister_blkdev(nand_ops->major, nand_ops->name);
 
 	return ret;

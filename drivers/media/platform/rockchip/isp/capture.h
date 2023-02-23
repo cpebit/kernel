@@ -221,7 +221,6 @@ struct streams_ops {
 	void (*update_mi)(struct rkisp_stream *stream);
 	int (*frame_end)(struct rkisp_stream *stream);
 	int (*frame_start)(struct rkisp_stream *stream, u32 mis);
-	int (*set_wrap)(struct rkisp_stream *stream, int line);
 };
 
 struct rockit_isp_ops {
@@ -277,8 +276,6 @@ struct rkisp_stream {
 	bool is_flip;
 	bool is_pause;
 	bool is_crop_upd;
-	bool is_pre_on;
-	bool is_using_resmem;
 	wait_queue_head_t done;
 	unsigned int burst;
 	atomic_t sequence;
@@ -311,8 +308,6 @@ struct rkisp_capture_device {
 	u32 wrap_line;
 	bool is_done_early;
 	bool is_mirror;
-
-	struct work_struct fast_work;
 };
 
 extern struct stream_config rkisp_mp_stream_config;
@@ -331,8 +326,4 @@ int rkisp_fcc_xysubs(u32 fcc, u32 *xsubs, u32 *ysubs);
 int rkisp_mbus_code_xysubs(u32 code, u32 *xsubs, u32 *ysubs);
 int rkisp_fh_open(struct file *filp);
 int rkisp_fop_release(struct file *file);
-
-int rkisp_get_tb_stream_info(struct rkisp_stream *stream,
-			     struct rkisp_tb_stream_info *info);
-int rkisp_free_tb_stream_buf(struct rkisp_stream *stream);
 #endif /* _RKISP_PATH_VIDEO_H */

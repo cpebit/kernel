@@ -609,13 +609,19 @@ isp_lsc_config(struct rkisp_isp_params_vdev *params_vdev,
 	u32 lsc_ctrl;
 	int i;
 
+	/* To config must be off , store the current status firstly */
 	lsc_ctrl = isp3_param_read(params_vdev, ISP3X_LSC_CTRL, id);
+	isp3_param_clear_bits(params_vdev, ISP3X_LSC_CTRL, ISP_LSC_EN | BIT(2), id);
 	params_rec->others.lsc_cfg = *arg;
-	if (dev->hw_dev->is_single &&
-	    (lsc_ctrl & ISP_LSC_EN) &&
-	    (id == ISP3_LEFT))
-		/* latest config for ISP3_LEFT, unite isp or single isp */
-		tasklet_schedule(&priv_val->lsc_tasklet);
+	if (dev->hw_dev->is_single) {
+		if (lsc_ctrl & ISP_LSC_EN) {
+			/* latest config for ISP3_LEFT, unite isp or single isp */
+			if (id == ISP3_LEFT)
+				tasklet_schedule(&priv_val->lsc_tasklet);
+		} else {
+			isp_lsc_matrix_cfg_sram(params_vdev, arg, false, id);
+		}
+	}
 
 	for (i = 0; i < ISP3X_LSC_SIZE_TBL_SIZE / 4; i++) {
 		/* program x size tables */
@@ -652,23 +658,17 @@ isp_lsc_config(struct rkisp_isp_params_vdev *params_vdev,
 	}
 
 	if (arg->sector_16x16)
-		lsc_ctrl |= ISP3X_LSC_SECTOR_16X16;
-	else
-		lsc_ctrl &= ~ISP3X_LSC_SECTOR_16X16;
-	isp3_param_write(params_vdev, lsc_ctrl, ISP3X_LSC_CTRL, id);
+		lsc_ctrl |= BIT(2);
+	isp3_param_set_bits(params_vdev, ISP3X_LSC_CTRL, lsc_ctrl, id);
 }
 
 static void
 isp_lsc_enable(struct rkisp_isp_params_vdev *params_vdev, bool en, u32 id)
 {
-	struct isp3x_isp_params_cfg *params_rec = params_vdev->isp3x_params + id;
 	u32 val = ISP_LSC_EN;
 
 	if (en) {
 		isp3_param_set_bits(params_vdev, ISP3X_LSC_CTRL, val, id);
-		if (params_vdev->dev->hw_dev->is_single)
-			isp_lsc_matrix_cfg_sram(params_vdev,
-						&params_rec->others.lsc_cfg, false, id);
 	} else {
 		isp3_param_clear_bits(params_vdev, ISP3X_LSC_CTRL, ISP_LSC_EN, id);
 		isp3_param_clear_bits(params_vdev, ISP3X_GAIN_CTRL, BIT(8), id);
@@ -876,6 +876,10 @@ static void
 isp_cproc_config(struct rkisp_isp_params_vdev *params_vdev,
 		 const struct isp2x_cproc_cfg *arg, u32 id)
 {
+	struct isp3x_isp_params_cfg *params = params_vdev->isp3x_params + id;
+	struct isp3x_isp_other_cfg *cur_other_cfg = &params->others;
+	struct isp2x_ie_cfg *cur_ie_config = &cur_other_cfg->ie_cfg;
+	u32 effect = cur_ie_config->effect;
 	u32 quantization = params_vdev->quantization;
 
 	isp3_param_write(params_vdev, arg->contrast, ISP3X_CPROC_CONTRAST, id);
@@ -883,9 +887,11 @@ isp_cproc_config(struct rkisp_isp_params_vdev *params_vdev,
 	isp3_param_write(params_vdev, arg->sat, ISP3X_CPROC_SATURATION, id);
 	isp3_param_write(params_vdev, arg->brightness, ISP3X_CPROC_BRIGHTNESS, id);
 
-	if (quantization != V4L2_QUANTIZATION_FULL_RANGE) {
+	if (quantization != V4L2_QUANTIZATION_FULL_RANGE ||
+	    effect != V4L2_COLORFX_NONE) {
 		isp3_param_clear_bits(params_vdev, ISP3X_CPROC_CTRL,
 				      CIF_C_PROC_YOUT_FULL |
+				      CIF_C_PROC_YIN_FULL |
 				      CIF_C_PROC_COUT_FULL, id);
 	} else {
 		isp3_param_set_bits(params_vdev, ISP3X_CPROC_CTRL,
@@ -2790,7 +2796,8 @@ isp_dhaz_config(struct rkisp_isp_params_vdev *params_vdev,
 		ctrl |= (arg->soft_wr_en & 0x1) << 25;
 	/* merge dual unite isp params at frame end */
 	if (arg->soft_wr_en &&
-	    (!dev->hw_dev->is_unite || !(ctrl & ISP3X_DHAZ_ENMUX))) {
+	    (!dev->hw_dev->is_unite ||
+	     (dev->hw_dev->is_unite && !(ctrl & ISP3X_DHAZ_ENMUX)))) {
 		value = ISP_PACK_2SHORT(arg->adp_wt_wr, arg->adp_air_wr);
 		isp3_param_write(params_vdev, value, ISP3X_DHAZ_ADT_WR0, id);
 		value = ISP_PACK_2SHORT(arg->adp_tmax_wr, arg->adp_gratio_wr);
@@ -2911,7 +2918,6 @@ static void
 isp_3dlut_config(struct rkisp_isp_params_vdev *params_vdev,
 		 const struct isp2x_3dlut_cfg *arg, u32 id)
 {
-	struct rkisp_device *dev = params_vdev->dev;
 	struct rkisp_isp_params_val_v3x *priv_val;
 	u32 value, buf_idx, i;
 	u32 *data;
@@ -2919,10 +2925,6 @@ isp_3dlut_config(struct rkisp_isp_params_vdev *params_vdev,
 	priv_val = (struct rkisp_isp_params_val_v3x *)params_vdev->priv_val;
 	buf_idx = (priv_val->buf_3dlut_idx[id]++) % ISP3X_3DLUT_BUF_NUM;
 
-	if (!priv_val->buf_3dlut[id][buf_idx].vaddr) {
-		dev_err(dev->dev, "no find 3dlut buf\n");
-		return;
-	}
 	data = (u32 *)priv_val->buf_3dlut[id][buf_idx].vaddr;
 	for (i = 0; i < arg->actual_size; i++)
 		data[i] = (arg->lut_b[i] & 0x3FF) |
@@ -2947,7 +2949,6 @@ isp_3dlut_enable(struct rkisp_isp_params_vdev *params_vdev, bool en, u32 id)
 {
 	u32 value;
 	bool en_state;
-	struct rkisp_isp_params_val_v3x *priv_val;
 
 	value = isp3_param_read(params_vdev, ISP3X_3DLUT_CTRL, id);
 	en_state = (value & ISP3X_3DLUT_EN) ? true : false;
@@ -2955,8 +2956,7 @@ isp_3dlut_enable(struct rkisp_isp_params_vdev *params_vdev, bool en, u32 id)
 	if (en == en_state)
 		return;
 
-	priv_val = (struct rkisp_isp_params_val_v3x *)params_vdev->priv_val;
-	if (en && priv_val->buf_3dlut[id][0].vaddr) {
+	if (en) {
 		isp3_param_set_bits(params_vdev, ISP3X_3DLUT_CTRL, 0x01, id);
 		isp3_param_set_bits(params_vdev, ISP3X_3DLUT_UPDATE, 0x01, id);
 	} else {
@@ -2978,8 +2978,6 @@ isp_ldch_config(struct rkisp_isp_params_vdev *params_vdev,
 
 	priv_val = (struct rkisp_isp_params_val_v3x *)params_vdev->priv_val;
 	for (i = 0; i < ISP3X_MESH_BUF_NUM; i++) {
-		if (!priv_val->buf_ldch[id][i].mem_priv)
-			continue;
 		if (arg->buf_fd == priv_val->buf_ldch[id][i].dma_fd)
 			break;
 	}
@@ -3608,8 +3606,6 @@ isp_cac_config(struct rkisp_isp_params_vdev *params_vdev,
 	}
 
 	for (i = 0; i < ISP3X_MESH_BUF_NUM; i++) {
-		if (!priv_val->buf_cac[id][i].mem_priv)
-			continue;
 		if (arg->buf_fd == priv_val->buf_cac[id][i].dma_fd)
 			break;
 	}
@@ -3683,20 +3679,22 @@ isp_cgc_config(struct rkisp_isp_params_vdev *params_vdev,
 	params_vdev->quantization = V4L2_QUANTIZATION_FULL_RANGE;
 	val &= ~(ISP3X_SW_CGC_YUV_LIMIT | ISP3X_SW_CGC_RATIO_EN);
 	if (arg->yuv_limit) {
+		val |= ISP3X_SW_CGC_YUV_LIMIT;
 		params_vdev->quantization = V4L2_QUANTIZATION_LIM_RANGE;
 	}
 	if (arg->ratio_en)
 		val |= ISP3X_SW_CGC_RATIO_EN;
 	isp3_param_write(params_vdev, val, ISP3X_ISP_CTRL0, id);
 
-	/* cproc limit replace cgc limit config */
 	cproc_ctrl = isp3_param_read(params_vdev, ISP3X_CPROC_CTRL, id);
-	if (arg->yuv_limit) {
-		cproc_ctrl = CIF_C_PROC_CTR_ENABLE | CIF_C_PROC_YIN_FULL;
-	} else {
-		cproc_ctrl |= CIF_C_PROC_YOUT_FULL | CIF_C_PROC_YIN_FULL | CIF_C_PROC_COUT_FULL;
+	if (cproc_ctrl & CIF_C_PROC_CTR_ENABLE) {
+		val = CIF_C_PROC_YOUT_FULL | CIF_C_PROC_YIN_FULL | CIF_C_PROC_COUT_FULL;
+		if (arg->yuv_limit)
+			cproc_ctrl &= ~val;
+		else
+			cproc_ctrl |= val;
+		isp3_param_write(params_vdev, cproc_ctrl, ISP3X_CPROC_CTRL, id);
 	}
-	isp3_param_write(params_vdev, cproc_ctrl, ISP3X_CPROC_CTRL, id);
 
 	eff_ctrl = isp3_param_read(params_vdev, ISP3X_IMG_EFF_CTRL, id);
 	if (eff_ctrl & CIF_IMG_EFF_CTRL_ENABLE) {
@@ -4338,7 +4336,6 @@ static int rkisp_init_mesh_buf(struct rkisp_isp_params_vdev *params_vdev,
 	u32 mesh_h = meshsize->meas_height;
 	u32 mesh_size, buf_size;
 	int i, ret, id = meshsize->unite_isp_id;
-	int buf_cnt = meshsize->buf_cnt;
 
 	priv_val = params_vdev->priv_val;
 	if (!priv_val) {
@@ -4364,10 +4361,8 @@ static int rkisp_init_mesh_buf(struct rkisp_isp_params_vdev *params_vdev,
 		break;
 	}
 
-	if (buf_cnt <= 0 || buf_cnt > ISP3X_MESH_BUF_NUM)
-		buf_cnt = ISP3X_MESH_BUF_NUM;
 	buf_size = PAGE_ALIGN(mesh_size + ALIGN(sizeof(struct isp2x_mesh_head), 16));
-	for (i = 0; i < buf_cnt; i++) {
+	for (i = 0; i < ISP3X_MESH_BUF_NUM; i++) {
 		buf->is_need_vaddr = true;
 		buf->is_need_dbuf = true;
 		buf->is_need_dmafd = true;
@@ -4514,8 +4509,8 @@ module_data_abandon(struct rkisp_isp_params_vdev *params_vdev,
 		const struct isp2x_ldch_cfg *arg = &params->others.ldch_cfg;
 
 		for (i = 0; i < ISP3X_MESH_BUF_NUM; i++) {
-			if (priv_val->buf_ldch[id][i].vaddr &&
-			    arg->buf_fd == priv_val->buf_ldch[id][i].dma_fd) {
+			if (arg->buf_fd == priv_val->buf_ldch[id][i].dma_fd &&
+			    priv_val->buf_ldch[id][i].vaddr) {
 				mesh_head = (struct isp2x_mesh_head *)priv_val->buf_ldch[id][i].vaddr;
 				mesh_head->stat = MESH_BUF_CHIPINUSE;
 				break;
@@ -4527,8 +4522,8 @@ module_data_abandon(struct rkisp_isp_params_vdev *params_vdev,
 		const struct isp3x_cac_cfg *arg = &params->others.cac_cfg;
 
 		for (i = 0; i < ISP3X_MESH_BUF_NUM; i++) {
-			if (priv_val->buf_cac[id][i].vaddr &&
-			    arg->buf_fd == priv_val->buf_cac[id][i].dma_fd) {
+			if (arg->buf_fd == priv_val->buf_cac[id][i].dma_fd &&
+			    priv_val->buf_cac[id][i].vaddr) {
 				mesh_head = (struct isp2x_mesh_head *)priv_val->buf_cac[id][i].vaddr;
 				mesh_head->stat = MESH_BUF_CHIPINUSE;
 				break;

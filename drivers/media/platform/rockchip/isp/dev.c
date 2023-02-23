@@ -185,11 +185,6 @@ static int __isp_pipeline_s_isp_clk(struct rkisp_pipeline *p)
 		}
 		if (!hw_dev->is_single)
 			i++;
-
-		/* use lager clk in 4 vir-isp mode */
-		if (hw_dev->dev_num >= 4)
-			i++;
-
 		if (i > hw_dev->num_clk_rate_tbl - 1)
 			i = hw_dev->num_clk_rate_tbl - 1;
 		goto end;
@@ -413,15 +408,10 @@ static int _set_pipeline_default_fmt(struct rkisp_device *dev)
 	memset(&fmt, 0, sizeof(fmt));
 	isp = &dev->isp_sdev.sd;
 
-	if (dev->active_sensor) {
+	if (dev->active_sensor)
 		fmt = dev->active_sensor->fmt[0];
-		if (fmt.format.code == dev->isp_sdev.in_frm.code &&
-		    fmt.format.width == dev->isp_sdev.in_frm.width &&
-		    fmt.format.height == dev->isp_sdev.in_frm.height)
-			return 0;
-	} else {
+	else
 		fmt.format = dev->isp_sdev.in_frm;
-	}
 	code = fmt.format.code;
 	fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
 	fmt.pad = RKISP_ISP_PAD_SINK;
@@ -554,8 +544,6 @@ static int subdev_notifier_complete(struct v4l2_async_notifier *notifier)
 
 unlock:
 	mutex_unlock(&dev->media_dev.graph_mutex);
-	if (!ret && dev->is_thunderboot)
-		schedule_work(&dev->cap_dev.fast_work);
 	return ret;
 }
 
@@ -788,8 +776,9 @@ static int rkisp_get_reserved_mem(struct rkisp_device *isp_dev)
 					      sizeof(struct rkisp_thunderboot_resmem_head),
 					      DMA_BIDIRECTIONAL);
 	ret = dma_mapping_error(dev, isp_dev->resmem_addr);
-	isp_dev->is_thunderboot = true;
-	dev_info(dev, "Allocated reserved memory, paddr: 0x%x\n", (u32)isp_dev->resmem_pa);
+
+	dev_info(dev, "Allocated reserved memory, paddr: 0x%x\n",
+		(u32)isp_dev->resmem_pa);
 	return ret;
 }
 
@@ -836,11 +825,9 @@ static int rkisp_plat_probe(struct platform_device *pdev)
 	strscpy(isp_dev->media_dev.driver_name, isp_dev->name,
 		sizeof(isp_dev->media_dev.driver_name));
 
-	if (isp_dev->hw_dev->is_thunderboot) {
-		ret = rkisp_get_reserved_mem(isp_dev);
-		if (ret)
-			return ret;
-	}
+	ret = rkisp_get_reserved_mem(isp_dev);
+	if (ret)
+		return ret;
 
 	mutex_init(&isp_dev->apilock);
 	mutex_init(&isp_dev->iqlock);
@@ -916,10 +903,7 @@ static int rkisp_plat_remove(struct platform_device *pdev)
 
 	rkisp_proc_cleanup(isp_dev);
 	media_device_unregister(&isp_dev->media_dev);
-	v4l2_async_notifier_unregister(&isp_dev->notifier);
-	v4l2_async_notifier_cleanup(&isp_dev->notifier);
 	v4l2_device_unregister(&isp_dev->v4l2_dev);
-	v4l2_ctrl_handler_free(&isp_dev->ctrl_handler);
 	rkisp_unregister_luma_vdev(&isp_dev->luma_vdev);
 	rkisp_unregister_params_vdev(&isp_dev->params_vdev);
 	rkisp_unregister_stats_vdev(&isp_dev->stats_vdev);

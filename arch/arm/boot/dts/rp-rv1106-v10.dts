@@ -1,0 +1,296 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
+ */
+
+/dts-v1/;
+
+#include "rv1106.dtsi"
+#include "rv1106-evb-v10.dtsi"
+//#include "rv1106-evb-cam.dtsi"
+
+// -------------camera select---------------
+#include "rongpin/rp-camera-gc2093x1.dtsi"
+//#include "rongpin/rp-camera-imx415x1.dtsi"
+//#include "rongpin/rp-camera-gc2093x2.dtsi"
+//#include "rongpin/rp-camera-imx327x1.dtsi"
+/ {
+	model = "Rockchip RV1106G EVB1 V10 Board";
+	compatible = "rockchip,rv1106g-evb1-v10", "rockchip,rv1106";
+
+	 rp_power{
+                status = "okay";
+                compatible = "rp_power";
+                rp_not_deep_leep = <1>;
+
+//#define GPIO_FUNCTION_OUTPUT 0
+//#define GPIO_FUNCTION_INPUT 1
+//#define GPIO_FUNCTION_IRQ 2
+//#define GPIO_FUNCTION_FLASH 3
+//#define GPIO_FUNCTION_OUTPUT_CTRL 4
+
+		VDD5V{
+                        gpio_num = <&gpio1 RK_PC7 GPIO_ACTIVE_HIGH>;
+                        gpio_function = <4>;
+                };
+		 VDD4G{
+                        gpio_num = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;
+                        gpio_function = <0>;
+                };
+		VDD_USB5V{
+                        gpio_num = <&gpio1 RK_PA0 GPIO_ACTIVE_HIGH>;
+                        gpio_function = <0>;
+                };
+
+
+
+};
+	rp_gpio{
+                status = "okay";
+                compatible = "rp_gpio";
+		LED{
+                        gpio_num = <&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>;
+                        gpio_function = <4>;
+                };
+	
+};
+	/** 24M osc clock to mcp2515 */
+	osc_24m: osc24m {
+        	compatible = "fixed-clock";
+        	#clock-cells = <0>;
+        	clock-frequency = <24000000>;
+        };
+
+
+	/*sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_enable_h>;
+		/*
+		 * On the module itself this is one of these (depending
+		 * on the actual card populated):
+		 * - SDIO_RESET_L_WL_REG_ON
+		 * - PDN (power down when low)
+		 */
+		/*post-power-on-delay-ms = <200>;
+		reset-gpios = <&gpio0 RK_PA2 GPIO_ACTIVE_LOW>;
+	
+	};
+*/
+	vcc_1v8: vcc-1v8 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_1v8";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+	};
+
+	vcc_3v3: vcc-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_3v3";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+	};
+
+	vcc3v3_sd: vcc3v3-sd {
+		compatible = "regulator-fixed";
+		gpio = <&gpio0 RK_PA1 GPIO_ACTIVE_LOW>;
+		regulator-name = "vcc3v3_sd";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		enable-active-low;
+                regulator-always-on;
+                regulator-boot-on;
+		pinctrl-names = "default";
+		pinctrl-0 = <&sdmmc_pwren>;
+	};
+
+	wireless_wlan: wireless-wlan {
+		compatible = "wlan-platdata";
+		clocks = <&hym8563>;
+ 		clock-names = "clk_wifi";
+		wifi_chip_type = "ap6210";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_host_wake_irq>, <&wifi_enable_h>;
+		WIFI,host_wake_irq = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
+		WIFI,poweren_gpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	wireless_bluetooth: wireless-bluetooth {
+		compatible = "bluetooth-platdata";
+		uart_rts_gpios = <&gpio2 6 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default","rts_gpio";
+		pinctrl-0 = <&uart0m1_rtsn>;
+		pinctrl-1 = <&uart0_rts_gpio>;
+
+		//keep_bt_power_on;
+		/* BT,power_gpio = <&gpio* *** GPIO_ACTIVE_HIGH>; */
+		BT,reset_gpio = <&gpio4 5 GPIO_ACTIVE_HIGH>;
+		BT,wake_gpio = <&gpio4 7 GPIO_ACTIVE_HIGH>;
+		BT,wake_host_irq = <&gpio4 1 GPIO_ACTIVE_HIGH>;
+
+		status = "okay";
+    };
+
+
+};
+
+
+&pinctrl {
+	/*sdio-pwrseq {
+		wifi_enable_h: wifi-enable-h {
+			rockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+	};*/
+
+	sdmmc {
+		/omit-if-no-ref/
+		sdmmc_pwren: sdmmc-pwren {
+			rockchip,pins = <0 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+	wireless-wlan {
+		wifi_host_wake_irq: wifi-host-wake-irq {
+			rockchip,pins = <4 RK_PA0 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+	  	wifi_enable_h: wifi-enable-h {
+                        rockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_up>;
+                };	
+
+	};
+	wireless-bluetooth {
+                uart0_rts_gpio: uart0-rts-gpio {
+                        rockchip,pins = <2 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
+                };
+        };
+
+};
+
+
+&sdio {
+	max-frequency = <150000000>;
+	no-sd;
+	no-mmc;
+	bus-width = <4>;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	//mmc-pwrseq = <&sdio_pwrseq>;
+	non-removable;
+	sd-uhs-sdr104;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc1m0_cmd &sdmmc1m0_clk &sdmmc1m0_bus4>;
+	status = "okay";
+};
+
+&sdmmc {
+	max-frequency = <200000000>;
+	no-sdio;
+	no-mmc;
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_det &sdmmc0_bus4>;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
+	vmmc-supply = <&vcc3v3_sd>;
+	//vqmmc-supply = <&vccio_sd>;
+	status = "okay";
+};
+
+&u2phy_otg {
+	/delete-property/ vbus-supply;
+	//vbus-supply = <&vcc5v0_usb>;
+};
+
+&usbdrd_dwc3 {
+	status = "okay";
+	dr_mode = "host";
+	usb-role-switch;
+	role-switch-default-mode;
+	snps,dis-u1-entry-quirk;
+	snps,dis-u2-entry-quirk;	
+};
+
+&spi0 {
+        status = "okay";
+
+    /* rewrite pinctrl for cs1 used to be camera clk */
+	pinctrl-0 = <&spi0m0_cs0 &spi0m0_pins>;
+
+        spi0can: mcp2515@0 {
+            status = "okay";
+            compatible = "microchip,mcp2515";
+            reg = <0>;
+            clocks = <&osc_24m>;
+            interrupt-parent = <&gpio1>;
+            interrupts = <RK_PC6 IRQ_TYPE_LEVEL_LOW>;
+            // vdd-supply = <&reg5v0>;
+            // xceiver-supply = <&reg5v0>;
+            spi-max-frequency = <10000000>;
+        };
+};
+
+&i2c1 {
+	 status = "okay";
+	 hym8563: hym8563@51 {
+	     compatible = "haoyu,hym8563";
+	     reg = <0x51>;
+    	     #clock-cells = <0>;
+             clock-frequency = <32768>;
+  	     clock-output-names = "rtc_32k";
+
+          };
+};
+
+&uart0 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&uart0m1_xfer &uart0m1_ctsn>;
+        status = "okay";
+};
+
+&uart1 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&uart1m0_xfer>;
+        status = "okay";
+};
+
+&uart3 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&uart3m1_xfer>;
+        status = "okay";
+};
+
+&uart4 {
+	pinctrl-names = "default";
+        pinctrl-0 = <&uart4m1_xfer>;
+        status = "okay";
+};
+&uart5 {
+        pinctrl-names = "default";
+        pinctrl-0 = <&uart5m1_xfer>;
+        status = "okay";
+};
+
+&acodec_sound{
+	status = "okay";
+};
+
+&pwm3 {         
+        status = "okay";
+	pinctrl-0 = <&pwm3m1_pins>;
+};
+&pwm7 {         
+        status = "okay";
+	pinctrl-0 = <&pwm7m1_pins>;
+
+};

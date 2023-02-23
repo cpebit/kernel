@@ -91,12 +91,10 @@ struct rockchip_pm_domain {
 	int num_qos;
 	struct regmap **qos_regmap;
 	u32 *qos_save_regs[MAX_QOS_REGS_NUM];
-	bool *qos_is_need_init[MAX_QOS_REGS_NUM];
 	int num_clks;
 	struct clk_bulk_data *clks;
 	bool is_ignore_pwr;
 	bool is_qos_saved;
-	bool is_qos_need_init;
 	struct regulator *supply;
 };
 
@@ -394,45 +392,6 @@ static int rockchip_pmu_restore_qos(struct rockchip_pm_domain *pd)
 	return 0;
 }
 
-static void rockchip_pmu_init_qos(struct rockchip_pm_domain *pd)
-{
-	int i;
-
-	if (!pd->is_qos_need_init)
-		return;
-
-	for (i = 0; i < pd->num_qos; i++) {
-		if (pd->qos_is_need_init[0][i])
-			regmap_write(pd->qos_regmap[i],
-				     QOS_PRIORITY,
-				     pd->qos_save_regs[0][i]);
-
-		if (pd->qos_is_need_init[1][i])
-			regmap_write(pd->qos_regmap[i],
-				     QOS_MODE,
-				     pd->qos_save_regs[1][i]);
-
-		if (pd->qos_is_need_init[2][i])
-			regmap_write(pd->qos_regmap[i],
-				     QOS_BANDWIDTH,
-				     pd->qos_save_regs[2][i]);
-
-		if (pd->qos_is_need_init[3][i])
-			regmap_write(pd->qos_regmap[i],
-				     QOS_SATURATION,
-				     pd->qos_save_regs[3][i]);
-
-		if (pd->qos_is_need_init[4][i])
-			regmap_write(pd->qos_regmap[i],
-				     QOS_EXTCONTROL,
-				     pd->qos_save_regs[4][i]);
-	}
-
-	kfree(pd->qos_is_need_init[0]);
-	pd->qos_is_need_init[0] = NULL;
-	pd->is_qos_need_init = false;
-}
-
 int rockchip_save_qos(struct device *dev)
 {
 	struct generic_pm_domain *genpd;
@@ -518,8 +477,6 @@ static int rockchip_pmu_domain_mem_reset(struct rockchip_pm_domain *pd)
 			genpd->name, is_on);
 		goto error;
 	}
-
-	udelay(20);
 
 	regmap_write(pmu->regmap, pmu->info->mem_pwr_offset + pd->info->pwr_offset,
 		     (pd->info->pwr_mask | pd->info->pwr_w_mask));
@@ -687,8 +644,6 @@ static int rockchip_pd_power(struct rockchip_pm_domain *pd, bool power_on)
 
 			if (pd->is_qos_saved)
 				rockchip_pmu_restore_qos(pd);
-			if (pd->is_qos_need_init)
-				rockchip_pmu_init_qos(pd);
 		}
 
 out:
@@ -819,26 +774,44 @@ static void rockchip_pd_detach_dev(struct generic_pm_domain *genpd,
 	pm_clk_destroy(dev);
 }
 
-static void rockchip_pd_qos_init(struct rockchip_pm_domain *pd)
+static void rockchip_pd_qos_init(struct rockchip_pm_domain *pd,
+				 bool **qos_is_need_init)
 {
-	int is_pd_on, ret = 0;
-
-	if (!pd->is_qos_need_init) {
-		kfree(pd->qos_is_need_init[0]);
-		pd->qos_is_need_init[0] = NULL;
-		return;
-	}
+	int i, is_pd_on;
 
 	is_pd_on = rockchip_pmu_domain_is_on(pd);
-	if (is_pd_on) {
-		ret = clk_bulk_enable(pd->num_clks, pd->clks);
-		if (ret < 0) {
-			dev_err(pd->pmu->dev, "failed to enable clocks\n");
-			return;
-		}
-		rockchip_pmu_init_qos(pd);
-		clk_bulk_disable(pd->num_clks, pd->clks);
+	if (!is_pd_on)
+		rockchip_pd_power(pd, true);
+
+	for (i = 0; i < pd->num_qos; i++) {
+		if (qos_is_need_init[0][i])
+			regmap_write(pd->qos_regmap[i],
+				     QOS_PRIORITY,
+				     pd->qos_save_regs[0][i]);
+
+		if (qos_is_need_init[1][i])
+			regmap_write(pd->qos_regmap[i],
+				     QOS_MODE,
+				     pd->qos_save_regs[1][i]);
+
+		if (qos_is_need_init[2][i])
+			regmap_write(pd->qos_regmap[i],
+				     QOS_BANDWIDTH,
+				     pd->qos_save_regs[2][i]);
+
+		if (qos_is_need_init[3][i])
+			regmap_write(pd->qos_regmap[i],
+				     QOS_SATURATION,
+				     pd->qos_save_regs[3][i]);
+
+		if (qos_is_need_init[4][i])
+			regmap_write(pd->qos_regmap[i],
+				     QOS_EXTCONTROL,
+				     pd->qos_save_regs[4][i]);
 	}
+
+	if (!is_pd_on)
+		rockchip_pd_power(pd, false);
 }
 
 static int rockchip_pm_add_one_domain(struct rockchip_pmu *pmu,
@@ -851,6 +824,8 @@ static int rockchip_pm_add_one_domain(struct rockchip_pmu *pmu,
 	int i, j;
 	u32 id, val;
 	int error;
+	bool *qos_is_need_init[MAX_QOS_REGS_NUM] = { NULL };
+	bool is_qos_need_init = false;
 
 	error = of_property_read_u32(node, "reg", &id);
 	if (error) {
@@ -938,19 +913,18 @@ static int rockchip_pm_add_one_domain(struct rockchip_pmu *pmu,
 			error = -ENOMEM;
 			goto err_unprepare_clocks;
 		}
-		pd->qos_is_need_init[0] = kzalloc(sizeof(bool) *
-						  MAX_QOS_REGS_NUM *
-						  pd->num_qos,
-						  GFP_KERNEL);
-		if (!pd->qos_is_need_init[0]) {
+		qos_is_need_init[0] = kzalloc(sizeof(bool) *
+					      MAX_QOS_REGS_NUM *
+					      pd->num_qos,
+					      GFP_KERNEL);
+		if (!qos_is_need_init[0]) {
 			error = -ENOMEM;
 			goto err_unprepare_clocks;
 		}
 		for (i = 1; i < MAX_QOS_REGS_NUM; i++) {
 			pd->qos_save_regs[i] = pd->qos_save_regs[i - 1] +
 					       num_qos;
-			pd->qos_is_need_init[i] = pd->qos_is_need_init[i - 1] +
-						  num_qos;
+			qos_is_need_init[i] = qos_is_need_init[i - 1] + num_qos;
 		}
 
 		for (j = 0; j < num_qos; j++) {
@@ -971,49 +945,47 @@ static int rockchip_pm_add_one_domain(struct rockchip_pmu *pmu,
 							  "priority-init",
 							  &val)) {
 					pd->qos_save_regs[0][j] = val;
-					pd->qos_is_need_init[0][j] = true;
-					pd->is_qos_need_init = true;
+					qos_is_need_init[0][j] = true;
+					is_qos_need_init = true;
 				}
 
 				if (!of_property_read_u32(qos_node,
 							  "mode-init",
 							  &val)) {
 					pd->qos_save_regs[1][j] = val;
-					pd->qos_is_need_init[1][j] = true;
-					pd->is_qos_need_init = true;
+					qos_is_need_init[1][j] = true;
+					is_qos_need_init = true;
 				}
 
 				if (!of_property_read_u32(qos_node,
 							  "bandwidth-init",
 							  &val)) {
 					pd->qos_save_regs[2][j] = val;
-					pd->qos_is_need_init[2][j] = true;
-					pd->is_qos_need_init = true;
+					qos_is_need_init[2][j] = true;
+					is_qos_need_init = true;
 				}
 
 				if (!of_property_read_u32(qos_node,
 							  "saturation-init",
 							  &val)) {
 					pd->qos_save_regs[3][j] = val;
-					pd->qos_is_need_init[3][j] = true;
-					pd->is_qos_need_init = true;
+					qos_is_need_init[3][j] = true;
+					is_qos_need_init = true;
 				}
 
 				if (!of_property_read_u32(qos_node,
 							  "extcontrol-init",
 							  &val)) {
 					pd->qos_save_regs[4][j] = val;
-					pd->qos_is_need_init[4][j] = true;
-					pd->is_qos_need_init = true;
+					qos_is_need_init[4][j] = true;
+					is_qos_need_init = true;
 				}
 
 				num_qos_reg++;
 			}
 			of_node_put(qos_node);
-			if (num_qos_reg > pd->num_qos) {
-				error = -EINVAL;
+			if (num_qos_reg > pd->num_qos)
 				goto err_unprepare_clocks;
-			}
 		}
 	}
 
@@ -1041,7 +1013,10 @@ static int rockchip_pm_add_one_domain(struct rockchip_pmu *pmu,
 		}
 	}
 #endif
-	rockchip_pd_qos_init(pd);
+	if (is_qos_need_init)
+		rockchip_pd_qos_init(pd, &qos_is_need_init[0]);
+
+	kfree(qos_is_need_init[0]);
 
 	pm_genpd_init(&pd->genpd, NULL, !rockchip_pmu_domain_is_on(pd));
 
@@ -1049,8 +1024,7 @@ static int rockchip_pm_add_one_domain(struct rockchip_pmu *pmu,
 	return 0;
 
 err_unprepare_clocks:
-	kfree(pd->qos_is_need_init[0]);
-	pd->qos_is_need_init[0] = NULL;
+	kfree(qos_is_need_init[0]);
 	clk_bulk_unprepare(pd->num_clks, pd->clks);
 err_put_clocks:
 	clk_bulk_put(pd->num_clks, pd->clks);

@@ -351,7 +351,7 @@ rockchip_rk3588_pll_clk_set_by_auto(struct rockchip_clk_pll *pll,
 
 	if (fin_hz / MHZ * MHZ == fin_hz && fout_hz / MHZ * MHZ == fout_hz) {
 		for (s = 0; s <= 6; s++) {
-			fvco = (u64)fout_hz << s;
+			fvco = fout_hz << s;
 			if (fvco < fvco_min || fvco > fvco_max)
 				continue;
 			for (p = 2; p <= 4; p++) {
@@ -369,7 +369,7 @@ rockchip_rk3588_pll_clk_set_by_auto(struct rockchip_clk_pll *pll,
 		pr_err("CANNOT FIND Fout by auto,fout = %lu\n", fout_hz);
 	} else {
 		for (s = 0; s <= 6; s++) {
-			fvco = (u64)fout_hz << s;
+			fvco = fout_hz << s;
 			if (fvco < fvco_min || fvco > fvco_max)
 				continue;
 			for (p = 1; p <= 4; p++) {
@@ -460,7 +460,6 @@ static int rockchip_pll_wait_lock(struct rockchip_clk_pll *pll)
 #define RK3036_PLLCON1_DSMPD_MASK		0x1
 #define RK3036_PLLCON1_DSMPD_SHIFT		12
 #define RK3036_PLLCON1_PWRDOWN			BIT(13)
-#define RK3036_PLLCON1_PLLPDSEL			BIT(15)
 #define RK3036_PLLCON2_FRAC_MASK		0xffffff
 #define RK3036_PLLCON2_FRAC_SHIFT		0
 
@@ -1373,22 +1372,22 @@ static int rockchip_rk3588_pll_set_params(struct rockchip_clk_pll *pll,
 	/* set pll power down */
 	writel(HIWORD_UPDATE(RK3588_PLLCON1_PWRDOWN,
 			     RK3588_PLLCON1_PWRDOWN, 0),
-	       pll->reg_base + RK3588_PLLCON(1));
+	       pll->reg_base + RK3399_PLLCON(1));
 
 	/* update pll values */
 	writel_relaxed(HIWORD_UPDATE(rate->m, RK3588_PLLCON0_M_MASK,
 						  RK3588_PLLCON0_M_SHIFT),
-		       pll->reg_base + RK3588_PLLCON(0));
+		       pll->reg_base + RK3399_PLLCON(0));
 
 	writel_relaxed(HIWORD_UPDATE(rate->p, RK3588_PLLCON1_P_MASK,
 						   RK3588_PLLCON1_P_SHIFT) |
 		       HIWORD_UPDATE(rate->s, RK3588_PLLCON1_S_MASK,
 						     RK3588_PLLCON1_S_SHIFT),
-		       pll->reg_base + RK3588_PLLCON(1));
+		       pll->reg_base + RK3399_PLLCON(1));
 
 	writel_relaxed(HIWORD_UPDATE(rate->k, RK3588_PLLCON2_K_MASK,
 				     RK3588_PLLCON2_K_SHIFT),
-		       pll->reg_base + RK3588_PLLCON(2));
+		       pll->reg_base + RK3399_PLLCON(2));
 
 	/* set pll power up */
 	writel(HIWORD_UPDATE(0,
@@ -1526,10 +1525,6 @@ int rockchip_pll_clk_compensation(struct clk *clk, int ppm)
 		fbdiv_mask = RK3036_PLLCON0_FBDIV_MASK;
 		frac_mask = RK3036_PLLCON2_FRAC_MASK;
 		frac_shift = RK3036_PLLCON2_FRAC_SHIFT;
-		if (!frac)
-			writel(HIWORD_UPDATE(RK3036_PLLCON1_PLLPDSEL,
-					     RK3036_PLLCON1_PLLPDSEL, 0),
-			       pll->reg_base + RK3036_PLLCON(1));
 		break;
 	case pll_rk3066:
 		return -EINVAL;

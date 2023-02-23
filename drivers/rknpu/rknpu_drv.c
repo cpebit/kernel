@@ -820,8 +820,7 @@ static int npu_opp_helper(struct dev_pm_set_opp_data *data)
 		}
 		rockchip_set_read_margin(dev, opp_info, target_rm, is_set_rm);
 		if (is_set_clk && clk_set_rate(clk, new_freq)) {
-			ret = -EINVAL;
-			LOG_DEV_ERROR(dev, "failed to set clk rate\n");
+			LOG_DEV_ERROR(dev, "failed to set clk rate: %d\n", ret);
 			goto restore_rm;
 		}
 		/* Scaling down? Scale voltage after frequency */
@@ -830,8 +829,7 @@ static int npu_opp_helper(struct dev_pm_set_opp_data *data)
 					       new_freq, false, is_set_clk);
 		rockchip_set_read_margin(dev, opp_info, target_rm, is_set_rm);
 		if (is_set_clk && clk_set_rate(clk, new_freq)) {
-			ret = -EINVAL;
-			LOG_DEV_ERROR(dev, "failed to set clk rate\n");
+			LOG_DEV_ERROR(dev, "failed to set clk rate: %d\n", ret);
 			goto restore_rm;
 		}
 		ret = regulator_set_voltage(vdd_reg, new_supply_vdd->u_volt,

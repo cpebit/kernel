@@ -7,7 +7,7 @@
 
 / {
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 root=/dev/mmcblk0p5 rootfstype=ext4 rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=0";
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 root=/dev/mmcblk0p5 rootfstype=ext4 rw rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=0";
 	};
 
 	acodec_sound: acodec-sound {
@@ -45,11 +45,17 @@
 		regulator-name = "vdd_arm";
 		regulator-min-microvolt = <724000>;
 		regulator-max-microvolt = <1078000>;
-		regulator-init-microvolt = <950000>;
+		regulator-init-microvolt = <1000000>;
 		regulator-always-on;
 		regulator-boot-on;
 		regulator-settling-time-up-us = <250>;
+
 	};
+};
+
+&i2s0_8ch {
+        #sound-dai-cells = <0>;
+        status = "okay";
 };
 
 &acodec {
@@ -63,7 +69,7 @@
 };
 
 &emmc {
-	bus-width = <8>;
+	bus-width = <4>;
 	cap-mmc-highspeed;
 	non-removable;
 	mmc-ddr-1_8v;
@@ -85,15 +91,23 @@
 	pinctrl-0 = <&i2c4m2_xfer>;
 };
 
-&i2s0_8ch {
-	#sound-dai-cells = <0>;
-	status = "okay";
-};
 
 &pwm0 {
 	status = "okay";
 };
 
 &rtc {
-	status = "okay";
+	status = "disabled";
 };
+&sfc {
+        status = "okay";
+
+        flash@0 {
+                compatible = "jedec,spi-nor";
+                reg = <0>;
+                spi-max-frequency = <80000000>;
+                spi-rx-bus-width = <4>;
+                spi-tx-bus-width = <1>;
+        };
+};
+

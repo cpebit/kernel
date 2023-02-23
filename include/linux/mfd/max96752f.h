@@ -108,6 +108,6 @@ struct max96752f {
 	u32 stream_id;
 };
 
-void max96752f_init(struct max96752f *max96752f);
+void max96752f_regcache_sync(struct max96752f *max96752f);
 
 #endif /* _MFD_MAX96752F_H_ */

@@ -729,19 +729,12 @@ static long rga_ioctl_request_submit(unsigned long arg, bool run_enbale)
 			return -EFAULT;
 		}
 
-		if (request->sync_mode == RGA_BLIT_ASYNC) {
-			user_request.release_fence_fd = request->release_fence_fd;
-			if (copy_to_user((struct rga_req *)arg,
-					 &user_request, sizeof(user_request))) {
-				pr_err("copy_to_user failed\n");
-				return -EFAULT;
-			}
+		if (request->sync_mode == RGA_BLIT_SYNC) {
+			mutex_lock(&request_manager->lock);
+			rga_request_put(request);
+			mutex_unlock(&request_manager->lock);
 		}
 	}
-
-	mutex_lock(&request_manager->lock);
-	rga_request_put(request);
-	mutex_unlock(&request_manager->lock);
 
 	return 0;
 }
@@ -819,16 +812,13 @@ static long rga_ioctl(struct file *file, uint32_t cmd, unsigned long arg)
 
 		memset(&request, 0x0, sizeof(request));
 
-		spin_lock_init(&request.lock);
 		request.sync_mode = cmd;
-		request.acquire_fence_fd = req_rga.in_fence_fd;
 		request.use_batch_mode = false;
-		request.is_running = false;
 		request.session = session;
 		request.task_list = &req_rga;
 		request.task_count = 1;
 
-		ret = rga_request_submit(&request);
+		ret = rga_request_commit(&request);
 		if (ret < 0) {
 			if (ret == -ERESTARTSYS) {
 				if (DEBUGGER_EN(MSG))
@@ -840,7 +830,6 @@ static long rga_ioctl(struct file *file, uint32_t cmd, unsigned long arg)
 			break;
 		}
 
-		req_rga.out_fence_fd = request.release_fence_fd;
 		if (copy_to_user((struct rga_req *)arg,
 				&req_rga, sizeof(struct rga_req))) {
 			pr_err("copy_to_user failed\n");
