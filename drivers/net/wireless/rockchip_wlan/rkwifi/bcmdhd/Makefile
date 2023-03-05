@@ -26,7 +26,8 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER                 \
 	-DWL_EXT_IAPSTA -DWL_ESCAN                                            \
 	-DENABLE_INSMOD_NO_FW_LOAD -DDHD_UNSUPPORT_IF_CNTS                    \
 	-Idrivers/net/wireless/rockchip_wlan/rkwifi/bcmdhd \
-	-Idrivers/net/wireless/rockchip_wlan/rkwifi/bcmdhd/include
+	-Idrivers/net/wireless/rockchip_wlan/rkwifi/bcmdhd/include \
+	-DWL11U
 
 DHDOFILES = aiutils.o siutils.o sbutils.o bcmutils.o bcmwifi_channels.o   \
 	dhd_linux.o dhd_linux_platdev.o dhd_linux_sched.o dhd_pno.o           \
