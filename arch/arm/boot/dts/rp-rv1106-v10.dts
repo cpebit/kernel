@@ -214,7 +214,7 @@
 
 &usbdrd_dwc3 {
 	status = "okay";
-	dr_mode = "host";
+	dr_mode = "peripheral";
 	usb-role-switch;
 	role-switch-default-mode;
 	snps,dis-u1-entry-quirk;
