@@ -8,11 +8,6 @@
 
 };
 
-&fiq_debugger {
-	rockchip,irq-mode-enable = <1>;
-	status = "okay";
-};
-
 &gmac {
 	status = "okay";
 };
