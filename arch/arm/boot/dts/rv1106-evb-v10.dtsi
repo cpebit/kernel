@@ -7,7 +7,7 @@
 
 / {
 	chosen {
-		bootargs = "console=ttyS2,115200n8 root=/dev/mmcblk0p4 rootfstype=ext4 rw rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=0";
+		bootargs = "console=ttyS2,115200n8 root=/dev/mmcblk0p5 rootfstype=ext4 rw rootwait snd_soc_core.prealloc_buffer_size_kbytes=16 coherent_pool=0";
 	};
 
 	acodec_sound: acodec-sound {
