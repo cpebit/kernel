@@ -33,9 +33,7 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Wno-date-time                      \
 	-DPOWERUP_MAX_RETRY=0 -DIFACE_HANG_FORCE_DEV_CLOSE -DWAIT_DEQUEUE     \
 	-DUSE_NEW_RSPEC_DEFS -Wno-declaration-after-statement                 \
 	-DWL_EXT_IAPSTA -DWL_ESCAN -DCCODE_LIST                               \
-	-DENABLE_INSMOD_NO_FW_LOAD -DBCM_USE_PLATFORM_STRLCPY                 \
-	-Idrivers/net/wireless/rockchip_wlan/rkwifi/bcmdhd                    \
-	-Idrivers/net/wireless/rockchip_wlan/rkwifi/bcmdhd/include
+	-DENABLE_INSMOD_NO_FW_LOAD -DBCM_USE_PLATFORM_STRLCPY
 
 DHDOFILES = aiutils.o siutils.o sbutils.o bcmutils.o bcmwifi_channels.o   \
 	dhd_linux.o dhd_linux_platdev.o dhd_linux_sched.o dhd_pno.o           \
@@ -278,9 +276,11 @@ endif
 endif
 
 ARCH ?= arm64
-BCMDHD_ROOT = $(src)
+BCMDHD_ROOT = drivers/net/wireless/rockchip_wlan/rkwifi/bcmdhd
 #$(warning "BCMDHD_ROOT=$(BCMDHD_ROOT)")
 EXTRA_CFLAGS = $(DHDCFLAGS)
+EXTRA_CFLAGS += -DDHD_COMPILED=\"$(BCMDHD_ROOT)\"
+EXTRA_CFLAGS += -I$(BCMDHD_ROOT)/include/ -I$(BCMDHD_ROOT)/
 EXTRA_CFLAGS += -Wno-parentheses-equality
 EXTRA_CFLAGS += -Wno-unused-const-variable
 EXTRA_CFLAGS += -Wno-non-literal-null-conversion
