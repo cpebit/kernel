@@ -846,22 +846,22 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	/* some buggy devices have an IAD but no CDC Union */
 	if (!hdr.usb_cdc_union_desc && intf->intf_assoc && intf->intf_assoc->bInterfaceCount == 2) {
 		ctx->data = usb_ifnum_to_if(dev->udev, intf->cur_altsetting->desc.bInterfaceNumber + 1);
-		dev_dbg(&intf->dev, "CDC Union missing - got slave from IAD\n");
+		dev_info(&intf->dev, "CDC Union missing - got slave from IAD\n");
 	}
 
 	/* check if we got everything */
 	if (!ctx->data) {
-		dev_dbg(&intf->dev, "CDC Union missing and no IAD found\n");
+		dev_info(&intf->dev, "CDC Union missing and no IAD found\n");
 		goto error;
 	}
 	if (cdc_ncm_comm_intf_is_mbim(intf->cur_altsetting)) {
 		if (!ctx->mbim_desc) {
-			dev_dbg(&intf->dev, "MBIM functional descriptor missing\n");
+			dev_info(&intf->dev, "MBIM functional descriptor missing\n");
 			goto error;
 		}
 	} else {
 		if (!ctx->ether_desc || !ctx->func_desc) {
-			dev_dbg(&intf->dev, "NCM or ECM functional descriptors missing\n");
+			dev_info(&intf->dev, "NCM or ECM functional descriptors missing\n");
 			goto error;
 		}
 	}
@@ -870,7 +870,7 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	if (ctx->data != ctx->control) {
 		temp = usb_driver_claim_interface(driver, ctx->data, dev);
 		if (temp) {
-			dev_dbg(&intf->dev, "failed to claim data intf\n");
+			dev_info(&intf->dev, "failed to claim data intf\n");
 			goto error;
 		}
 	}
@@ -891,13 +891,15 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 
 	temp = usb_set_interface(dev->udev, iface_no, 0);
 	if (temp) {
-		dev_dbg(&intf->dev, "set interface failed\n");
+		dev_info(&intf->dev, "set interface failed\n");
 		goto error2;
 	}
 
 	/* initialize basic device settings */
-	if (cdc_ncm_init(dev))
+	if (cdc_ncm_init(dev)){
+	    dev_info(&intf->dev, "cdc ncm init failed\n");
 		goto error2;
+    }
 
 	/* Some firmwares need a pause here or they will silently fail
 	 * to set up the interface properly.  This value was decided
@@ -909,15 +911,19 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	/* configure data interface */
 	temp = usb_set_interface(dev->udev, iface_no, data_altsetting);
 	if (temp) {
-		dev_dbg(&intf->dev, "set interface failed\n");
+		dev_info(&intf->dev, "set interface failed\n");
 		goto error2;
 	}
 
 	cdc_ncm_find_endpoints(dev, ctx->data);
 	cdc_ncm_find_endpoints(dev, ctx->control);
-	if (!dev->in || !dev->out || !dev->status) {
-		dev_dbg(&intf->dev, "failed to collect endpoints\n");
+	if (!dev->in || !dev->out) {
+		dev_info(&intf->dev, "failed to collect endpoints\n");
 		goto error2;
+	}
+
+	if (!dev->status){
+	    dev_info(&intf->dev, "ignoring missing status EP\n");
 	}
 
 	usb_set_intfdata(ctx->data, dev);
@@ -926,7 +932,7 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	if (ctx->ether_desc) {
 		temp = usbnet_get_ethernet_addr(dev, ctx->ether_desc->iMACAddress);
 		if (temp) {
-			dev_dbg(&intf->dev, "failed to get mac address\n");
+			dev_info(&intf->dev, "failed to get mac address\n");
 			goto error2;
 		}
 		dev_info(&intf->dev, "MAC-Address: %pM\n", dev->net->dev_addr);
@@ -958,6 +964,12 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	/* must handle MTU changes */
 	dev->net->netdev_ops = &cdc_ncm_netdev_ops;
 	dev->net->max_mtu = cdc_ncm_max_dgram_size(dev) - cdc_ncm_eth_hlen(dev);
+
+	/* If status endpoint is missing, brink link up immediately */
+	if(!dev->status){
+	    netif_info(dev, link, dev->net, "network connection: connected\n");
+        usbnet_link_change(dev, true, 0);
+    }
 
 	return 0;
 
