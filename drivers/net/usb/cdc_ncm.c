@@ -965,12 +965,6 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	dev->net->netdev_ops = &cdc_ncm_netdev_ops;
 	dev->net->max_mtu = cdc_ncm_max_dgram_size(dev) - cdc_ncm_eth_hlen(dev);
 
-	/* If status endpoint is missing, brink link up immediately */
-	if(!dev->status){
-	    netif_info(dev, link, dev->net, "network connection: connected\n");
-        usbnet_link_change(dev, true, 0);
-    }
-
 	return 0;
 
 error2:
