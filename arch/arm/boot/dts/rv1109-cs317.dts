@@ -354,6 +354,14 @@
 	>;
 };
 
+&rkvdec {
+    status = "okay";
+};
+
+&rkvdec_mmu {
+    status = "okay";
+};
+
 &rng {
 	status = "okay";
 };
