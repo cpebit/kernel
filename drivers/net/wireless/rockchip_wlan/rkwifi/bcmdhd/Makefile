@@ -34,6 +34,7 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Wno-date-time                      \
 	-DUSE_NEW_RSPEC_DEFS -Wno-declaration-after-statement                 \
 	-DWL_EXT_IAPSTA -DWL_ESCAN -DCCODE_LIST                               \
 	-DENABLE_INSMOD_NO_FW_LOAD -DBCM_USE_PLATFORM_STRLCPY                 \
+	-Wno-implicit-function-declaration                                    \
 	-I $(srctree)/$(src)                                                  \
 	-I $(srctree)/$(src)/include
 
