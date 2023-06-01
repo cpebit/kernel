@@ -279,9 +279,6 @@ endif
 
 ARCH ?= arm64
 EXTRA_CFLAGS = $(DHDCFLAGS)
-EXTRA_CFLAGS += -Wno-parentheses-equality
-EXTRA_CFLAGS += -Wno-unused-const-variable
-EXTRA_CFLAGS += -Wno-non-literal-null-conversion
 
 ifeq ($(CONFIG_BCMDHD),m)
 EXTRA_LDFLAGS += --strip-debug
