@@ -342,9 +342,9 @@ dhd_wlan_mem_prealloc(
 
 	return NULL;
 }
-#ifndef DHD_STATIC_IN_DRIVER
+//#ifndef DHD_STATIC_IN_DRIVER
 EXPORT_SYMBOL(dhd_wlan_mem_prealloc);
-#endif
+//#endif
 
 static void
 dhd_deinit_wlan_mem(int index)
