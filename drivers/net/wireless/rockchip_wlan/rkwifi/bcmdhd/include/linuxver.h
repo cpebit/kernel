@@ -376,6 +376,8 @@ typedef struct timer_list timer_list_compat_t;
 
 #else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0) */
 
+#include <linux/timer.h>
+
 typedef struct timer_list_compat {
 	struct timer_list timer;
 	void *arg;
