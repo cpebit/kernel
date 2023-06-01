@@ -34,7 +34,8 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Wno-date-time                      \
 	-DUSE_NEW_RSPEC_DEFS -Wno-declaration-after-statement                 \
 	-DWL_EXT_IAPSTA -DWL_ESCAN -DCCODE_LIST                               \
 	-DENABLE_INSMOD_NO_FW_LOAD -DBCM_USE_PLATFORM_STRLCPY                 \
-	-Idrivers/net/wireless/rockchip_wlan/rkwifi/bcmdhd/include
+	-I $(srctree)/$(src)                                                  \
+	-I $(srctree)/$(src)/include
 
 DHDOFILES = aiutils.o siutils.o sbutils.o bcmutils.o bcmwifi_channels.o   \
 	dhd_linux.o dhd_linux_platdev.o dhd_linux_sched.o dhd_pno.o           \
