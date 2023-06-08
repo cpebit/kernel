@@ -10,7 +10,7 @@
 //#include "rv1106-evb-cam.dtsi"
 
 // -------------camera select---------------
-#include "rongpin/rp-camera-gc2093x1.dtsi"
+//#include "rongpin/rp-camera-gc2093x1.dtsi"
 //#include "rongpin/rp-camera-imx415x1.dtsi"
 //#include "rongpin/rp-camera-gc2093x2.dtsi"
 //#include "rongpin/rp-camera-imx327x1.dtsi"
