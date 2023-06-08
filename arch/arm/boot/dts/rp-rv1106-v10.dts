@@ -222,13 +222,13 @@
 };
 
 &spi0 {
-        status = "okay";
+        status = "disabled";
 
     /* rewrite pinctrl for cs1 used to be camera clk */
 	pinctrl-0 = <&spi0m0_cs0 &spi0m0_pins>;
 
         spi0can: mcp2515@0 {
-            status = "okay";
+            status = "disabled";
             compatible = "microchip,mcp2515";
             reg = <0>;
             clocks = <&osc_24m>;
@@ -267,30 +267,30 @@
 &uart3 {
         pinctrl-names = "default";
         pinctrl-0 = <&uart3m1_xfer>;
-        status = "okay";
+        status = "disabled";
 };
 
 &uart4 {
 	pinctrl-names = "default";
         pinctrl-0 = <&uart4m1_xfer>;
-        status = "okay";
+        status = "disabled";
 };
 &uart5 {
         pinctrl-names = "default";
         pinctrl-0 = <&uart5m1_xfer>;
-        status = "okay";
+        status = "disabled";
 };
 
 &acodec_sound{
-	status = "okay";
+	status = "disabled";
 };
 
 &pwm3 {         
-        status = "okay";
+        status = "disabled";
 	pinctrl-0 = <&pwm3m1_pins>;
 };
 &pwm7 {         
-        status = "okay";
+        status = "disabled";
 	pinctrl-0 = <&pwm7m1_pins>;
 
 };
