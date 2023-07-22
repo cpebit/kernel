@@ -55,7 +55,7 @@
 &acodec {
 	#sound-dai-cells = <0>;
 	pa-ctl-gpios = <&gpio1 RK_PA1 GPIO_ACTIVE_HIGH>;
-	status = "okay";
+	status = "disabled";
 };
 
 &cpu0 {
@@ -71,7 +71,7 @@
 	rockchip,default-sample-phase = <90>;
 	no-sdio;
 	no-sd;
-	status = "okay";
+	status = "disabled";
 };
 
 &dsm {
@@ -79,7 +79,7 @@
 };
 
 &i2c4 {
-	status = "okay";
+	status = "disabled";
 	clock-frequency = <400000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c4m2_xfer>;
@@ -87,13 +87,13 @@
 
 &i2s0_8ch {
 	#sound-dai-cells = <0>;
-	status = "okay";
+	status = "disabled";
 };
 
 &pwm0 {
-	status = "okay";
+	status = "disabled";
 };
 
 &rtc {
-	status = "okay";
+	status = "disabled";
 };

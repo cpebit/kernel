@@ -14,11 +14,11 @@
 };
 
 &gmac {
-	status = "okay";
+	status = "disabled";
 };
 
 &i2s0_8ch {
-	status = "okay";
+	status = "disabled";
 };
 
 &mpp_srv {
@@ -30,7 +30,7 @@
 };
 
 &npu {
-	status = "okay";
+	status = "disabled";
 };
 
 &rga2 {
