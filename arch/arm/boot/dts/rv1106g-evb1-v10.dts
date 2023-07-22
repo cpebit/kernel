@@ -7,7 +7,6 @@
 
 #include "rv1106.dtsi"
 #include "rv1106-evb-v10.dtsi"
-#include "rv1106-evb-cam.dtsi"
 
 / {
 	model = "Rockchip RV1106G EVB1 V10 Board";
@@ -86,7 +85,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_host_wake_irq>;
 		WIFI,host_wake_irq = <&gpio2 RK_PB0 GPIO_ACTIVE_HIGH>;
-		status = "okay";
+		status = "disabled";
 	};
 };
 
@@ -139,7 +138,7 @@
 	sd-uhs-sdr104;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1m0_cmd &sdmmc1m0_clk &sdmmc1m0_bus4 &clk_32k>;
-	status = "okay";
+	status = "disabled";
 };
 
 &sdmmc {
@@ -159,9 +158,10 @@
 	sd-uhs-sdr104;
 	vmmc-supply = <&vcc3v3_sd>;
 	vqmmc-supply = <&vccio_sd>;
-	status = "okay";
+	status = "disabled";
 };
 
 &u2phy_otg {
 	vbus-supply = <&vcc5v0_usb>;
+	dr_mode = "peripheral";
 };
