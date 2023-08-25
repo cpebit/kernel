@@ -95,9 +95,6 @@
 
     wireless_bluetooth: wireless-bluetooth {
         compatible = "bluetooth-platdata";
-        clocks = <&cru CLK_32K_IOE>;
-        assigned-clocks = <&cru CLK_32K_IOE>;
-        assigned-clock-parents = <&cru CLK_RTC32K>;
         uart_rts_gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
         pinctrl-names = "default", "rts_gpio";
         pinctrl-0 = <&uart4m1_rtsn>;
