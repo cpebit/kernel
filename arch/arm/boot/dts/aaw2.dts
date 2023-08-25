@@ -136,7 +136,7 @@
 
     gpio-keys {
         compatible = "gpio-keys";
-        status = "okay"
+        status = "okay";
 
         F15 {
              gpios = <&gpio2 5 GPIO_ACTIVE_LOW>;
