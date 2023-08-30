@@ -83,6 +83,8 @@
 
     gpio-leds {
         compatible = "gpio-leds";
+        pinctrl-names = "default";
+        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green>;
         status = "okay";
 
         rgb-red {
@@ -90,8 +92,6 @@
             gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_LOW>;
             linux,default-trigger = "none";
             default-state = "off";
-            pinctrl-names = "default";
-            pinctrl-0 = <&rgb_red>;
         };
 
         rgb-blue {
@@ -99,8 +99,6 @@
             gpios = <&gpio2 RK_PA6 GPIO_ACTIVE_LOW>;
             linux,default-trigger = "none";
             default-state = "off";
-            pinctrl-names = "default";
-            pinctrl-0 = <&rgb_blue>;
         };
 
         rgb-green {
@@ -108,8 +106,6 @@
             gpios = <&gpio2 RK_PA7 GPIO_ACTIVE_LOW>;
             linux,default-trigger = "default-on";
             default-state = "on";
-            pinctrl-names = "default";
-            pinctrl-0 = <&rgb_green>;
         };
     };
 
