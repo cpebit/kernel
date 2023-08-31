@@ -314,12 +314,15 @@
 
 &pwm2 {
     status = "okay";
-}
+    pinctrl-0 = <&pwm2m1_pins>;
+};
 
 &pwm4 {
     status = "okay";
-}
+    pinctrl-0 = <&pwm4m1_pins>;
+};
 
 &pwm6 {
     status = "okay";
-}
+    pinctrl-0 = <&pwm6m1_pins>;
+};
