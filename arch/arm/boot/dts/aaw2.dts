@@ -313,13 +313,13 @@
 };
 
 &pwm2 {
-    status = "okay"
+    status = "okay";
 }
 
 &pwm4 {
-    status = "okay"
+    status = "okay";
 }
 
 &pwm6 {
-    status = "okay"
+    status = "okay";
 }
