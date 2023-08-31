@@ -81,29 +81,32 @@
         status = "okay";
     };
 
-    gpio-leds {
-        compatible = "gpio-leds";
+    pwmleds {
+        compatible = "pwm-leds";
         pinctrl-names = "default";
         pinctrl-0 = <&rgb_red &rgb_blue &rgb_green>;
         status = "okay";
 
         rgb-red {
             label = "rgb-red";
-            gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_LOW>;
+            pwms = <&pwm6 1 7812500>;
+            max-brightness = <255>;
             linux,default-trigger = "none";
             default-state = "off";
         };
 
         rgb-blue {
             label = "rgb-blue";
-            gpios = <&gpio2 RK_PA6 GPIO_ACTIVE_LOW>;
+            pwms = <&pwm2 1 7812500>;
+            max-brightness = <255>;
             linux,default-trigger = "none";
             default-state = "off";
         };
 
         rgb-green {
             label = "rgb-green";
-            gpios = <&gpio2 RK_PA7 GPIO_ACTIVE_LOW>;
+            pwms = <&pwm4 1 7812500>;
+            max-brightness = <255>;
             linux,default-trigger = "default-on";
             default-state = "on";
         };
@@ -308,3 +311,15 @@
 	vbus-supply = <&vcc5v0_usb>;
 	dr_mode = "peripheral";
 };
+
+&pwm2 {
+    status = "okay"
+}
+
+&pwm4 {
+    status = "okay"
+}
+
+&pwm6 {
+    status = "okay"
+}
