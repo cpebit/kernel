@@ -4,7 +4,7 @@
 MODULE_NAME := bcmdhd
 CONFIG_BCMDHD ?= m
 
-#CONFIG_BCMDHD_SDIO := y
+CONFIG_BCMDHD_SDIO := y
 #CONFIG_BCMDHD_PCIE := y
 #CONFIG_BCMDHD_USB := y
 
@@ -356,7 +356,7 @@ endif
 endif
 
 ARCH ?= arm64
-BCMDHD_ROOT = $(src)
+BCMDHD_ROOT = $(srctree)/$(src)
 #$(warning "BCMDHD_ROOT=$(BCMDHD_ROOT)")
 EXTRA_CFLAGS = $(DHDCFLAGS)
 EXTRA_CFLAGS += -DDHD_COMPILED=\"$(BCMDHD_ROOT)\"
