@@ -261,7 +261,7 @@
     };
 };
 
-&sdio {
+&sdmmc {
 	max-frequency = <200000000>;
 	no-sd;
 	no-mmc;
@@ -276,7 +276,7 @@
 	status = "enabled";
 };
 
-&sdmmc {
+&sdio {
 	status = "disabled";
 };
 
