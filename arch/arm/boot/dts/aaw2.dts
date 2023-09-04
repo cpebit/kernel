@@ -9,22 +9,6 @@
 	model = "AAWireless V2";
 	compatible = "rockchip,aaw2", "rockchip,rv1106";
 
-	sdio_pwrseq: sdio-pwrseq {
-        compatible = "mmc-pwrseq-simple";
-        pinctrl-names = "default";
-        pinctrl-0 = <&wifi_enable_h &wifi_vbat>;
-
-        /*
-         * On the module itself this is one of these (depending
-         * on the actual card populated):
-         * - SDIO_RESET_L_WL_REG_ON
-         * - PDN (power down when low)
-         */
-        post-power-on-delay-ms = <300>;
-        reset-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>,
-                  <&gpio1 RK_PA0 GPIO_ACTIVE_LOW>;
-    };
-
     vdd_arm: vdd-arm {
         compatible = "pwm-regulator";
         pwms = <&pwm0 0 5000 1>;
@@ -244,16 +228,6 @@
 };
 
 &pinctrl {
-	sdio-pwrseq {
-		wifi_enable_h: wifi-enable-h {
-			rockchip,pins = <1 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
-		wifi_vbat: wifi-vbat {
-			rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-
 	usb {
 		usb_pwren: usb-pwren {
 			rockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -295,11 +269,10 @@
 	cap-sd-highspeed;
 	cap-sdio-irq;
 	keep-power-in-suspend;
-	mmc-pwrseq = <&sdio_pwrseq>;
 	non-removable;
 	sd-uhs-sdr104;
 	pinctrl-names = "default";
-	pinctrl-0 = <&sdmmc1m0_cmd &sdmmc1m0_clk &sdmmc1m0_bus4 &clk_32k>;
+	pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4 &clk_32k>;
 	status = "enabled";
 };
 
