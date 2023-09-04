@@ -9,6 +9,21 @@
 	model = "AAWireless V2";
 	compatible = "rockchip,aaw2", "rockchip,rv1106";
 
+	sdio_pwrseq: sdio-pwrseq {
+        compatible = "mmc-pwrseq-simple";
+        pinctrl-names = "default";
+        pinctrl-0 = <&rgb_blue>;
+
+        /*
+         * On the module itself this is one of these (depending
+         * on the actual card populated):
+         * - SDIO_RESET_L_WL_REG_ON
+         * - PDN (power down when low)
+         */
+        post-power-on-delay-ms = <300>;
+        reset-gpios = <&gpio2 RK_PA6 GPIO_ACTIVE_HIGH>;
+    };
+
     vdd_arm: vdd-arm {
         compatible = "pwm-regulator";
         pwms = <&pwm0 0 5000 1>;
@@ -63,37 +78,6 @@
         pinctrl-0 = <&uart4m1_rtsn>;
         pinctrl-1 = <&uart4m1_rtsn_gpio>;
         status = "okay";
-    };
-
-    pwmleds {
-        compatible = "pwm-leds";
-        pinctrl-names = "default";
-        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green>;
-        status = "okay";
-
-        rgb-red {
-            label = "rgb-red";
-            pwms = <&pwm6 1 7812500>;
-            max-brightness = <255>;
-            linux,default-trigger = "none";
-            default-state = "off";
-        };
-
-        rgb-blue {
-            label = "rgb-blue";
-            pwms = <&pwm2 1 7812500>;
-            max-brightness = <255>;
-            linux,default-trigger = "none";
-            default-state = "off";
-        };
-
-        rgb-green {
-            label = "rgb-green";
-            pwms = <&pwm4 1 7812500>;
-            max-brightness = <255>;
-            linux,default-trigger = "default-on";
-            default-state = "on";
-        };
     };
 
     gpio-keys {
@@ -269,6 +253,7 @@
 	cap-sd-highspeed;
 	cap-sdio-irq;
 	keep-power-in-suspend;
+	mmc-pwrseq = <&sdio_pwrseq>;
 	non-removable;
 	sd-uhs-sdr104;
 	pinctrl-names = "default";
@@ -283,21 +268,6 @@
 &u2phy_otg {
 	vbus-supply = <&vcc5v0_usb>;
 	dr_mode = "peripheral";
-};
-
-&pwm2 {
-    status = "okay";
-    pinctrl-0 = <&pwm2m1_pins>;
-};
-
-&pwm4 {
-    status = "okay";
-    pinctrl-0 = <&pwm4m1_pins>;
-};
-
-&pwm6 {
-    status = "okay";
-    pinctrl-0 = <&pwm6m1_pins>;
 };
 
 &uart3 {
