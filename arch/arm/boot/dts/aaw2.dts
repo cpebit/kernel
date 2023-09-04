@@ -299,3 +299,7 @@
     status = "okay";
     pinctrl-0 = <&pwm6m1_pins>;
 };
+
+&uart3 {
+    status = "okay";
+}
