@@ -9,21 +9,6 @@
 	model = "AAWireless V2";
 	compatible = "rockchip,aaw2", "rockchip,rv1106";
 
-	sdio_pwrseq: sdio-pwrseq {
-        compatible = "mmc-pwrseq-simple";
-        pinctrl-names = "default";
-        pinctrl-0 = <&rgb_blue>;
-
-        /*
-         * On the module itself this is one of these (depending
-         * on the actual card populated):
-         * - SDIO_RESET_L_WL_REG_ON
-         * - PDN (power down when low)
-         */
-        post-power-on-delay-ms = <300>;
-        reset-gpios = <&gpio2 RK_PA6 GPIO_ACTIVE_HIGH>;
-    };
-
     vdd_arm: vdd-arm {
         compatible = "pwm-regulator";
         pwms = <&pwm0 0 5000 1>;
@@ -68,6 +53,9 @@
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
         wifi_chip_type = "ap6255";
+        WIFI,poweren_gpio = <&gpio2 RK_PA6 GPIO_ACTIVE_HIGH>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&rgb_blue>;
         status = "okay";
     };
 
@@ -253,7 +241,6 @@
 	cap-sd-highspeed;
 	cap-sdio-irq;
 	keep-power-in-suspend;
-	mmc-pwrseq = <&sdio_pwrseq>;
 	non-removable;
 	sd-uhs-sdr104;
 	pinctrl-names = "default";
