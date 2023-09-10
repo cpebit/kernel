@@ -535,7 +535,10 @@ static int __maybe_unused ehci_platform_resume(struct device *dev)
 	}
 
 	companion_dev = usb_of_get_companion_dev(hcd->self.controller);
-	if (companion_dev && !device_is_dependent(hcd->self.controller, companion_dev)) {
+	// originally from: 68850661b51e40faf9f5f21e4b7a083476da3f99
+	// disabled as `device_is_dependent` is not available
+	//if (companion_dev && !device_is_dependent(hcd->self.controller, companion_dev)) {
+	if (companion_dev) {
 		device_pm_wait_for_dev(hcd->self.controller, companion_dev);
 		put_device(companion_dev);
 	}
