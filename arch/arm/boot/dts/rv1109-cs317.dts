@@ -1,7 +1,6 @@
 /dts-v1/;
 
 #include "rv1109.dtsi"
-#include "rv1126.dtsi"
 #include "rv1126-pinctrl.dtsi"
 #include <dt-bindings/display/drm_mipi_dsi.h>
 #include <dt-bindings/input/input.h>
