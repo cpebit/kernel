@@ -9,20 +9,6 @@
 	model = "AAWireless V2";
 	compatible = "rockchip,aaw2", "rockchip,rv1106";
 
-	gpio-leds {
-        compatible = "gpio-leds";
-        pinctrl-names = "default";
-        pinctrl-0 = <&rgb_blue>;
-        status = "okay";
-
-        rgb-blue {
-            label = "rgb-blue";
-            gpios = <&gpio2 RK_PA6 GPIO_ACTIVE_HIGH>;
-            linux,default-trigger = "default-on";
-            default-state = "on";
-        };
-    };
-
     vdd_arm: vdd-arm {
         compatible = "pwm-regulator";
         pwms = <&pwm0 0 5000 1>;
