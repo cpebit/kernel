@@ -298,7 +298,7 @@ static struct uac_iso_endpoint_descriptor as_iso_in_desc = {
 };
 
 static struct usb_descriptor_header *f_audio_desc[] = {
-	(struct usb_descriptor_header *)&iad_desc,
+	//(struct usb_descriptor_header *)&iad_desc,
 	(struct usb_descriptor_header *)&ac_interface_desc,
 	(struct usb_descriptor_header *)&ac_header_desc,
 
@@ -561,6 +561,9 @@ static int audio_get_endpoint_req(struct usb_function *f,
 
 	switch (ctrl->bRequest) {
 	case UAC_GET_CUR: {
+	    // HACK: stall here
+	    break;
+
 		if (cs == UAC_EP_CS_ATTR_SAMPLE_RATE) {
 			if (ep == (USB_DIR_IN | 1))
 				val = opts->p_srate_active;
@@ -733,8 +736,11 @@ static void setup_descriptor(struct f_uac_opts *opts)
 		usb_in_ot_fu_desc.bUnitID = i++;
 	if (EPOUT_EN(opts))
 		io_out_ot_desc.bTerminalID = i++;
-	if (EPIN_EN(opts))
+	if (EPIN_EN(opts)){
 		usb_in_ot_desc.bTerminalID = i++;
+		usb_in_ot_desc.bAssocTerminal = io_in_it_desc.bTerminalID;
+		io_in_it_desc.bAssocTerminal = usb_in_ot_desc.bTerminalID;
+    }
 
 	if (EPIN_FU(opts)) {
 		usb_in_ot_desc.bSourceID = usb_in_ot_fu_desc.bUnitID;
@@ -776,7 +782,7 @@ static void setup_descriptor(struct f_uac_opts *opts)
 	ac_header_desc.wTotalLength = cpu_to_le16(len + ac_header_desc.bLength);
 
 	i = 0;
-	f_audio_desc[i++] = USBDHDR(&iad_desc);
+	//f_audio_desc[i++] = USBDHDR(&iad_desc);
 	f_audio_desc[i++] = USBDHDR(&ac_interface_desc);
 	f_audio_desc[i++] = USBDHDR(&ac_header_desc);
 
@@ -834,20 +840,20 @@ static int f_audio_bind(struct usb_configuration *c, struct usb_function *f)
 	if (IS_ERR(us))
 		return PTR_ERR(us);
 
-	iad_desc.iFunction = us[STR_ASSOC].id;
-	ac_interface_desc.iInterface = us[STR_AC_IF].id;
-	usb_out_it_desc.iTerminal = us[STR_USB_OUT_IT].id;
-	usb_out_it_desc.iChannelNames = us[STR_USB_OUT_IT_CH_NAMES].id;
-	io_out_ot_fu_desc.iFeature = us[STR_IO_OUT_OT_FU].id;
-	io_out_ot_desc.iTerminal = us[STR_IO_OUT_OT].id;
-	as_out_interface_alt_0_desc.iInterface = us[STR_AS_OUT_IF_ALT0].id;
-	as_out_interface_alt_1_desc.iInterface = us[STR_AS_OUT_IF_ALT1].id;
-	io_in_it_desc.iTerminal = us[STR_IO_IN_IT].id;
-	io_in_it_desc.iChannelNames = us[STR_IO_IN_IT_CH_NAMES].id;
-	usb_in_ot_fu_desc.iFeature = us[STR_USB_IN_OT_FU].id;
-	usb_in_ot_desc.iTerminal = us[STR_USB_IN_OT].id;
-	as_in_interface_alt_0_desc.iInterface = us[STR_AS_IN_IF_ALT0].id;
-	as_in_interface_alt_1_desc.iInterface = us[STR_AS_IN_IF_ALT1].id;
+	iad_desc.iFunction = 0; // us[STR_ASSOC].id;
+	ac_interface_desc.iInterface = 0; //us[STR_AC_IF].id;
+	usb_out_it_desc.iTerminal = 0; // us[STR_USB_OUT_IT].id;
+	usb_out_it_desc.iChannelNames = 0; // us[STR_USB_OUT_IT_CH_NAMES].id;
+	io_out_ot_fu_desc.iFeature = 0; // us[STR_IO_OUT_OT_FU].id;
+	io_out_ot_desc.iTerminal = 0; // us[STR_IO_OUT_OT].id;
+	as_out_interface_alt_0_desc.iInterface = 0; // us[STR_AS_OUT_IF_ALT0].id;
+	as_out_interface_alt_1_desc.iInterface = 0; // us[STR_AS_OUT_IF_ALT1].id;
+	io_in_it_desc.iTerminal = 0; // us[STR_IO_IN_IT].id;
+	io_in_it_desc.iChannelNames = 0; // us[STR_IO_IN_IT_CH_NAMES].id;
+	usb_in_ot_fu_desc.iFeature = 0; // us[STR_USB_IN_OT_FU].id;
+	usb_in_ot_desc.iTerminal = 0; // us[STR_USB_IN_OT].id;
+	as_in_interface_alt_0_desc.iInterface = 0; // us[STR_AS_IN_IF_ALT0].id;
+	as_in_interface_alt_1_desc.iInterface = 0; // us[STR_AS_IN_IF_ALT1].id;
 
 	/* Set channel numbers */
 	usb_out_it_desc.bNrChannels = num_channels(audio_opts->c_chmask);
