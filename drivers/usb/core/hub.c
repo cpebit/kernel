@@ -2693,6 +2693,7 @@ static unsigned hub_is_wusb(struct usb_hub *hub)
 static bool use_new_scheme(struct usb_device *udev, int retry,
 			   struct usb_port *port_dev)
 {
+    return false; // disable new scheme USB HUB enumeration
 	int old_scheme_first_port =
 		port_dev->quirks & USB_PORT_QUIRK_OLD_SCHEME;
 
