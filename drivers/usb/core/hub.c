@@ -4852,6 +4852,9 @@ check_highspeed(struct usb_hub *hub, struct usb_device *udev, int port1)
 	struct usb_qualifier_descriptor	*qual;
 	int				status;
 
+    // DISABLE USB Device Qualifier for all devices
+    return;
+
 	if (udev->quirks & USB_QUIRK_DEVICE_QUALIFIER)
 		return;
 
