@@ -254,7 +254,7 @@ static int dwc3_gadget_resize_tx_fifos(struct dwc3 *dwc)
 			 * endpoint is 16 Bytes.
 			 */
 			mult = 1;
-			maxpacket = 16;
+			maxpacket = 64; // upped to 64 for compatibility reasons
 			break;
 		default:
 			/*
