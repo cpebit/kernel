@@ -853,13 +853,16 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	 * Some other devices do not work properly with this procedure
 	 * that can be avoided using quirk CDC_MBIM_FLAG_AVOID_ALTSETTING_TOGGLE
 	 */
-	if (!(ctx->drvflags & CDC_MBIM_FLAG_AVOID_ALTSETTING_TOGGLE))
+	if (false && !(ctx->drvflags & CDC_MBIM_FLAG_AVOID_ALTSETTING_TOGGLE))
 		usb_set_interface(dev->udev, iface_no, data_altsetting);
 
-	temp = usb_set_interface(dev->udev, iface_no, 0);
-	if (temp) {
-		dev_info(&intf->dev, "set interface failed\n");
-		goto error2;
+    // only change alt if not already set
+    if(usb_altnum_to_altsetting(ctx->data, 0) != ctx->data->cur_altsetting){
+        temp = usb_set_interface(dev->udev, iface_no, 0);
+        if (temp) {
+            dev_info(&intf->dev, "set interface failed\n");
+            goto error2;
+        }
 	}
 
 	/* initialize basic device settings */
