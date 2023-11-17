@@ -52,16 +52,19 @@
 
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
+        WIFI,poweren_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&wifi_enable>;
         wifi_chip_type = "ap6255";
         status = "okay";
     };
 
     wireless_bluetooth: wireless-bluetooth {
         compatible = "bluetooth-platdata";
-        uart_rts_gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
+        uart_rts_gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
         pinctrl-names = "default", "rts_gpio";
-        pinctrl-0 = <&uart4m1_rtsn>;
-        pinctrl-1 = <&uart4m1_rtsn_gpio>;
+        pinctrl-0 = <&uart4m1_rtsn, &bt_enable>;
+        pinctrl-1 = <&uart4m1_rtsn_gpio, &bt_enable>;
         status = "okay";
     };
 
@@ -251,6 +254,16 @@
             rockchip,pins =
                 <2 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
         };
+
+        wifi_enable: wifi-enable {
+            rockchip,pins =
+                <1 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+        }
+
+        bt_enable: bt-enable {
+            rockchip,pins =
+                <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+        }
     };
 
     pwrbtn: pwrbtn {
