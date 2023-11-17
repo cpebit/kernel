@@ -259,12 +259,12 @@
         wifi_enable: wifi-enable {
             rockchip,pins =
                 <1 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
-        }
+        };
 
         bt_enable: bt-enable {
             rockchip,pins =
                 <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
-        }
+        };
     };
 
     pwrbtn: pwrbtn {
