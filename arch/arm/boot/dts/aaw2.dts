@@ -273,7 +273,11 @@
 };
 
 &sdmmc {
-	max-frequency = <200000000>;
+    status = "disabled";
+};
+
+&sdio {
+    max-frequency = <200000000>;
 	no-sd;
 	no-mmc;
 	bus-width = <4>;
@@ -285,10 +289,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4 &clk_32k>;
 	status = "enabled";
-};
-
-&sdio {
-	status = "disabled";
 };
 
 &u2phy_otg {
