@@ -50,22 +50,11 @@
         pinctrl-0 = <&usb_pwren>;
     };
 
-    sdio_pwrseq: sdio-pwrseq {
-        compatible = "mmc-pwrseq-simple";
-        pinctrl-names = "default";
-        pinctrl-0 = <&wifi_enable>;
-
-        /*
-         * On the module itself this is one of these (depending
-         * on the actual card populated):
-         * - SDIO_RESET_L_WL_REG_ON
-         * - PDN (power down when low)
-         */
-        reset-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;	//GPIO1_D0----WIFI_REG_ON
-    };
-
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
+        WIFI,poweren_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&wifi_enable>;
         wifi_chip_type = "ap6255";
         status = "okay";
     };
@@ -295,7 +284,6 @@
 	sd-uhs-sdr104;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4 &clk_32k>;
-	mmc-pwrseq = <&sdio_pwrseq>;
 	status = "enabled";
 };
 
