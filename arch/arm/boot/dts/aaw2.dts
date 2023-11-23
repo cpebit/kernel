@@ -56,27 +56,13 @@
         status = "okay";
     };
 
-     sdio_pwrseq: sdio-pwrseq {
-        compatible = "mmc-pwrseq-simple";
-        pinctrl-names = "default";
-        pinctrl-0 = <&wifi_enable>;
-
-        /*
-         * On the module itself this is one of these (depending
-         * on the actual card populated):
-         * - SDIO_RESET_L_WL_REG_ON
-         * - PDN (power down when low)
-         */
-        reset-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;	//GPIO1_D0----WIFI_REG_ON
-    };
-
     wireless_bluetooth: wireless-bluetooth {
         compatible = "bluetooth-platdata";
         uart_rts_gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
         pinctrl-names = "default", "rts_gpio";
-        pinctrl-0 = <&uart4m1_rtsn>, <&bt_enable>;
-        pinctrl-1 = <&uart4m1_rtsn_gpio>, <&bt_enable>;
-        BT,reset_gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
+        pinctrl-0 = <&uart4m1_rtsn>, <&wifi_enable>;
+        pinctrl-1 = <&uart4m1_rtsn_gpio>, <&wifi_enable>;
+        BT,power_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
 
@@ -293,7 +279,6 @@
     keep-power-in-suspend;
     non-removable;
     sd-uhs-sdr104;
-    mmc-pwrseq = <&sdio_pwrseq>;
     pinctrl-names = "default";
     pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4 &clk_32k>;
     status = "enabled";
@@ -309,7 +294,6 @@
 	keep-power-in-suspend;
 	non-removable;
 	sd-uhs-sdr104;
-	mmc-pwrseq = <&sdio_pwrseq>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4>;
 	status = "enabled";
