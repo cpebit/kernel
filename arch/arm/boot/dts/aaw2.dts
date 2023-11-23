@@ -60,9 +60,9 @@
         compatible = "bluetooth-platdata";
         uart_rts_gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
         pinctrl-names = "default", "rts_gpio";
-        pinctrl-0 = <&uart4m1_rtsn>, <&wifi_enable>;
-        pinctrl-1 = <&uart4m1_rtsn_gpio>, <&wifi_enable>;
-        BT,power_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+        pinctrl-0 = <&uart4m1_rtsn>, <&bt_enable>;
+        pinctrl-1 = <&uart4m1_rtsn_gpio>, <&bt_enable>;
+        BT,power_gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
 
@@ -306,4 +306,6 @@
 
 &uart3 {
     status = "okay";
+    pinctrl-names = "default";
+    pinctrl-0 = <&uart3m1_xfer>;
 };
