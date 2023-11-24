@@ -284,10 +284,6 @@
 };
 
 &sdmmc {
-    status = "disabled";
-};
-
-&sdio {
     max-frequency = <200000000>;
 	no-sd;
 	no-mmc;
@@ -300,7 +296,11 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4>;
 	mmc-pwrseq = <&sdio_pwrseq>;
-	status = "okay";
+    status = "okay";
+};
+
+&sdio {
+	status = "disabled";
 };
 
 &u2phy_otg {
