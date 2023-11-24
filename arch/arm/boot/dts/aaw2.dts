@@ -122,13 +122,6 @@
             linux,default-trigger = "default-on";
             default-state = "on";
         };
-
-        wifi-power {
-            label = "wifi-power";
-            gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
-            linux,default-trigger = "default-on";
-            default-state = "on";
-        };
     };
 };
 
@@ -292,16 +285,17 @@
 
 &sdio {
     max-frequency = <200000000>;
-	no-sd;
-	no-mmc;
-	bus-width = <4>;
-	cap-sd-highspeed;
-	cap-sdio-irq;
-	keep-power-in-suspend;
-	non-removable;
-	sd-uhs-sdr104;
-	pinctrl-names = "default";
-	pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4>;
+    bus-width = <4>;
+    cap-sd-highspeed;
+    cap-sdio-irq;
+    keep-power-in-suspend;
+    non-removable;
+    rockchip,default-sample-phase = <90>;
+    sd-uhs-sdr104;
+    supports-sdio;
+    mmc-pwrseq = <&sdio_pwrseq>;
+    pinctrl-names = "default";
+    pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4>;
     status = "okay";
 };
 
