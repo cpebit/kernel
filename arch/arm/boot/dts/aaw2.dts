@@ -85,7 +85,7 @@
     gpio-leds {
         compatible = "gpio-leds";
         pinctrl-names = "default";
-        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green, &wifi_enable>;
+        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green &wifi_enable>;
         status = "okay";
 
         rgb-red {
@@ -109,7 +109,7 @@
             default-state = "on";
         };
 
-       wifi-power {
+        wifi-power {
             label = "wifi-power";
             gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
             linux,default-trigger = "default-on";
