@@ -53,6 +53,9 @@
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
         wifi_chip_type = "ap6255";
+        WIFI,poweren_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&wifi_enable>;
         status = "okay";
     };
 
