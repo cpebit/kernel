@@ -99,7 +99,7 @@
     gpio-leds {
         compatible = "gpio-leds";
         pinctrl-names = "default";
-        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green &wifi_power>;
+        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green &wifi_enable>;
         status = "okay";
 
         rgb-red {
