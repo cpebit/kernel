@@ -292,7 +292,7 @@
 	sd-uhs-sdr104;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4>;
-	status = "enabled";
+	status = "okay";
 };
 
 &u2phy_otg {
