@@ -53,6 +53,9 @@
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
         wifi_chip_type = "ap6255";
+        WIFI,poweren_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&wifi_enable>;
         status = "okay";
     };
 
@@ -85,7 +88,7 @@
     gpio-leds {
         compatible = "gpio-leds";
         pinctrl-names = "default";
-        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green &wifi_enable>;
+        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green>;
         status = "okay";
 
         rgb-red {
@@ -105,13 +108,6 @@
         rgb-green {
             label = "rgb-green";
             gpios = <&gpio2 RK_PA7 GPIO_ACTIVE_LOW>;
-            linux,default-trigger = "default-on";
-            default-state = "on";
-        };
-
-        wifi-power {
-            label = "wifi-power";
-            gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
             linux,default-trigger = "default-on";
             default-state = "on";
         };
