@@ -67,6 +67,11 @@
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
         wifi_chip_type = "ap6255";
+        pinctrl-names = "default";
+        pinctrl-0 = <&wifi_wake_host>;
+        wifi_chip_type = "ap6254";
+        /* WIFI,poweren_gpio = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>; */
+        WIFI,host_wake_irq = <&gpio1 RK_PD2 GPIO_ACTIVE_HIGH>;	//GPIO1_D1----WIFI_WAKE_HOST
         status = "okay";
     };
 
@@ -275,6 +280,10 @@
         bt_enable: bt-enable {
             rockchip,pins =
                 <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+
+        wifi_wake_host: wifi-wake-host {
+            rockchip,pins = <1 RK_PD2 0 &pcfg_pull_up>;
         };
     };
 
