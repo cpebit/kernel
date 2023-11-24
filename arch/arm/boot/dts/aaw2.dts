@@ -277,18 +277,7 @@
 };
 
 &sdmmc {
-    max-frequency = <200000000>;
-    no-sd;
-    no-mmc;
-    bus-width = <4>;
-    cap-sd-highspeed;
-    cap-sdio-irq;
-    keep-power-in-suspend;
-    non-removable;
-    sd-uhs-sdr104;
-    pinctrl-names = "default";
-    pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4 &clk_32k>;
-    status = "enabled";
+    status = "disabled";
 };
 
 &sdio {
