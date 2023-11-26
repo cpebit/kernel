@@ -317,7 +317,7 @@
 };
 
 &sdmmc {
-	status = "okay";
+	status = "disabled";
 };
 
 &u2phy_otg {
