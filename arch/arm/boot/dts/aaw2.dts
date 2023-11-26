@@ -61,16 +61,16 @@
          * - SDIO_RESET_L_WL_REG_ON
          * - PDN (power down when low)
          */
-        reset-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;	//GPIO1_D0----WIFI_REG_ON
+        reset-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_LOW>;	//GPIO1_D0----WIFI_REG_ON
     };
 
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
         wifi_chip_type = "ap6255";
         pinctrl-names = "default";
-        pinctrl-0 = <&wifi_wake_host>, <&wifi_enable>;
+        //pinctrl-0 = <&wifi_wake_host>, <&wifi_enable>;
         //WIFI,poweren_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
-        WIFI,host_wake_irq = <&gpio1 RK_PD2 GPIO_ACTIVE_HIGH>;
+        //WIFI,host_wake_irq = <&gpio1 RK_PD2 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
 
@@ -103,7 +103,7 @@
     gpio-leds {
         compatible = "gpio-leds";
         pinctrl-names = "default";
-        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green &wifi_enable>;
+        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green>;
         status = "okay";
 
         rgb-red {
@@ -127,12 +127,12 @@
             default-state = "on";
         };
 
-         wifi-power {
+         /*wifi-power {
             label = "wifi-power";
             gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
             linux,default-trigger = "default-on";
             default-state = "on";
-        };
+        };*/
     };
 };
 
@@ -257,6 +257,13 @@
 		};
 	};
 
+	sdio-pwrseq {
+	    wifi_enable: wifi-enable {
+            rockchip,pins =
+                <1 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+	}
+
 	gpio {
         uart4m1_rtsn_gpio: uart4-rts-pin {
             rockchip,pins =
@@ -276,11 +283,6 @@
         rgb_green: rgb-green {
             rockchip,pins =
                 <2 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
-        };
-
-        wifi_enable: wifi-enable {
-            rockchip,pins =
-                <1 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
         };
 
         bt_enable: bt-enable {
@@ -308,14 +310,14 @@
     rockchip,default-sample-phase = <90>;
     sd-uhs-sdr104;
     supports-sdio;
-    //mmc-pwrseq = <&sdio_pwrseq>;
+    mmc-pwrseq = <&sdio_pwrseq>;
     pinctrl-names = "default";
     pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4>;
     status = "okay";
 };
 
 &sdmmc {
-	status = "disabled";
+	status = "okay";
 };
 
 &u2phy_otg {
