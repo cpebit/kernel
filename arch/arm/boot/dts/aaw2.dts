@@ -66,7 +66,7 @@
         pinctrl-names = "default", "rts_gpio";
         pinctrl-0 = <&uart4m1_rtsn>, <&bt_enable>;
         pinctrl-1 = <&uart4m1_rtsn_gpio>, <&bt_enable>;
-        BT,power_gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
+        //BT,power_gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
 
