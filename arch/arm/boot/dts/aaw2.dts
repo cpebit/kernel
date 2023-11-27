@@ -56,7 +56,7 @@
         pinctrl-names = "default";
         pinctrl-0 = <&wifi_wake_host>, <&wifi_enable>;
         WIFI,poweren_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
-        WIFI,host_wake_irq = <&gpio1 RK_PD2 GPIO_ACTIVE_HIGH>;
+        //WIFI,host_wake_irq = <&gpio1 RK_PD2 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
 
