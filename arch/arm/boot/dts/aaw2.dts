@@ -61,13 +61,13 @@
          * - SDIO_RESET_L_WL_REG_ON
          * - PDN (power down when low)
          */
-        reset-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_LOW>;	//GPIO1_D0----WIFI_REG_ON
+        reset-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;	//GPIO1_D0----WIFI_REG_ON
     };
 
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
         wifi_chip_type = "ap6255";
-        pinctrl-names = "default";
+        //pinctrl-names = "default";
         //pinctrl-0 = <&wifi_wake_host>, <&wifi_enable>;
         //WIFI,poweren_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
         //WIFI,host_wake_irq = <&gpio1 RK_PD2 GPIO_ACTIVE_HIGH>;
