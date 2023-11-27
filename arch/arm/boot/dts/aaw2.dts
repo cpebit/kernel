@@ -53,9 +53,9 @@
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
         wifi_chip_type = "ap6255";
-        pinctrl-names = "default";
-        pinctrl-0 = <&wifi_wake_host>, <&wifi_enable>;
-        WIFI,poweren_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+        //pinctrl-names = "default";
+        //pinctrl-0 = <&wifi_wake_host>, <&wifi_enable>;
+        //WIFI,poweren_gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
         //WIFI,host_wake_irq = <&gpio1 RK_PD2 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
@@ -66,7 +66,7 @@
         pinctrl-names = "default", "rts_gpio";
         pinctrl-0 = <&uart4m1_rtsn>, <&bt_enable>;
         pinctrl-1 = <&uart4m1_rtsn_gpio>, <&bt_enable>;
-        //BT,power_gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
+        BT,power_gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
 
