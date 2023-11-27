@@ -52,8 +52,8 @@
 
     sdio_pwrseq: sdio-pwrseq {
         compatible = "mmc-pwrseq-simple";
-        pinctrl-names = "default";
-        pinctrl-0 = <&wifi_enable>;
+        //pinctrl-names = "default";
+        //pinctrl-0 = <&wifi_enable>;
 
         /*
          * On the module itself this is one of these (depending
