@@ -273,12 +273,12 @@
                 <2 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
         };
 
-        rgb_green: rgb-green {
+        rgb_blue: rgb-blue {
             rockchip,pins =
                 <2 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
         };
 
-        rgb_blue: rgb-blue {
+        rgb_green: rgb-green {
             rockchip,pins =
                 <2 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
         };
