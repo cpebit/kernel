@@ -108,21 +108,21 @@
 
         rgb-red {
             label = "rgb-red";
-            gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_LOW>;
+            gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;
             linux,default-trigger = "none";
             default-state = "off";
         };
 
         rgb-blue {
             label = "rgb-blue";
-            gpios = <&gpio2 RK_PA6 GPIO_ACTIVE_LOW>;
+            gpios = <&gpio2 RK_PA6 GPIO_ACTIVE_HIGH>;
             linux,default-trigger = "none";
             default-state = "off";
         };
 
         rgb-green {
             label = "rgb-green";
-            gpios = <&gpio2 RK_PA7 GPIO_ACTIVE_LOW>;
+            gpios = <&gpio2 RK_PA7 GPIO_ACTIVE_HIGH>;
             linux,default-trigger = "default-on";
             default-state = "on";
         };
