@@ -78,8 +78,8 @@
         compatible = "bluetooth-platdata";
         uart_rts_gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
         pinctrl-names = "default", "rts_gpio";
-        pinctrl-0 = <&uart4m1_rtsn>;
-        pinctrl-1 = <&uart4m1_rtsn_gpio>;
+        pinctrl-0 = <&uart4m1_rtsn>, <&uart4m1_ctsn>;
+        pinctrl-1 = <&uart4m1_rtsn_gpio>, <&uart4m1_ctsn_gpio>;
         BT,power_gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
@@ -259,6 +259,11 @@
         uart4m1_rtsn_gpio: uart4-rts-pin {
             rockchip,pins =
                 <1 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+
+        uart4m1_ctsn_gpio: uart4-cts-pin {
+            rockchip,pins =
+                <1 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;
         };
 
         rgb_red: rgb-red {
