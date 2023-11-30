@@ -378,3 +378,7 @@
 &uart0 {
     status = "okay";
 };
+
+&rng {
+    status = "okay";
+};
