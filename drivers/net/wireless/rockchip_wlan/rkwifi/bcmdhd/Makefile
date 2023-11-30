@@ -359,7 +359,7 @@ endif
 endif
 
 ARCH ?= arm64
-BCMDHD_ROOT = $(srctree)/$(src)
+BCMDHD_ROOT = $(src)
 #$(warning "BCMDHD_ROOT=$(BCMDHD_ROOT)")
 EXTRA_CFLAGS = $(DHDCFLAGS)
 EXTRA_CFLAGS += -DDHD_COMPILED=\"$(BCMDHD_ROOT)\"
