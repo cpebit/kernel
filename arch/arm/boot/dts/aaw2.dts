@@ -77,8 +77,8 @@
         BT,power_gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
         BT,wake_host_irq = <&gpio1 RK_PA1 GPIO_ACTIVE_HIGH>;
         pinctrl-names = "default", "rts_gpio";
-        pinctrl-0 = <&uart0m1_rtsn &bt_enable &bt_wake_host>;
-        pinctrl-1 = <&uart0m1_rtsn_gpio &bt_enable &bt_wake_host>;
+        pinctrl-0 = <&uart0m1_rtsn>;
+        pinctrl-1 = <&uart0m1_rtsn_gpio>;
         status = "okay";
     };
 
