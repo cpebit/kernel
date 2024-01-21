@@ -1,0 +1,14 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "rockchip,aaw2", "rockchip,rv1106";
+
+	fragment@0 {
+		target = <&usbdrd_dwc3>;
+		__overlay__ {
+			dr_mode = "host";
+			status = "okay";
+		};
+	};
+};
