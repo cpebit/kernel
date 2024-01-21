@@ -186,6 +186,8 @@
 
 &u2phy_otg {
     status = "okay";
+    vbus-supply = <&vcc5v0_usb>;
+    rockchip,vbus-always-on;
 };
 
 &usbdrd {
@@ -195,6 +197,7 @@
 &usbdrd_dwc3 {
     extcon = <&u2phy>;
     status = "okay";
+    dr_mode = "peripheral";
 };
 
 &acodec {
@@ -309,13 +312,16 @@
     status = "disabled";
 };
 
-&u2phy_otg {
-    vbus-supply = <&vcc5v0_usb>;
-    dr_mode = "peripheral";
-};
-
 &uart0 {
     pinctrl-names = "default";
     pinctrl-0 = <&uart0m1_xfer &uart0m1_ctsn>;
+    status = "okay";
+};
+
+&display_subsystem {
+    status = "okay";
+};
+
+&vop {
     status = "okay";
 };
