@@ -166,6 +166,8 @@ int usbnet_get_ethernet_addr(struct usbnet *dev, int iMACAddress)
 	int 		tmp = -1, ret;
 	unsigned char	buf [13];
 
+	return 0;
+
 	ret = usb_string(dev->udev, iMACAddress, buf, sizeof buf);
 	if (ret == 12)
 		tmp = hex2bin(dev->net->dev_addr, buf, 6);
