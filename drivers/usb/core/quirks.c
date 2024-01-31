@@ -188,7 +188,7 @@ static const struct usb_device_id usb_quirk_list[] = {
 
     /* Honda Odyssey */
 	{ USB_DEVICE(0x8086, 0x9999), .driver_info =
-			USB_QUIRK_CONFIG_INTF_STRINGS },
+			USB_QUIRK_CONFIG_INTF_STRINGS|USB_QUIRK_NO_LPM },
 
 	/* WORLDE easy key (easykey.25) MIDI controller  */
 	{ USB_DEVICE(0x0218, 0x0401), .driver_info =
