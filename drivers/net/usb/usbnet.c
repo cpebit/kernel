@@ -166,6 +166,7 @@ int usbnet_get_ethernet_addr(struct usbnet *dev, int iMACAddress)
 	int 		tmp = -1, ret;
 	unsigned char	buf [13];
 
+    dev_info(&dev->udev->dev, "ignoring mac address");
 	return 0;
 
 	ret = usb_string(dev->udev, iMACAddress, buf, sizeof buf);
@@ -174,7 +175,7 @@ int usbnet_get_ethernet_addr(struct usbnet *dev, int iMACAddress)
 	if (tmp < 0) {
 		dev_info(&dev->udev->dev,
 			"bad MAC string %d fetch, %d, setting to node_id\n", iMACAddress, tmp);
-		memcpy (net->dev_addr, node_id, sizeof node_id);
+		memcpy (dev->net->dev_addr, node_id, sizeof node_id);
 	}
 	return 0;
 }
