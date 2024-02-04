@@ -137,6 +137,9 @@ struct usb_hub *usb_hub_to_struct_hub(struct usb_device *hdev)
 
 int usb_device_supports_lpm(struct usb_device *udev)
 {
+    // disable LPM for all devices, it only causes issues for us and we never need it
+    return 0;
+
 	/* Some devices have trouble with LPM */
 	if (udev->quirks & USB_QUIRK_NO_LPM)
 		return 0;
