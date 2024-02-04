@@ -170,11 +170,9 @@ int usbnet_get_ethernet_addr(struct usbnet *dev, int iMACAddress)
 	if (ret == 12)
 		tmp = hex2bin(dev->net->dev_addr, buf, 6);
 	if (tmp < 0) {
-		dev_dbg(&dev->udev->dev,
-			"bad MAC string %d fetch, %d\n", iMACAddress, tmp);
-		if (ret >= 0)
-			ret = -EINVAL;
-		return ret;
+		dev_info(&dev->udev->dev,
+			"bad MAC string %d fetch, %d, setting to node_id\n", iMACAddress, tmp);
+		memcpy (dev->net->dev_addr, node_id, sizeof node_id);
 	}
 	return 0;
 }
