@@ -246,14 +246,15 @@ fi
 scripts/resource_tool ${DTB_PATH} ${LOGO} ${LOGO_KERNEL} >/dev/null
 echo "  Image:  resource.img (with ${DTB} ${LOGO} ${LOGO_KERNEL}) is ready"
 
-if [ -f "${BOOT_IMG}" ]; then
-	if file -L -p -b ${BOOT_IMG} | grep -q 'Device Tree Blob' ; then
-		repack_itb;
-	elif [ -x ${srctree}/scripts/repack-bootimg ]; then
-		repack_boot_img;
-	fi
-elif [ -f "${BOOT_ITS}" ]; then
-	make_fit_boot_img;
-elif [ -x ${srctree}/scripts/mkbootimg ]; then
-	make_boot_img;
-fi
+#if [ -f "${BOOT_IMG}" ]; then
+#	if file -L -p -b ${BOOT_IMG} | grep -q 'Device Tree Blob' ; then
+#		repack_itb;
+#	elif [ -x ${srctree}/scripts/repack-bootimg ]; then
+#		repack_boot_img;
+#	fi
+#elif [ -f "${BOOT_ITS}" ]; then
+BOOT_ITS=${srctree}/boot.its
+make_fit_boot_img;
+#elif [ -x ${srctree}/scripts/mkbootimg ]; then
+#	make_boot_img;
+#fi
