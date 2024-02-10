@@ -253,7 +253,7 @@ echo "  Image:  resource.img (with ${DTB} ${LOGO} ${LOGO_KERNEL}) is ready"
 #		repack_boot_img;
 #	fi
 #elif [ -f "${BOOT_ITS}" ]; then
-BOOT_ITS=boot.its
+BOOT_ITS=${srctree}/boot.its
 make_fit_boot_img;
 #elif [ -x ${srctree}/scripts/mkbootimg ]; then
 #	make_boot_img;
