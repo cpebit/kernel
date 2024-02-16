@@ -197,7 +197,7 @@
 &usbdrd_dwc3 {
     extcon = <&u2phy>;
     status = "okay";
-    dr_mode = "peripheral";
+    dr_mode = "otg";
 };
 
 &acodec {
