@@ -187,6 +187,9 @@ MODULE_PARM_DESC(quirks, "Add/modify USB quirks by specifying quirks=vendorID:pr
  * 	3) Class ID
  */
 static const struct usb_device_id usb_quirk_list[] = {
+    /* Wind River Linux */
+    { USB_DEVICE(0x8086, 0x9999), .driver_info = USB_QUIRK_CONFIG_INTF_STRINGS|USB_QUIRK_NO_LPM },
+
 	/* CBM - Flash disk */
 	{ USB_DEVICE(0x0204, 0x6025), .driver_info = USB_QUIRK_RESET_RESUME },
 

@@ -316,7 +316,7 @@ static struct uac_iso_endpoint_descriptor as_iso_in_desc = {
 };
 
 static struct usb_descriptor_header *fs_audio_desc[] = {
-	(struct usb_descriptor_header *)&iad_desc,
+	//(struct usb_descriptor_header *)&iad_desc,
 	(struct usb_descriptor_header *)&ac_interface_desc,
 	(struct usb_descriptor_header *)&ac_header_desc,
 
@@ -351,7 +351,7 @@ static struct usb_descriptor_header *fs_audio_desc[] = {
 };
 
 static struct usb_descriptor_header *hs_audio_desc[] = {
-	(struct usb_descriptor_header *)&iad_desc,
+	//(struct usb_descriptor_header *)&iad_desc,
 	(struct usb_descriptor_header *)&ac_interface_desc,
 	(struct usb_descriptor_header *)&ac_header_desc,
 
@@ -386,7 +386,7 @@ static struct usb_descriptor_header *hs_audio_desc[] = {
 };
 
 static struct usb_descriptor_header *ss_audio_desc[] = {
-	(struct usb_descriptor_header *)&iad_desc,
+	//(struct usb_descriptor_header *)&iad_desc,
 	(struct usb_descriptor_header *)&ac_interface_desc,
 	(struct usb_descriptor_header *)&ac_header_desc,
 
@@ -505,7 +505,7 @@ static void setup_headers(struct f_uac1_opts *opts,
 	}
 
 	i = 0;
-	headers[i++] = USBDHDR(&iad_desc);
+	//headers[i++] = USBDHDR(&iad_desc);
 	headers[i++] = USBDHDR(&ac_interface_desc);
 	headers[i++] = USBDHDR(ac_header_desc);
 
@@ -961,6 +961,8 @@ static int ac_rq_in(struct usb_function *f,
 
 	switch (ctrl->bRequest) {
 	case UAC_GET_CUR:
+	    // HACK: stall
+	    break;
 		return in_rq_cur(f, ctrl);
 	case UAC_GET_MIN:
 		return in_rq_min(f, ctrl);
@@ -1280,8 +1282,11 @@ static void setup_descriptor(struct f_uac1_opts *opts)
 		io_in_it_desc.bTerminalID = i++;
 	if (EPOUT_EN(opts))
 		io_out_ot_desc.bTerminalID = i++;
-	if (EPIN_EN(opts))
+	if (EPIN_EN(opts)){
 		usb_in_ot_desc.bTerminalID = i++;
+		usb_in_ot_desc.bAssocTerminal = io_in_it_desc.bTerminalID;
+		io_in_it_desc.bAssocTerminal = usb_in_ot_desc.bTerminalID;
+    }
 	if (FUOUT_EN(opts))
 		out_feature_unit_desc->bUnitID = i++;
 	if (FUIN_EN(opts))
@@ -1484,27 +1489,27 @@ static int f_audio_bind(struct usb_configuration *c, struct usb_function *f)
 		}
 	}
 
-	iad_desc.iFunction = us[STR_ASSOC].id;
-	ac_interface_desc.iInterface = us[STR_AC_IF].id;
-	usb_out_it_desc.iTerminal = us[STR_USB_OUT_IT].id;
-	usb_out_it_desc.iChannelNames = us[STR_USB_OUT_IT_CH_NAMES].id;
-	io_out_ot_desc.iTerminal = us[STR_IO_OUT_OT].id;
-	as_out_interface_alt_0_desc.iInterface = us[STR_AS_OUT_IF_ALT0].id;
-	as_out_interface_alt_1_desc.iInterface = us[STR_AS_OUT_IF_ALT1].id;
-	io_in_it_desc.iTerminal = us[STR_IO_IN_IT].id;
-	io_in_it_desc.iChannelNames = us[STR_IO_IN_IT_CH_NAMES].id;
-	usb_in_ot_desc.iTerminal = us[STR_USB_IN_OT].id;
-	as_in_interface_alt_0_desc.iInterface = us[STR_AS_IN_IF_ALT0].id;
-	as_in_interface_alt_1_desc.iInterface = us[STR_AS_IN_IF_ALT1].id;
+	iad_desc.iFunction = 0; //us[STR_ASSOC].id;
+	ac_interface_desc.iInterface = 0; //us[STR_AC_IF].id;
+	usb_out_it_desc.iTerminal = 0; //us[STR_USB_OUT_IT].id;
+	usb_out_it_desc.iChannelNames = 0; //us[STR_USB_OUT_IT_CH_NAMES].id;
+	io_out_ot_desc.iTerminal = 0; //us[STR_IO_OUT_OT].id;
+	as_out_interface_alt_0_desc.iInterface = 0; //us[STR_AS_OUT_IF_ALT0].id;
+	as_out_interface_alt_1_desc.iInterface = 0; //us[STR_AS_OUT_IF_ALT1].id;
+	io_in_it_desc.iTerminal = 0; //us[STR_IO_IN_IT].id;
+	io_in_it_desc.iChannelNames = 0; //us[STR_IO_IN_IT_CH_NAMES].id;
+	usb_in_ot_desc.iTerminal = 0; //us[STR_USB_IN_OT].id;
+	as_in_interface_alt_0_desc.iInterface = 0; //us[STR_AS_IN_IF_ALT0].id;
+	as_in_interface_alt_1_desc.iInterface = 0; //us[STR_AS_IN_IF_ALT1].id;
 
-	if (FUOUT_EN(audio_opts)) {
+	if (false && FUOUT_EN(audio_opts)) {
 		u8 *i_feature;
 
 		i_feature = (u8 *)out_feature_unit_desc +
 					out_feature_unit_desc->bLength - 1;
 		*i_feature = us[STR_FU_OUT].id;
 	}
-	if (FUIN_EN(audio_opts)) {
+	if (false && FUIN_EN(audio_opts)) {
 		u8 *i_feature;
 
 		i_feature = (u8 *)in_feature_unit_desc +

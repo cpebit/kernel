@@ -846,22 +846,22 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	/* some buggy devices have an IAD but no CDC Union */
 	if (!hdr.usb_cdc_union_desc && intf->intf_assoc && intf->intf_assoc->bInterfaceCount == 2) {
 		ctx->data = usb_ifnum_to_if(dev->udev, intf->cur_altsetting->desc.bInterfaceNumber + 1);
-		dev_dbg(&intf->dev, "CDC Union missing - got slave from IAD\n");
+		dev_err(&intf->dev, "CDC Union missing - got slave from IAD\n");
 	}
 
 	/* check if we got everything */
 	if (!ctx->data) {
-		dev_dbg(&intf->dev, "CDC Union missing and no IAD found\n");
+		dev_err(&intf->dev, "CDC Union missing and no IAD found\n");
 		goto error;
 	}
 	if (cdc_ncm_comm_intf_is_mbim(intf->cur_altsetting)) {
 		if (!ctx->mbim_desc) {
-			dev_dbg(&intf->dev, "MBIM functional descriptor missing\n");
+			dev_err(&intf->dev, "MBIM functional descriptor missing\n");
 			goto error;
 		}
 	} else {
 		if (!ctx->ether_desc || !ctx->func_desc) {
-			dev_dbg(&intf->dev, "NCM or ECM functional descriptors missing\n");
+			dev_err(&intf->dev, "NCM or ECM functional descriptors missing\n");
 			goto error;
 		}
 	}
@@ -870,7 +870,7 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	if (ctx->data != ctx->control) {
 		temp = usb_driver_claim_interface(driver, ctx->data, dev);
 		if (temp) {
-			dev_dbg(&intf->dev, "failed to claim data intf\n");
+			dev_err(&intf->dev, "failed to claim data intf\n");
 			goto error;
 		}
 	}
@@ -886,18 +886,23 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	 * Some other devices do not work properly with this procedure
 	 * that can be avoided using quirk CDC_MBIM_FLAG_AVOID_ALTSETTING_TOGGLE
 	 */
-	if (!(ctx->drvflags & CDC_MBIM_FLAG_AVOID_ALTSETTING_TOGGLE))
+	if (false && !(ctx->drvflags & CDC_MBIM_FLAG_AVOID_ALTSETTING_TOGGLE))
 		usb_set_interface(dev->udev, iface_no, data_altsetting);
 
-	temp = usb_set_interface(dev->udev, iface_no, 0);
-	if (temp) {
-		dev_dbg(&intf->dev, "set interface failed\n");
-		goto error2;
+    // only change alt if not already set
+    if(usb_altnum_to_altsetting(ctx->data, 0) != ctx->data->cur_altsetting){
+        temp = usb_set_interface(dev->udev, iface_no, 0);
+        if (temp) {
+            dev_err(&intf->dev, "set interface failed\n");
+            goto error2;
+        }
 	}
 
 	/* initialize basic device settings */
-	if (cdc_ncm_init(dev))
+	if (cdc_ncm_init(dev)){
+	    dev_err(&intf->dev, "cdc ncm init failed\n");
 		goto error2;
+    }
 
 	/* Some firmwares need a pause here or they will silently fail
 	 * to set up the interface properly.  This value was decided
@@ -915,9 +920,13 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 
 	cdc_ncm_find_endpoints(dev, ctx->data);
 	cdc_ncm_find_endpoints(dev, ctx->control);
-	if (!dev->in || !dev->out || !dev->status) {
-		dev_dbg(&intf->dev, "failed to collect endpoints\n");
+	if (!dev->in || !dev->out) {
+		dev_err(&intf->dev, "failed to collect endpoints\n");
 		goto error2;
+	}
+
+	if (!dev->status){
+	    dev_info(&intf->dev, "ignoring missing status EP\n");
 	}
 
 	usb_set_intfdata(ctx->data, dev);
@@ -926,7 +935,7 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	if (ctx->ether_desc) {
 		temp = usbnet_get_ethernet_addr(dev, ctx->ether_desc->iMACAddress);
 		if (temp) {
-			dev_dbg(&intf->dev, "failed to get mac address\n");
+			dev_err(&intf->dev, "failed to get mac address\n");
 			goto error2;
 		}
 		dev_info(&intf->dev, "MAC-Address: %pM\n", dev->net->dev_addr);
@@ -939,8 +948,10 @@ int cdc_ncm_bind_common(struct usbnet *dev, struct usb_interface *intf, u8 data_
 	if (ctx->drvflags & CDC_NCM_FLAG_NDP_TO_END) {
 		if (ctx->is_ndp16) {
 			ctx->delayed_ndp16 = kzalloc(ctx->max_ndp_size, GFP_KERNEL);
-			if (!ctx->delayed_ndp16)
+			if (!ctx->delayed_ndp16){
+                dev_err(&intf->dev, "failed to allocate delayed_ndp16\n");
 				goto error2;
+            }
 		} else {
 			ctx->delayed_ndp32 = kzalloc(ctx->max_ndp_size, GFP_KERNEL);
 			if (!ctx->delayed_ndp32)

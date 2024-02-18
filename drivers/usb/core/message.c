@@ -875,20 +875,10 @@ static int usb_string_sub(struct usb_device *dev, unsigned int langid,
 {
 	int rc;
 
-	/* Try to read the string descriptor by asking for the maximum
-	 * possible number of bytes */
-	if (dev->quirks & USB_QUIRK_STRING_FETCH_255)
-		rc = -EIO;
-	else
-		rc = usb_get_string(dev, langid, index, buf, 255);
-
-	/* If that failed try to read the descriptor length, then
-	 * ask for just that many bytes */
-	if (rc < 2) {
-		rc = usb_get_string(dev, langid, index, buf, 2);
-		if (rc == 2)
-			rc = usb_get_string(dev, langid, index, buf, buf[0]);
-	}
+	// Hack: disable request 255-bytes all the time optimization instead always request size
+	rc = usb_get_string(dev, langid, index, buf, 2);
+	if(rc == 2)
+	    rc = usb_get_string(dev, langid, index, buf, buf[0]);
 
 	if (rc >= 2) {
 		if (!buf[0] && !buf[1])
