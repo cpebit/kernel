@@ -155,11 +155,9 @@ int usbnet_get_ethernet_addr(struct usbnet *dev, int iMACAddress)
 	if (ret == 12)
 		tmp = hex2bin(dev->net->dev_addr, buf, 6);
 	if (tmp < 0) {
-		dev_dbg(&dev->udev->dev,
-			"bad MAC string %d fetch, %d\n", iMACAddress, tmp);
-		if (ret >= 0)
-			ret = -EINVAL;
-		return ret;
+		dev_info(&dev->udev->dev,
+		        "bad MAC string %d fetch, %d, setting to node_id\n", iMACAddress, tmp);
+        memcpy(dev->net->dev_addr, node_id, sizeof node_id);
 	}
 	return 0;
 }
@@ -1798,8 +1796,12 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
 
 	netif_device_attach (net);
 
-	if (dev->driver_info->flags & FLAG_LINK_INTR)
+    // If status endpoint exists, wait for status
+    // else bring link up immediately
+	if (dev->driver_info->flags & FLAG_LINK_INTR && dev->status)
 		usbnet_link_change(dev, 0, 0);
+    else if (!dev->status)
+        usbnet_link_change(dev, true, 0);
 
 	return 0;
 
