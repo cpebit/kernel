@@ -1798,10 +1798,11 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
 
     // If status endpoint exists, wait for status
     // else bring link up immediately
-	if (dev->driver_info->flags & FLAG_LINK_INTR && dev->status)
+	if (dev->driver_info->flags & FLAG_LINK_INTR && dev->status){
 		usbnet_link_change(dev, 0, 0);
-    else if (!dev->status)
+    } else if (!dev->status) {
         usbnet_link_change(dev, true, 0);
+    }
 
 	return 0;
 
