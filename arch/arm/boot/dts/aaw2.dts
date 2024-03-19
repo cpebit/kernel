@@ -59,7 +59,7 @@
          * - SDIO_RESET_L_WL_REG_ON
          * - PDN (power down when low)
          */
-        reset-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_LOW>;    //GPIO1_D0----WIFI_REG_ON
+        reset-gpios = <&gpio2 RK_PA2 GPIO_ACTIVE_LOW>;    //GPIO1_D0----WIFI_REG_ON
     };
 
     wireless_wlan: wireless-wlan {
@@ -67,15 +67,15 @@
         wifi_chip_type = "ap6255";
         pinctrl-names = "default";
         pinctrl-0 = <&wifi_wake_host>;
-        WIFI,host_wake_irq = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
+        WIFI,host_wake_irq = <&gpio2 RK_PA0 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
 
     wireless_bluetooth: wireless-bluetooth {
         compatible = "bluetooth-platdata";
         uart_rts_gpios = <&gpio1 RK_PA6 GPIO_ACTIVE_LOW>;
-        BT,power_gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
-        BT,wake_host_irq = <&gpio1 RK_PA1 GPIO_ACTIVE_HIGH>;
+        BT,power_gpio = <&gpio2 RK_PA3 GPIO_ACTIVE_HIGH>;
+        BT,wake_host_irq = <&gpio2 RK_PA1 GPIO_ACTIVE_HIGH>;
         pinctrl-names = "default", "rts_gpio";
         pinctrl-0 = <&uart0m1_rtsn>;
         pinctrl-1 = <&uart0m1_rtsn_gpio>;
@@ -263,25 +263,15 @@
         };
     };
 
-    bluetooth {
-        bt_enable: wifi-enable {
-            rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
-        };
-
-        bt_wake_host: bt-wake-host {
-            rockchip,pins = <1 RK_PA1 RK_FUNC_GPIO &pcfg_pull_up>;
-        };
-    };
-
     sdio-pwrseq {
         wifi_enable: wifi-enable {
-            rockchip,pins = <1 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+            rockchip,pins = <2 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
         };
     };
 
     wireless-wlan {
         wifi_wake_host: wifi-wake-host {
-            rockchip,pins = <1 RK_PA2 0 &pcfg_pull_up>;
+            rockchip,pins = <2 RK_PA0 0 &pcfg_pull_up>;
         };
     };
 
