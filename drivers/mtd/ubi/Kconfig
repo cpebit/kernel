@@ -104,4 +104,16 @@ config MTD_UBI_BLOCK
 
 	   If in doubt, say "N".
 
+config MTD_UBI_BLOCK_BY_NAME
+    bool "Create UBI block device nodes by name instead of volume ID"
+    default n
+    depends on MTD_UBI_BLOCK
+    help
+        This option enables ubi block devices to be named by their volume name
+        /dev/ubiblock%d_%s rather than their volume ID /dev/ubiblock%d_%d, so that
+        one can mount e.g. a root filesystem by UBI name instead of volume ID.
+        UBI volumes can be renamed on-the-fly in user space. This allows the root
+        file system to be swapped from an "A" volume to a "B" volume without having to
+        change the mount options.
+
 endif # MTD_UBI
