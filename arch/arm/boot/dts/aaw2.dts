@@ -315,3 +315,11 @@
 &vop {
     status = "okay";
 };
+
+&otp {
+    status = "okay";
+};
+
+&cpuinfo {
+    status = "okay";
+};
