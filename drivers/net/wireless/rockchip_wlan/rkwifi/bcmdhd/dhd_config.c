@@ -1304,6 +1304,8 @@ dhd_conf_get_filename(char *pFilename)
 void
 dhd_conf_set_path_params(dhd_pub_t *dhd, char *fw_path, char *nv_path)
 {
+    CONFIG_MSG("Initial fw path=%s\n", fw_path);
+
 	int ag_type;
 #ifdef DHD_LINUX_STD_FW_API
 	char path[WLC_IOCTL_SMLEN];
