@@ -869,7 +869,7 @@ dhd_conf_set_fw_name_by_chip(dhd_pub_t *dhd, char *fw_path)
 		CONFIG_ERROR("***** Please enable MINIME in Makefile *****\n");
 #endif
 
-	CONFIG_TRACE("firmware_path=%s\n", fw_path);
+    CONFIG_MSG("firmware_path=%s\n", fw_path);
 	return ag_type;
 }
 
