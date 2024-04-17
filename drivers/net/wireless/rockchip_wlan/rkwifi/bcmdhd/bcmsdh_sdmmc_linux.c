@@ -91,8 +91,12 @@ static int sdioh_probe(struct sdio_func *func)
 		adapter->bus_num = host_idx;
 		adapter->slot_num = rca;
 		adapter->sdio_func = func;
-	} else
+	} else {
 		sd_err(("can't find adapter info for this chip\n"));
+#ifdef ADAPTER_IDX
+		goto fail;
+#endif
+	}
 
 #ifdef WL_CFG80211
 	wl_cfg80211_set_parent_dev(&func->dev);
@@ -214,7 +218,7 @@ static const struct sdio_device_id bcmsdh_sdmmc_ids[] = {
 
 MODULE_DEVICE_TABLE(sdio, bcmsdh_sdmmc_ids);
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) && defined(CONFIG_PM)
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) && defined(CONFIG_PM_SLEEP)
 static int bcmsdh_sdmmc_suspend(struct device *pdev)
 {
 	int err;
@@ -325,7 +329,7 @@ static struct sdio_driver bcmsdh_sdmmc_driver = {
 	.remove		= bcmsdh_sdmmc_remove,
 	.name		= "bcmsdh_sdmmc",
 	.id_table	= bcmsdh_sdmmc_ids,
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) && defined(CONFIG_PM)
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) && defined(CONFIG_PM_SLEEP)
 	.drv = {
 	.pm	= &bcmsdh_sdmmc_pm_ops,
 	},
