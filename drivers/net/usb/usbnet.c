@@ -1747,23 +1747,24 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
 		if (status < 0)
 			goto out1;
 
+        // disabled - we always want usb%d
 		// heuristic:  "usb%d" for links we know are two-host,
 		// else "eth%d" when there's reasonable doubt.  userspace
 		// can rename the link if it knows better.
-		if ((dev->driver_info->flags & FLAG_ETHER) != 0 &&
-		    ((dev->driver_info->flags & FLAG_POINTTOPOINT) == 0 ||
-		     (net->dev_addr [0] & 0x02) == 0))
-			strcpy (net->name, "eth%d");
-		/* WLAN devices should always be named "wlan%d" */
-		if ((dev->driver_info->flags & FLAG_WLAN) != 0)
-			strcpy(net->name, "wlan%d");
-		/* WWAN devices should always be named "wwan%d" */
-		if ((dev->driver_info->flags & FLAG_WWAN) != 0)
-			strcpy(net->name, "wwan%d");
-
-		/* LTE devices should always be named "lte%d" */
-		if ((dev->driver_info->flags & FLAG_LTE) != 0)
-			strcpy(net->name, "lte%d");
+//		if ((dev->driver_info->flags & FLAG_ETHER) != 0 &&
+//		    ((dev->driver_info->flags & FLAG_POINTTOPOINT) == 0 ||
+//		     (net->dev_addr [0] & 0x02) == 0))
+//			strcpy (net->name, "eth%d");
+//		/* WLAN devices should always be named "wlan%d" */
+//		if ((dev->driver_info->flags & FLAG_WLAN) != 0)
+//			strcpy(net->name, "wlan%d");
+//		/* WWAN devices should always be named "wwan%d" */
+//		if ((dev->driver_info->flags & FLAG_WWAN) != 0)
+//			strcpy(net->name, "wwan%d");
+//
+//		/* LTE devices should always be named "lte%d" */
+//		if ((dev->driver_info->flags & FLAG_LTE) != 0)
+//			strcpy(net->name, "lte%d");
 
 		/* devices that cannot do ARP */
 		if ((dev->driver_info->flags & FLAG_NOARP) != 0)
