@@ -42,7 +42,7 @@
 #define CONFIG_TRACE_LEVEL	(1 << 1)
 #define CONFIG_MSG_LEVEL	(1 << 0)
 
-uint config_msg_level = CONFIG_ERROR_LEVEL | CONFIG_MSG_LEVEL;
+uint config_msg_level = CONFIG_ERROR_LEVEL | CONFIG_MSG_LEVEL | CONFIG_TRACE_LEVEL;
 uint dump_msg_level = 0;
 
 #define CONFIG_MSG(x, args...) \
