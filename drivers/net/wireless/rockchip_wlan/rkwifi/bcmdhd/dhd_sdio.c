@@ -181,7 +181,7 @@ static int dhdsdio_resume(void *context);
 #ifdef NO_EXT32K
 #define PMU_MAX_TRANSITION_DLY (1000000*5)
 #else
-#define PMU_MAX_TRANSITION_DLY 1000000
+#define PMU_MAX_TRANSITION_DLY 1000000*5
 #endif
 #endif // endif
 
