@@ -8,7 +8,7 @@ CONFIG_BCMDHD_SDIO := y
 #CONFIG_BCMDHD_PCIE := y
 #CONFIG_BCMDHD_USB := y
 
-CONFIG_BCMDHD_OOB := y
+CONFIG_BCMDHD_OOB := n
 #CONFIG_BCMDHD_CUSB := y
 #CONFIG_BCMDHD_NO_POWER_OFF := y
 CONFIG_BCMDHD_PROPTXSTATUS := y
@@ -43,7 +43,7 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Wno-date-time                      \
 	-DUSE_NEW_RSPEC_DEFS -DBCM_USE_PLATFORM_STRLCPY                       \
 	-DWL_EXT_IAPSTA -DWL_ESCAN -DCCODE_LIST -DSUSPEND_EVENT               \
 	-DEAPOL_RESEND -DEAPOL_DYNAMATIC_RESEND -DWL_SCHED_SCAN               \
-	-DENABLE_INSMOD_NO_FW_LOAD -Wframe-larger-than=2048                   \
+	-Wframe-larger-than=2048                   \
 	-DSCHED_SCAN_DELAYED_WORK -DDHD_PNO_FLAG
 
 DHDOFILES = aiutils.o siutils.o sbutils.o bcmutils.o bcmwifi_channels.o   \
