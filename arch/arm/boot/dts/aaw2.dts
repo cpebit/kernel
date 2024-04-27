@@ -314,6 +314,6 @@
 };
 
 &pwm0 {
-    status = "okay";
+    status = "disabled";
     pinctrl-0 = <&pwm0m1_pins>;
 };
