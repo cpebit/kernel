@@ -67,6 +67,7 @@
         wifi_chip_type = "ap6255";
         pinctrl-names = "default";
         pinctrl-0 = <&wifi_wake_host>;
+        pwms = <&pwm0 0 30518>;
         WIFI,host_wake_irq = <&gpio2 RK_PA0 GPIO_ACTIVE_HIGH>;
         status = "okay";
     };
@@ -224,10 +225,6 @@
     status = "disabled";
 };
 
-&pwm0 {
-    status = "disabled";
-};
-
 &rtc {
     status = "disabled";
 };
@@ -314,4 +311,9 @@
 
 &vop {
     status = "okay";
+};
+
+&pwm0 {
+    status = "okay";
+    pinctrl-0 = <&pwm0m1_pins>;
 };
