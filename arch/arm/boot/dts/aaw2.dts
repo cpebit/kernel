@@ -10,8 +10,7 @@
     compatible = "rockchip,aaw2", "rockchip,rv1106";
 
     vdd_arm: vdd-arm {
-        compatible = "pwm-regulator";
-        pwms = <&pwm0 0 5000 1>;
+        compatible = "regulator-fixed";
         regulator-name = "vdd_arm";
         regulator-min-microvolt = <724000>;
         regulator-max-microvolt = <1078000>;
@@ -52,6 +51,8 @@
         compatible = "mmc-pwrseq-simple";
         pinctrl-names = "default";
         pinctrl-0 = <&wifi_enable>;
+        clock-names = "ext_clock";
+        clocks = <&wifi32k>;
 
         /*
          * On the module itself this is one of these (depending
@@ -59,7 +60,14 @@
          * - SDIO_RESET_L_WL_REG_ON
          * - PDN (power down when low)
          */
-        reset-gpios = <&gpio2 RK_PA2 GPIO_ACTIVE_LOW>;    //GPIO1_D0----WIFI_REG_ON
+        reset-gpios = <&gpio2 RK_PA2 GPIO_ACTIVE_LOW>;    //GPIO2_A2----WIFI_REG_ON
+    };
+
+    wifi32k: wifi32k {
+        compatible = "pwm-clock";
+        #clock-cells = <0>;
+        clock-frequency = <32768>;
+        pwms = <&pwm0 0 30518 0>;
     };
 
     wireless_wlan: wireless-wlan {
@@ -224,10 +232,6 @@
     status = "disabled";
 };
 
-&pwm0 {
-    status = "disabled";
-};
-
 &rtc {
     status = "disabled";
 };
@@ -313,5 +317,10 @@
 };
 
 &vop {
+    status = "okay";
+};
+
+&pwm0 {
+    pinctrl-0 = <&pwm0m1_pins>;
     status = "okay";
 };
