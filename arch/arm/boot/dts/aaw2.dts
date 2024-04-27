@@ -52,8 +52,6 @@
         compatible = "mmc-pwrseq-simple";
         pinctrl-names = "default";
         pinctrl-0 = <&wifi_enable>;
-        #clocks = <&wifi32k>;
-        #clock-names = "ext_clock";
 
         /*
          * On the module itself this is one of these (depending
