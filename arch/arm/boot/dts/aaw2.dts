@@ -76,6 +76,7 @@
         compatible = "pwm-clock";
         clock-frequency = <32768>;
         pwms = <&pwm0 0 30518 0>;
+        status = "okay";
     };
 
     wireless_bluetooth: wireless-bluetooth {
@@ -320,6 +321,6 @@
 };
 
 &pwm0 {
-    status = "okay";
     pinctrl-0 = <&pwm0m1_pins>;
+    status = "okay";
 };
