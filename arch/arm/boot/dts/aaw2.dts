@@ -52,7 +52,7 @@
         compatible = "mmc-pwrseq-simple";
         pinctrl-names = "default";
         pinctrl-0 = <&wifi_enable>;
-        pwms = <&pwm0 0 30518 0>; /* 1 / 30518 ns = 32.7675 KHz */
+        #pwms = <&pwm0 0 30518 0>; /* 1 / 30518 ns = 32.7675 KHz */
 
         /*
          * On the module itself this is one of these (depending
