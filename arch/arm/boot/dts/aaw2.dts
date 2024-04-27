@@ -74,6 +74,7 @@
 
     wifi32k: wifi32k {
         compatible = "pwm-clock";
+        #clock-cells = <0>;
         clock-frequency = <32768>;
         pwms = <&pwm0 0 30518 0>;
     };
