@@ -10,8 +10,7 @@
     compatible = "rockchip,aaw2", "rockchip,rv1106";
 
     vdd_arm: vdd-arm {
-        compatible = "pwm-regulator";
-        pwms = <&pwm0 0 5000 1>;
+        compatible = "regulator-fixed";
         regulator-name = "vdd_arm";
         regulator-min-microvolt = <724000>;
         regulator-max-microvolt = <1078000>;
