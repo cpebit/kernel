@@ -178,11 +178,7 @@ static int dhdsdio_resume(void *context);
  */
 #if (PMU_MAX_TRANSITION_DLY <= 1000000)
 #undef PMU_MAX_TRANSITION_DLY
-#ifdef NO_EXT32K
 #define PMU_MAX_TRANSITION_DLY (1000000*5)
-#else
-#define PMU_MAX_TRANSITION_DLY 1000000
-#endif
 #endif // endif
 
 /* hooks for limiting threshold custom tx num in rx processing */
