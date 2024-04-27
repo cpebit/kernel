@@ -10,7 +10,8 @@
     compatible = "rockchip,aaw2", "rockchip,rv1106";
 
     vdd_arm: vdd-arm {
-        compatible = "regulator-fixed";
+        compatible = "pwm-regulator";
+        pwms = <&pwm0 0 30518 0>;
         regulator-name = "vdd_arm";
         regulator-min-microvolt = <724000>;
         regulator-max-microvolt = <1078000>;
@@ -51,8 +52,8 @@
         compatible = "mmc-pwrseq-simple";
         pinctrl-names = "default";
         pinctrl-0 = <&wifi_enable>;
-        clocks = <&wifi32k>;
-        clock-names = "ext_clock";
+        #clocks = <&wifi32k>;
+        #clock-names = "ext_clock";
 
         /*
          * On the module itself this is one of these (depending
@@ -69,13 +70,6 @@
         pinctrl-names = "default";
         pinctrl-0 = <&wifi_wake_host>;
         WIFI,host_wake_irq = <&gpio2 RK_PA0 GPIO_ACTIVE_HIGH>;
-        status = "okay";
-    };
-
-    wifi32k: wifi32k {
-        compatible = "pwm-clock";
-        clock-frequency = <32768>;
-        pwms = <&pwm0 0 30518 0>;
         status = "okay";
     };
 
