@@ -176,6 +176,10 @@
     status = "okay";
 };
 
+&crypto {
+    status = "okay";
+};
+
 &rng {
     status = "okay";
 };
