@@ -72,7 +72,7 @@
 
     wireless_wlan: wireless-wlan {
         compatible = "wlan-platdata";
-        wifi_chip_type = "ap6255";
+        wifi_chip_type = "rtl8233bs";
         pinctrl-names = "default";
         pinctrl-0 = <&wifi_wake_host>;
         WIFI,host_wake_irq = <&gpio2 RK_PA0 GPIO_ACTIVE_HIGH>;
@@ -82,7 +82,7 @@
     wireless_bluetooth: wireless-bluetooth {
         compatible = "bluetooth-platdata";
         uart_rts_gpios = <&gpio1 RK_PA6 GPIO_ACTIVE_LOW>;
-        BT,power_gpio = <&gpio2 RK_PA3 GPIO_ACTIVE_HIGH>;
+        BT,power_gpio = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
         BT,wake_host_irq = <&gpio2 RK_PA1 GPIO_ACTIVE_HIGH>;
         pinctrl-names = "default", "rts_gpio";
         pinctrl-0 = <&uart0m1_rtsn>;
@@ -269,7 +269,7 @@
 
     sdio-pwrseq {
         wifi_enable: wifi-enable {
-            rockchip,pins = <2 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+            rockchip,pins = <1 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
         };
     };
 
