@@ -1,0 +1,9 @@
+config RTL8733BS
+	depends on MMC
+	depends on RFKILL_RK
+    select CFG80211
+    select MAC80211
+	tristate "Realtek 8733B SDIO WiFi"
+	help
+	  Realtek RTL8733BS chipset driver
+	  802.11ac SDIO wireless network adapter
