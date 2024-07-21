@@ -317,11 +317,11 @@
 };
 
 &display_subsystem {
-    status = "okay";
+    status = "disabled";
 };
 
 &vop {
-    status = "okay";
+    status = "disabled";
 };
 
 &pwm0 {
