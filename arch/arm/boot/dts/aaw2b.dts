@@ -1,0 +1,285 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+
+/dts-v1/;
+
+#include "rv1103.dtsi"
+#include <dt-bindings/input/input.h>
+
+/ {
+    model = "AAWireless 2B";
+    compatible = "rockchip,aaw2b", "rockchip,rv1103";
+
+    chosen {
+        bootargs = "rk_dma_heap_cma=8M console=ttyS2,115200";
+    };
+
+    vdd_arm: vdd-arm {
+        compatible = "regulator-fixed";
+        regulator-name = "vdd_arm";
+        regulator-min-microvolt = <724000>;
+        regulator-max-microvolt = <1078000>;
+        regulator-init-microvolt = <950000>;
+        regulator-always-on;
+        regulator-boot-on;
+        regulator-settling-time-up-us = <250>;
+    };
+
+    vcc_1v8: vcc-1v8 {
+        compatible = "regulator-fixed";
+        regulator-name = "vcc_1v8";
+        regulator-always-on;
+        regulator-boot-on;
+        regulator-min-microvolt = <1800000>;
+        regulator-max-microvolt = <1800000>;
+    };
+
+    vcc_3v3: vcc-3v3 {
+        compatible = "regulator-fixed";
+        regulator-name = "vcc_3v3";
+        regulator-always-on;
+        regulator-boot-on;
+        regulator-min-microvolt = <3300000>;
+        regulator-max-microvolt = <3300000>;
+    };
+
+    vcc5v0_usb: vcc5v0-usb {
+        compatible = "regulator-fixed";
+        regulator-name = "vcc5v0_usb";
+        regulator-always-on;
+        regulator-boot-on;
+        regulator-min-microvolt = <5000000>;
+        regulator-max-microvolt = <5000000>;
+    };
+
+    sdio_pwrseq: sdio-pwrseq {
+        compatible = "mmc-pwrseq-simple";
+        pinctrl-names = "default";
+        pinctrl-0 = <&wifi_enable>;
+
+        /*
+         * On the module itself this is one of these (depending
+         * on the actual card populated):
+         * - SDIO_RESET_L_WL_REG_ON
+         * - PDN (power down when low)
+         */
+        reset-gpios = <&gpio3 RK_PA7 GPIO_ACTIVE_LOW>;    //GPIO2_A2----WIFI_REG_ON
+    };
+
+    wireless_wlan: wireless-wlan {
+        compatible = "wlan-platdata";
+        wifi_chip_type = "rtl8233bs";
+        pinctrl-names = "default";
+        pinctrl-0 = <&wifi_wake_host>;
+        WIFI,host_wake_irq = <&gpio3 RK_PD0 GPIO_ACTIVE_HIGH>;
+        status = "okay";
+    };
+
+    wireless_bluetooth: wireless-bluetooth {
+        compatible = "bluetooth-platdata";
+        uart_rts_gpios = <&gpio1 RK_PD0 GPIO_ACTIVE_LOW>;
+        BT,power_gpio = <&gpio3 RK_PA6 GPIO_ACTIVE_HIGH>;
+        BT,wake_host_irq = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
+        pinctrl-names = "default", "rts_gpio";
+        pinctrl-0 = <&uart5m1_rtsn>;
+        pinctrl-1 = <&uart5m1_rtsn_gpio>;
+        status = "okay";
+    };
+
+    gpio-keys {
+        compatible = "gpio-keys";
+        status = "okay";
+
+        F15 {
+            gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_LOW>;
+            label = "KEY_F15";
+            linux,code = <KEY_F15>;
+            linux,input-type = <1>;
+            gpio-key,wakeup = <1>;
+            debounce-interval = <100>;
+            pinctrl-names = "default";
+            pinctrl-0 = <&pwrbtn>;
+        };
+    };
+
+    gpio-leds {
+        compatible = "gpio-leds";
+        pinctrl-names = "default";
+        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green>;
+        status = "okay";
+
+        rgb-red {
+            label = "rgb-red";
+            gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
+            linux,default-trigger = "none";
+            default-state = "off";
+        };
+
+        rgb-blue {
+            label = "rgb-blue";
+            gpios = <&gpio3 RK_PA3 GPIO_ACTIVE_HIGH>;
+            linux,default-trigger = "none";
+            default-state = "off";
+        };
+
+        rgb-green {
+            label = "rgb-green";
+            gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
+            linux,default-trigger = "default-on";
+            default-state = "on";
+        };
+    };
+};
+
+&mpp_srv {
+    status = "okay";
+};
+
+&mpp_vcodec {
+    status = "okay";
+};
+
+&rga2 {
+    status = "okay";
+};
+
+&rkdvbm {
+    status = "okay";
+};
+
+&rkvenc {
+    status = "okay";
+};
+
+&rkvenc_pp {
+    status = "okay";
+};
+
+&rng {
+    status = "okay";
+};
+
+&rve {
+    status = "okay";
+};
+
+&tsadc {
+    status = "okay";
+};
+
+&u2phy {
+    status = "okay";
+};
+
+&u2phy_otg {
+    status = "okay";
+    vbus-supply = <&vcc5v0_usb>;
+    rockchip,vbus-always-on;
+};
+
+&usbdrd {
+    status = "okay";
+};
+
+&usbdrd_dwc3 {
+    extcon = <&u2phy>;
+    status = "okay";
+    dr_mode = "otg";
+};
+
+&cpu0 {
+    cpu-supply = <&vdd_arm>;
+};
+
+&sfc {
+    status = "okay";
+
+    flash@0 {
+        compatible = "spi-nand";
+        reg = <0>;
+        spi-max-frequency = <75000000>;
+        spi-rx-bus-width = <4>;
+        spi-tx-bus-width = <1>;
+    };
+};
+
+&pinctrl {
+    gpio {
+        uart5m1_rtsn_gpio: uart5m1-rtsn-gpio {
+            rockchip,pins = <1 RK_PD0 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+
+        rgb_red: rgb-red {
+            rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+
+        rgb_blue: rgb-blue {
+            rockchip,pins = <3 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+
+        rgb_green: rgb-green {
+            rockchip,pins = <1 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+    };
+
+    sdio-pwrseq {
+        wifi_enable: wifi-enable {
+            rockchip,pins = <3 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+    };
+
+    wireless-wlan {
+        wifi_wake_host: wifi-wake-host {
+            rockchip,pins = <3 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>;
+        };
+    };
+
+    key {
+        pwrbtn: pwrbtn {
+            rockchip,pins = <3 RK_PC5 RK_FUNC_GPIO &pcfg_pull_up>;
+        };
+    };
+};
+
+&sdio {
+    max-frequency = <200000000>;
+    bus-width = <4>;
+    cap-sd-highspeed;
+    cap-sdio-irq;
+    keep-power-in-suspend;
+    non-removable;
+    rockchip,default-sample-phase = <90>;
+    sd-uhs-sdr104;
+    supports-sdio;
+    mmc-pwrseq = <&sdio_pwrseq>;
+    pinctrl-names = "default";
+    pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4>;
+    status = "okay";
+};
+
+&uart2 {
+    status = "okay";
+};
+
+&uart5 {
+    pinctrl-names = "default";
+    pinctrl-0 = <&uart5m1_xfer &uart5m1_ctsn>;
+    status = "okay";
+};
+
+&gpio0 {
+    status = "okay";
+};
+
+&gpio1 {
+    status = "okay";
+};
+
+&gpio3 {
+    status = "okay";
+};
+
+&i2c0 {
+    status = "okay";
+    pinctrl-names = "default";
+    pinctrl-0 = <&i2c0m2_xfer>;
+};
