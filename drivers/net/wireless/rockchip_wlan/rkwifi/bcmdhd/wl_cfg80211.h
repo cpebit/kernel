@@ -115,7 +115,7 @@ struct wl_ibss;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
 /* Use driver managed regd */
-#define WL_SELF_MANAGED_REGDOM
+//#define WL_SELF_MANAGED_REGDOM
 #endif /* KERNEL >= 4.0 */
 
 #define CH_TO_CHSPC(band, _channel) \
