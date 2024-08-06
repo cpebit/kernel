@@ -135,10 +135,6 @@ static s32 wl_notify_escan_complete(struct bcm_cfg80211 *cfg,
 void wl_cfgscan_scan_abort(struct bcm_cfg80211 *cfg);
 static void _wl_cfgscan_cancel_scan(struct bcm_cfg80211 *cfg);
 
-#if defined (WL_SCHED_SCAN) && defined (SCHED_SCAN_DELAYED_WORK)
-void wl_cfg80211_stop_pno(struct bcm_cfg80211 *cfg, struct net_device *dev);
-#endif /* WL_SCHED_SCAN */
-
 #ifdef ESCAN_CHANNEL_CACHE
 void reset_roam_cache(struct bcm_cfg80211 *cfg);
 void add_roam_cache(struct bcm_cfg80211 *cfg, wl_bss_info_t *bi);
@@ -644,10 +640,10 @@ wl_inform_bss(struct bcm_cfg80211 *cfg)
 
 	if (cfg->autochannel && ndev) {
 #if defined(BSSCACHE)
-		wl_ext_get_best_channel(ndev, &cfg->g_bss_cache_ctrl, ioctl_version,
+		wl_ext_get_best_channel(ndev, &cfg->g_bss_cache_ctrl,
 			&cfg->best_2g_ch, &cfg->best_5g_ch, &cfg->best_6g_ch);
 #else
-		wl_ext_get_best_channel(ndev, bss_list, ioctl_version,
+		wl_ext_get_best_channel(ndev, bss_list,
 			&cfg->best_2g_ch, &cfg->best_5g_ch, &cfg->best_6g_ch);
 #endif
 	}
@@ -2644,8 +2640,14 @@ __wl_cfg80211_scan(struct wiphy *wiphy, struct net_device *ndev,
 	}
 
 #ifdef WL_EXT_IAPSTA
-	if (wl_ext_in4way_sync(ndev, STA_FAKE_SCAN_IN_CONNECT, WL_EXT_STATUS_SCANNING, NULL)) {
+	err = wl_ext_in4way_sync(ndev, STA_FAKE_SCAN_IN_CONNECT, WL_EXT_STATUS_SCANNING, NULL);
+	if (err) {
+		wl_event_msg_t msg;
 		mutex_lock(&cfg->scan_sync);
+		bzero(&msg, sizeof(wl_event_msg_t));
+		msg.event_type = hton32(WLC_E_ESCAN_RESULT);
+		msg.status = hton32(WLC_E_STATUS_SUCCESS);
+		wl_cfg80211_event(ndev, &msg, NULL);
 		goto scan_success;
 	}
 #endif
@@ -2985,19 +2987,11 @@ wl_notify_escan_complete(struct bcm_cfg80211 *cfg,
 
 		if (cfg->bss_list && (cfg->bss_list->count == 0)) {
 			WL_INFORM_MEM(("bss list empty. report sched_scan_stop\n"));
-
-#if defined (WL_SCHED_SCAN) && defined (SCHED_SCAN_DELAYED_WORK)
-			wl_cfg80211_stop_pno(cfg,  bcmcfg_to_prmry_ndev(cfg));
-			/* schedule the work to indicate sched scan stop to cfg layer */
-			schedule_delayed_work(&cfg->sched_scan_stop_work, 0);
-#else
 			/* Indicated sched scan stopped so that user space
 			 * can do a full scan incase found match is empty.
 			 */
 			CFG80211_SCHED_SCAN_STOPPED(wiphy, cfg->sched_scan_req);
 			cfg->sched_scan_req = NULL;
-#endif
-
 		}
 	}
 #endif /* WL_SCHED_SCAN */
@@ -3938,23 +3932,10 @@ wl_cfg80211_sched_scan_stop(struct wiphy *wiphy, struct net_device *dev)
 #endif /* LINUX_VER > 4.11 */
 {
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
-#if defined (WL_SCHED_SCAN) && !defined (SCHED_SCAN_DELAYED_WORK)
 	dhd_pub_t *dhdp = (dhd_pub_t *)(cfg->pub);
-#endif
-
-#if defined (WL_SCHED_SCAN) && defined (SCHED_SCAN_DELAYED_WORK)
-	struct net_device *pri_ndev;
-#endif
 
 	WL_DBG(("Enter \n"));
 	WL_PNO((">>> SCHED SCAN STOP\n"));
-
-#if defined (WL_SCHED_SCAN) && defined (SCHED_SCAN_DELAYED_WORK)
-	pri_ndev = bcmcfg_to_prmry_ndev(cfg);
-	wl_cfg80211_stop_pno(cfg, dev);
-
-	cancel_delayed_work(&cfg->sched_scan_stop_work);
-#else
 
 #if defined(BCMDONGLEHOST)
 	if (dhd_dev_pno_stop_for_ssid(dev) < 0) {
@@ -3968,81 +3949,16 @@ wl_cfg80211_sched_scan_stop(struct wiphy *wiphy, struct net_device *dev)
 	}
 #endif /* BCMDONGLEHOST */
 
-#endif
-
 	mutex_lock(&cfg->scan_sync);
 	if (cfg->sched_scan_req) {
-#if defined (WL_SCHED_SCAN) && defined (SCHED_SCAN_DELAYED_WORK)
-		if (cfg->sched_scan_running && wl_get_drv_status(cfg, SCANNING, pri_ndev)) {
-			/* If targetted escan for PNO is running, abort it */
-			WL_INFORM_MEM(("abort targetted escan\n"));
-			_wl_cfgscan_cancel_scan(cfg);
-			wl_clr_drv_status(cfg, SCANNING, pri_ndev);
-		} else {
-			WL_INFORM_MEM(("pno escan state:%d\n",
-				cfg->sched_scan_running));
-		}
-#else
 		WL_PNO((">>> Sched scan running. Aborting it..\n"));
 		_wl_cfgscan_cancel_scan(cfg);
-#endif
 	}
 	cfg->sched_scan_req = NULL;
 	cfg->sched_scan_running = FALSE;
 	mutex_unlock(&cfg->scan_sync);
 
 	return 0;
-}
-#if defined (WL_SCHED_SCAN) && defined (SCHED_SCAN_DELAYED_WORK)
-void
-wl_cfgscan_sched_scan_stop_work(struct work_struct *work)
-{
-	struct bcm_cfg80211 *cfg = NULL;
-	struct wiphy *wiphy = NULL;
-	struct delayed_work *dw = to_delayed_work(work);
-
-	GCC_DIAGNOSTIC_PUSH_SUPPRESS_CAST();
-	cfg = container_of(dw, struct bcm_cfg80211, sched_scan_stop_work);
-	GCC_DIAGNOSTIC_POP();
-
-	/* Hold rtnl_lock -> scan_sync lock to be in sync with cfg80211_ops path */
-	rtnl_lock();
-	mutex_lock(&cfg->scan_sync);
-	if (cfg->sched_scan_req) {
-		wiphy = cfg->sched_scan_req->wiphy;
-		/* Indicate sched scan stopped so that user space
-		 * can do a full scan incase found match is empty.
-		 */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))
-		cfg80211_sched_scan_stopped_rtnl(wiphy, cfg->sched_scan_req->reqid);
-#else
-		cfg80211_sched_scan_stopped_rtnl(wiphy);
-#endif /* KERNEL > 4.12.0 */
-		cfg->sched_scan_req = NULL;
-	}
-	mutex_unlock(&cfg->scan_sync);
-	rtnl_unlock();
-}
-#endif
-#endif /* WL_SCHED_SCAN */
-
-#if defined (WL_SCHED_SCAN) && defined (SCHED_SCAN_DELAYED_WORK)
-void
-wl_cfg80211_stop_pno(struct bcm_cfg80211 *cfg, struct net_device *dev)
-{
-#if defined(BCMDONGLEHOST)
-	dhd_pub_t *dhdp = (dhd_pub_t *)(cfg->pub);
-
-	if (dhd_dev_pno_stop_for_ssid(dev) < 0) {
-		WL_ERR(("PNO Stop for SSID failed"));
-	} else {
-		/*
-		 * purposefully logging here to make sure that
-		 * firmware configuration was successful
-		 */
-		DBG_EVENT_LOG(dhdp, WIFI_EVENT_DRIVER_PNO_REMOVE);
-	}
-#endif /* BCMDONGLEHOST */
 }
 #endif /* WL_SCHED_SCAN */
 
@@ -4834,18 +4750,12 @@ out_err:
 		 */
 		if (cfg->sched_scan_req) {
 			WL_ERR(("sched_scan stopped\n"));
-#if defined (WL_SCHED_SCAN) && defined (SCHED_SCAN_DELAYED_WORK)
-			wl_cfg80211_stop_pno(cfg,  bcmcfg_to_prmry_ndev(cfg));
-			/* schedule the work to indicate sched scan stop to cfg layer */
-			schedule_delayed_work(&cfg->sched_scan_stop_work, 0);
-#else
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
 			cfg80211_sched_scan_stopped(wiphy, cfg->sched_scan_req->reqid);
 #else
 			cfg80211_sched_scan_stopped(wiphy);
 #endif /* KERNEL > 4.11.0 */
 			cfg->sched_scan_req = NULL;
-#endif
 		} else {
 			WL_ERR(("sched scan req null!\n"));
 		}
@@ -5654,7 +5564,7 @@ wl_get_assoc_channels(struct bcm_cfg80211 *cfg,
 	}
 #endif /* ESCAN_CHANNEL_CACHE */
 
-	WL_DBG_MEM(("channel cnt:%d\n", info->chan_cnt));
+	WL_SCAN(("channel cnt:%d\n", info->chan_cnt));
 	return BCME_OK;
 }
 
@@ -5676,7 +5586,7 @@ wl_cfgscan_is_dfs_set(wifi_band band)
 
 s32
 wl_cfgscan_get_band_freq_list(struct bcm_cfg80211 *cfg, int band,
-	uint16 *list, uint32 *num_channels)
+	uint32 *list, uint32 *num_channels)
 {
 	s32 err = BCME_OK;
 	uint32 i, freq, list_count, count = 0;
@@ -5698,13 +5608,16 @@ wl_cfgscan_get_band_freq_list(struct bcm_cfg80211 *cfg, int band,
 	list_count = ((wl_chanspec_list_v1_t *)list)->count;
 	for (i = 0; i < list_count; i++) {
 		chspec = dtoh32(((wl_chanspec_list_v1_t *)list)->chspecs[i].chanspec);
+		if (!CHSPEC_IS20(chspec)) {
+			continue;
+		}
 		chaninfo = dtoh32(((wl_chanspec_list_v1_t *)list)->chspecs[i].chaninfo);
 		freq = wl_channel_to_frequency(wf_chspec_ctlchan(chspec),
 			CHSPEC_BAND(chspec));
 		if (((band & WIFI_BAND_BG) && CHSPEC_IS2G(chspec)) ||
 				((band & WIFI_BAND_6GHZ) && CHSPEC_IS6G(chspec))) {
 			/* add 2g/6g channels */
-			list[i] = freq;
+			list[count] = freq;
 			count++;
 		}
 		/* handle 5g separately */
@@ -5719,7 +5632,7 @@ wl_cfgscan_get_band_freq_list(struct bcm_cfg80211 *cfg, int band,
 				continue;
 			}
 
-			list[i] = freq;
+			list[count] = freq;
 			count++;
 		}
 	}
