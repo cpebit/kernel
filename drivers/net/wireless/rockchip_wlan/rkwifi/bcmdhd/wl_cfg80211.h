@@ -113,11 +113,6 @@ struct wl_ibss;
 #define WL_FILS_ROAM_OFFLD
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
-/* Use driver managed regd */
-#define WL_SELF_MANAGED_REGDOM
-#endif /* KERNEL >= 4.0 */
-
 #define CH_TO_CHSPC(band, _channel) \
 	((_channel | band) | WL_CHANSPEC_BW_20 | WL_CHANSPEC_CTL_SB_NONE)
 #define CHAN2G(_channel, _freq, _flags) {			\
