@@ -6,7 +6,7 @@
 #include <dt-bindings/input/input.h>
 
 / {
-    model = "AAWireless V2";
+    model = "AAWireless 2";
     compatible = "rockchip,aaw2", "rockchip,rv1106";
 
     chosen {
