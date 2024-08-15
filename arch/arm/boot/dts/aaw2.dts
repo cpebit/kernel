@@ -9,6 +9,10 @@
     model = "AAWireless V2";
     compatible = "rockchip,aaw2", "rockchip,rv1106";
 
+    chosen {
+        bootargs = "rk_dma_heap_cma=16M";
+    };
+
     vdd_arm: vdd-arm {
         compatible = "regulator-fixed";
         regulator-name = "vdd_arm";
