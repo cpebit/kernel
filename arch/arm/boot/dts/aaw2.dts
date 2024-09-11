@@ -10,7 +10,7 @@
     compatible = "rockchip,aaw2", "rockchip,rv1106";
 
     chosen {
-        bootargs = "rk_dma_heap_cma=16M";
+        bootargs = "rk_dma_heap_cma=16M console=ttyS2,115200";
     };
 
     vdd_arm: vdd-arm {
@@ -137,11 +137,6 @@
             default-state = "on";
         };
     };
-};
-
-&fiq_debugger {
-    rockchip,irq-mode-enable = <1>;
-    status = "okay";
 };
 
 &gmac {
@@ -314,6 +309,10 @@
     pinctrl-names = "default";
     pinctrl-0 = <&uart0m1_xfer &uart0m1_ctsn>;
     status = "okay";
+};
+
+&uart2 {
+	status = "okay";
 };
 
 &display_subsystem {
