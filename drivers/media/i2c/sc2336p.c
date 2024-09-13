@@ -5,6 +5,8 @@
  * Copyright (C) 2024 Rockchip Electronics Co., Ltd.
  *
  * V0.0X01.0X01 first version
+ * V0.0X01.0X02 add support soft sync mode
+ * V0.0X01.0X03 add delay to fix aov blc issue
  */
 
 // #define DEBUG
@@ -28,7 +30,7 @@
 #include <linux/pinctrl/consumer.h>
 #include "../platform/rockchip/isp/rkisp_tb_helper.h"
 
-#define DRIVER_VERSION KERNEL_VERSION(0, 0x01, 0x01)
+#define DRIVER_VERSION KERNEL_VERSION(0, 0x01, 0x03)
 
 #ifndef V4L2_CID_DIGITAL_GAIN
 #define V4L2_CID_DIGITAL_GAIN V4L2_CID_GAIN
@@ -305,6 +307,7 @@ static const struct regval sc2336p_linear_10_1920x1080_30fps_regs[] = {
 	{ 0x5afd, 0x3c },
 	{ 0x5afe, 0x30 },
 	{ 0x5aff, 0x28 },
+	{ 0x3028, 0x04 },	//Power on delay(0.6ms) before exposure
 	{ 0x36e9, 0x20 },
 	{ 0x37f9, 0x27 },
 	//{0x0100,0x01},
