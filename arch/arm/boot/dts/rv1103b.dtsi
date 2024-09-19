@@ -146,7 +146,7 @@
 			#clock-cells = <0>;
 			clock-output-names = "clk_npu_pvtpll";
 			assigned-clocks = <&pvtpll_npu>;
-			assigned-clock-rates = <700000000>;
+			assigned-clock-rates = <800000000>;
 		};
 	};
 
@@ -1329,7 +1329,7 @@
 		clocks = <&cru ACLK_RKNN>, <&cru HCLK_RKNN>;
 		clock-names = "aclk", "hclk";
 		assigned-clocks = <&cru ACLK_RKNN>;
-		assigned-clock-rates = <700000000>;
+		assigned-clock-rates = <800000000>;
 		resets = <&cru SRST_ARESETN_RKNN>, <&cru SRST_HRESETN_RKNN>;
 		reset-names = "srst_a", "srst_h";
 		operating-points-v2 = <&npu_opp_table>;
