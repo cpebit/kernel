@@ -6,6 +6,13 @@
 
 #include <linux/iopoll.h>
 
+#ifdef CONFIG_CPU_RV1103B
+#define RKMOUDLE_UNITE_EXTEND_PIXEL	512
+#else
+/* using for rk3588 dual isp unite */
+#define RKMOUDLE_UNITE_EXTEND_PIXEL	128
+#endif
+
 #define RKISP_VICAP_CMD_MODE \
 	_IOWR('V', BASE_VIDIOC_PRIVATE + 0, struct rkisp_vicap_mode)
 
