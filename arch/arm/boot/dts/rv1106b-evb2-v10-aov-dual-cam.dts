@@ -6,6 +6,7 @@
 /dts-v1/;
 
 #include "rv1106b-evb2-v10-dual-cam.dts"
+#include "rv1106b-amp.dtsi"
 
 / {
 	model = "Rockchip RV1106B EVB2 V10 Board";
