@@ -2259,7 +2259,8 @@ static int rkcif_assign_new_buffer_update_toisp(struct rkcif_stream *stream,
 				list_del(&buffer->list);
 				stream->curr_buf_toisp = buffer;
 			}
-			if (priv && priv->mode.rdbk_mode == RKISP_VICAP_RDBK_AUTO) {
+			if (priv && (priv->mode.rdbk_mode == RKISP_VICAP_RDBK_AUTO ||
+			    priv->mode.rdbk_mode == RKISP_VICAP_RDBK_AUTO_ONE_FRAME)) {
 				if (!active_buf)
 					goto out_get_buf;
 				if (stream->is_fb_first_frame) {
@@ -2297,7 +2298,8 @@ static int rkcif_assign_new_buffer_update_toisp(struct rkcif_stream *stream,
 				list_del(&buffer->list);
 				stream->next_buf_toisp = buffer;
 			}
-			if (priv && priv->mode.rdbk_mode == RKISP_VICAP_RDBK_AUTO) {
+			if (priv && (priv->mode.rdbk_mode == RKISP_VICAP_RDBK_AUTO ||
+			    priv->mode.rdbk_mode == RKISP_VICAP_RDBK_AUTO_ONE_FRAME)) {
 				if (!active_buf)
 					goto out_get_buf;
 				if (stream->is_fb_first_frame) {
