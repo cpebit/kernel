@@ -299,6 +299,7 @@ struct rkisp_stream {
 	bool is_crop_upd;
 	bool is_using_resmem;
 	bool frame_early;
+	bool is_attach_info;
 	wait_queue_head_t done;
 	unsigned int burst;
 	atomic_t sequence;
