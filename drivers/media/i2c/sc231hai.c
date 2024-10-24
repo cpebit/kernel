@@ -5,6 +5,7 @@
  * Copyright (C) 2024 Rockchip Electronics Co., Ltd.
  *
  * V0.0X01.0X01 first implement.
+ * V0.0X01.0X02 add soft sync mode.
  *
  */
 //#define DEBUG
@@ -30,7 +31,7 @@
 #include "../platform/rockchip/isp/rkisp_tb_helper.h"
 #include "cam-sleep-wakeup.h"
 
-#define DRIVER_VERSION			KERNEL_VERSION(0, 0x01, 0x01)
+#define DRIVER_VERSION			KERNEL_VERSION(0, 0x01, 0x02)
 
 #ifndef V4L2_CID_DIGITAL_GAIN
 #define V4L2_CID_DIGITAL_GAIN		V4L2_CID_GAIN
@@ -1997,6 +1998,11 @@ static int sc231hai_probe(struct i2c_client *client,
 		} else if (strcmp(sync_mode_name, RKMODULE_SLAVE_MODE) == 0) {
 			sc231hai->sync_mode = SLAVE_MODE;
 			dev_info(dev, "slave mode\n");
+		} else if (strcmp(sync_mode_name, RKMODULE_SOFT_SYNC_MODE) == 0) {
+			sc231hai->sync_mode = SOFT_SYNC_MODE;
+			dev_info(dev, "sync_mode = [SOFT_SYNC_MODE]\n");
+		} else {
+			dev_info(dev, "sync_mode = [NO_SYNC_MODE]\n");
 		}
 	}
 
