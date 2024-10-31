@@ -162,6 +162,7 @@ struct csi2_dev {
 	struct v4l2_subdev	*src_sd;
 	bool			sink_linked[CSI2_NUM_SRC_PADS];
 	bool			is_check_sot_sync;
+	bool			is_detect_fs_fe;
 	struct csi2_sensor_info	sensors[MAX_CSI2_SENSORS];
 	const struct csi2_match_data	*match_data;
 	int			num_sensors;

@@ -201,6 +201,10 @@ static void csi2_enable(struct csi2_hw *csi2_hw,
 	int lanes = csi2->bus.num_data_lanes;
 	struct v4l2_mbus_config mbus;
 	u32 val = 0;
+	u32 mask1 = 0;
+	struct v4l2_subdev *terminal_sensor_sd = NULL;
+	struct rkmodule_hdr_cfg hdr_cfg = {0};
+	int ret = 0;
 
 	csi2_g_mbus_config(&csi2->sd, 0, &mbus);
 	if (mbus.type == V4L2_MBUS_CSI2_DPHY)
@@ -213,6 +217,24 @@ static void csi2_enable(struct csi2_hw *csi2_hw,
 	if (csi2->sw_dbg)
 		val |= BIT(6);
 
+	get_remote_terminal_sensor(&csi2->sd, &terminal_sensor_sd);
+	if (terminal_sensor_sd) {
+		ret = v4l2_subdev_call(terminal_sensor_sd,
+				       core, ioctl,
+				       RKMODULE_GET_HDR_CFG,
+				       &hdr_cfg);
+		if (ret != 0)
+			hdr_cfg.hdr_mode = NO_HDR;
+		if (strstr(terminal_sensor_sd->name, "sc") &&
+		    (hdr_cfg.hdr_mode == HDR_X2 || hdr_cfg.hdr_mode == HDR_X3)) {
+			mask1 = CSIHOST_ERR1_ERR_BNDRY_MATCH;
+			csi2->is_detect_fs_fe = false;
+		} else {
+			csi2->is_detect_fs_fe = true;
+		}
+	} else {
+		csi2->is_detect_fs_fe = true;
+	}
 	if (host_type == RK_DSI_RXHOST) {
 		val |= SW_DSI_EN(1) | SW_DATATYPE_FS(0x01) |
 		       SW_DATATYPE_FE(0x11) | SW_DATATYPE_LS(0x21) |
@@ -226,7 +248,7 @@ static void csi2_enable(struct csi2_hw *csi2_hw,
 		       SW_DATATYPE_FE(0x01) | SW_DATATYPE_LS(0x02) |
 		       SW_DATATYPE_LE(0x03);
 		write_csihost_reg(base, CSIHOST_CONTROL, val);
-		write_csihost_reg(base, CSIHOST_MSK1, 0x0);
+		write_csihost_reg(base, CSIHOST_MSK1, mask1);
 		write_csihost_reg(base, CSIHOST_MSK2, 0xf000);
 		csi2->is_check_sot_sync = true;
 	}
@@ -866,7 +888,7 @@ static irqreturn_t rk_csirx_irq1_handler(int irq, void *ctx)
 			}
 		}
 
-		if (val & CSIHOST_ERR1_ERR_BNDRY_MATCH) {
+		if (val & CSIHOST_ERR1_ERR_BNDRY_MATCH && csi2->is_detect_fs_fe) {
 			err_list = &csi2->err_list[RK_CSI2_ERR_FS_FE_MIS];
 			err_list->cnt++;
 			csi2_find_err_vc((val >> 4) & 0xf, vc_info);
