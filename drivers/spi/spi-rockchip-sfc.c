@@ -15,12 +15,14 @@
 #include <linux/dma-mapping.h>
 #include <linux/iopoll.h>
 #include <linux/interrupt.h>
+#include <linux/mfd/syscon.h>
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/regmap.h>
 #include <linux/slab.h>
 #include <linux/spi/spi-mem.h>
 #include <linux/of_gpio.h>
@@ -181,6 +183,16 @@
 
 #define ROCKCHIP_AUTOSUSPEND_DELAY	2000
 
+struct rockchip_sfc_powergood {
+	bool	valid;
+	u32	grf_offset;
+	u8	bits_mask;
+};
+
+struct rockchip_sfc_data {
+	struct rockchip_sfc_powergood powergood;
+};
+
 struct rockchip_sfc {
 	struct device *dev;
 	void __iomem *regbase;
@@ -201,6 +213,8 @@ struct rockchip_sfc {
 	u16 version;
 	struct gpio_desc **cs_gpiods;
 	struct spi_master *master;
+	struct regmap *grf;
+	const struct rockchip_sfc_data *data;
 };
 
 static int rockchip_sfc_reset(struct rockchip_sfc *sfc)
@@ -374,6 +388,7 @@ static int rockchip_sfc_xfer_setup(struct rockchip_sfc *sfc,
 {
 	u32 ctrl = 0, cmd = 0;
 	u8 cs = mem->spi->chip_select;
+	u32 voltage;
 
 #ifdef CONFIG_MTD_SPI_NOR_AUTO_MERGE
 	cs = mem->spi->cs_gpio;
@@ -430,6 +445,15 @@ static int rockchip_sfc_xfer_setup(struct rockchip_sfc *sfc,
 		op->dummy.nbytes, op->dummy.buswidth);
 	dev_dbg(sfc->dev, "sfc ctrl=%x cmd=%x addr=%llx len=%x cs=%d\n",
 		ctrl, cmd, op->addr.val, len, cs);
+
+	if (sfc->data && sfc->data->powergood.valid) {
+		if (regmap_read_poll_timeout(sfc->grf, sfc->data->powergood.grf_offset,
+					     voltage, voltage & sfc->data->powergood.bits_mask,
+					     1000, jiffies_to_usecs(HZ))) {
+			dev_err(sfc->dev, "wait for powergood failed\n");
+			return -EIO;
+		}
+	}
 
 	writel(ctrl, sfc->regbase + cs * SFC_CS1_REG_OFFSET + SFC_CTRL);
 	writel(cmd, sfc->regbase + SFC_CMD);
@@ -958,6 +982,17 @@ static int rockchip_sfc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	sfc->data = device_get_match_data(&pdev->dev);
+	if (sfc->data) {
+		sfc->grf = syscon_regmap_lookup_by_phandle(dev->of_node, "rockchip,grf");
+		if (IS_ERR_OR_NULL(sfc->grf)) {
+			ret = -EINVAL;
+			dev_err(dev, "Failed to find grf\n");
+
+			goto err_irq;
+		}
+	}
+
 	platform_set_drvdata(pdev, sfc);
 
 	if (IS_ENABLED(CONFIG_ROCKCHIP_THUNDER_BOOT_SFC)) {
@@ -1102,8 +1137,17 @@ static const struct dev_pm_ops rockchip_sfc_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(rockchip_sfc_suspend, rockchip_sfc_resume)
 };
 
+static const struct rockchip_sfc_data rv1103b_fspi_data = {
+	.powergood = {
+		.valid = true,
+		.grf_offset = 0x60030,
+		.bits_mask = BIT(3),
+	},
+};
+
 static const struct of_device_id rockchip_sfc_dt_ids[] = {
-	{ .compatible = "rockchip,fspi"},
+	{ .compatible = "rockchip,fspi",},
+	{ .compatible = "rockchip,rv1103b-fspi", .data = &rv1103b_fspi_data},
 	{ .compatible = "rockchip,sfc"},
 	{ /* sentinel */ }
 };
