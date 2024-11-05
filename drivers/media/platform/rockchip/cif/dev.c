@@ -1365,7 +1365,7 @@ static int rkcif_pipeline_close(struct rkcif_pipeline *p)
 	return 0;
 }
 
-static void rkcif_set_sensor_streamon_in_sync_mode(struct rkcif_device *cif_dev)
+void rkcif_set_sensor_streamon_in_sync_mode(struct rkcif_device *cif_dev)
 {
 	struct rkcif_hw *hw = cif_dev->hw_dev;
 	struct rkcif_device *dev = NULL;
