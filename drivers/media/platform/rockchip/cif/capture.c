@@ -12431,7 +12431,8 @@ static int rkcif_check_group_sync_state(struct rkcif_device *cif_dev)
 		 sync_config->update_cache,
 		 detect_stream->readout.fs_timestamp);
 
-	if (sync_config->sync_code != sync_config->sync_mask)
+	if (sync_config->sync_code != sync_config->sync_mask ||
+	    (!detect_stream->dma_en))
 		return -EINVAL;
 
 	for (i = 0; i < sync_config->dev_cnt; i++) {
@@ -12458,7 +12459,8 @@ static int rkcif_check_group_sync_state(struct rkcif_device *cif_dev)
 		if (detect_stream == next_stream)
 			continue;
 		fs_interval = abs(detect_stream->readout.fs_timestamp - next_stream->readout.fs_timestamp);
-		if (fs_interval > RKCIF_MAX_INTERVAL_NS) {
+		if (fs_interval > RKCIF_MAX_INTERVAL_NS ||
+		    (!next_stream->dma_en)) {
 			ret = -EINVAL;
 			break;
 		}
@@ -13685,6 +13687,21 @@ void rkcif_irq_pingpong_v1(struct rkcif_device *cif_dev)
 			if (intstat & (cif_dev->chip_id < CHIP_RK3576_CIF ?
 			    CSI_START_INTSTAT(i) : CSI_START_INTSTAT_RK3576(i))) {
 				stream = &cif_dev->stream[i];
+				spin_lock_irqsave(&stream->vbq_lock, flags);
+				if (stream->stopping && stream->dma_en) {
+					if (stream->dma_en & RKCIF_DMAEN_BY_VICAP)
+						stream->to_stop_dma = RKCIF_DMAEN_BY_VICAP;
+					else if (stream->dma_en & RKCIF_DMAEN_BY_ISP)
+						stream->to_stop_dma = RKCIF_DMAEN_BY_ISP;
+					stream->is_stop_capture = true;
+				}
+				if (stream->to_stop_dma) {
+					ret = rkcif_stop_dma_capture(stream);
+					if (!ret)
+						stream->is_finish_stop_dma = true;
+				}
+				spin_unlock_irqrestore(&stream->vbq_lock, flags);
+
 				if (stream->dma_en || cif_dev->chip_id >= CHIP_RK3576_CIF) {
 					if (i == 0) {
 						spin_lock_irqsave(&stream->vbq_lock, flags);
@@ -13703,26 +13720,12 @@ void rkcif_irq_pingpong_v1(struct rkcif_device *cif_dev)
 							sditf_event_inc_sof(cif_dev->sditf[stream->id]);
 						spin_unlock_irqrestore(&stream->fps_lock, flags);
 					}
-					stream->is_in_vblank = false;
-					spin_lock_irqsave(&stream->vbq_lock, flags);
-					if (stream->stopping && stream->dma_en) {
-						if (stream->dma_en & RKCIF_DMAEN_BY_VICAP)
-							stream->to_stop_dma = RKCIF_DMAEN_BY_VICAP;
-						else if (stream->dma_en & RKCIF_DMAEN_BY_ISP)
-							stream->to_stop_dma = RKCIF_DMAEN_BY_ISP;
-						stream->is_stop_capture = true;
-					}
-					if (stream->to_stop_dma) {
-						ret = rkcif_stop_dma_capture(stream);
-						if (!ret)
-							stream->is_finish_stop_dma = true;
-					}
-					spin_unlock_irqrestore(&stream->vbq_lock, flags);
-					if (stream->to_en_dma)
-						rkcif_enable_dma_capture(stream, false);
-					if (rkcif_get_interlace_mode(stream) == RKCIF_INTERLACE_SOFT_AUTO)
-						rkcif_check_mipi_interlaced_frame_id(stream);
 				}
+				stream->is_in_vblank = false;
+				if (stream->to_en_dma)
+					rkcif_enable_dma_capture(stream, false);
+				if (rkcif_get_interlace_mode(stream) == RKCIF_INTERLACE_SOFT_AUTO)
+					rkcif_check_mipi_interlaced_frame_id(stream);
 			}
 			if (intstat & CSI_LINE_INTSTAT_V1(i)) {
 				stream = &cif_dev->stream[i];
