@@ -6136,8 +6136,10 @@ void rkcif_do_stop_stream(struct rkcif_stream *stream,
 			} else {
 				stream->stopping = true;
 			}
-		} else {
+		} else if (dev->sditf[0] && (!dev->sditf[0]->is_toisp_off)) {
 			stream->stopping = true;
+		} else {
+			rkcif_stream_stop(stream);
 		}
 		if (stream->stopping == true) {
 			ret = wait_event_timeout(stream->wq_stopped,
