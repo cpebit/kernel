@@ -57,7 +57,7 @@
 };
 
 &ramdisk_c {
-	reg = <0x14f6000 (3 * 0x00100000)>;
+	reg = <0x14f6000 (4 * 0x00100000)>;
 };
 
 &rkisp1_thunderboot {
@@ -67,7 +67,7 @@
 	 * 0x26b0000  = (ramdisk_c's reg offset) + (ramdisk_c's reg size)
 	 *            = 0x21b0000 + (5 * 0x00100000)
 	 */
-	reg = <0x17f6000 (2 * 0x2a3000)>;
+	reg = <0x18f6000 (2 * 0x2a3000)>;
 };
 
 &rkcif_mipi_lvds {
