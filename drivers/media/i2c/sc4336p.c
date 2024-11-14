@@ -9,6 +9,7 @@
  * V0.0X01.0X03 support hw standby mode in aov
  * V0.0X01.0X04 modify hw standby resume way
  * V0.0X01.0X05 fixed pm_runtime issue in aov
+ * V0.0X01.0X06 add support for light control
  */
 
 #define DEBUG
@@ -33,8 +34,9 @@
 #include "../platform/rockchip/isp/rkisp_tb_helper.h"
 #include "cam-tb-setup.h"
 #include "cam-sleep-wakeup.h"
+#include "light_ctl.h"
 
-#define DRIVER_VERSION			KERNEL_VERSION(0, 0x01, 0x05)
+#define DRIVER_VERSION			KERNEL_VERSION(0, 0x01, 0x06)
 
 #ifndef V4L2_CID_DIGITAL_GAIN
 #define V4L2_CID_DIGITAL_GAIN		V4L2_CID_GAIN
@@ -172,7 +174,9 @@ struct sc4336p {
 	bool			is_thunderboot;
 	bool			is_first_streamoff;
 	bool			is_standby;
+	bool			enable_light_ctl;
 	struct cam_sw_info	*cam_sw_info;
+	struct rk_light_param	light_param;
 };
 
 #define to_sc4336p(sd) container_of(sd, struct sc4336p, subdev)
@@ -807,6 +811,7 @@ static long sc4336p_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 	int cur_best_fit = -1;
 	int cur_best_fit_dist = -1;
 	int cur_dist, cur_fps, dst_fps;
+	struct rk_light_param *light_param;
 
 	switch (cmd) {
 	case RKMODULE_GET_MODULE_INFO:
@@ -863,7 +868,10 @@ static long sc4336p_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 	case RKMODULE_SET_QUICK_STREAM:
 
 		stream = *((u32 *)arg);
-
+		if (sc4336p->enable_light_ctl) {
+			sc4336p->light_param.light_enable = stream;
+			light_ctl_write(sc4336p->module_index, &sc4336p->light_param);
+		}
 		if (sc4336p->standby_hw) {	/* hardware standby */
 			if (stream) {
 				if (!IS_ERR(sc4336p->pwdn_gpio))
@@ -922,6 +930,17 @@ static long sc4336p_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			}
 		}
 		break;
+	case RKCIS_CMD_FLASH_LIGHT_CTRL:
+		dev_info(&sc4336p->client->dev, "set flash light param\n");
+		light_param = (struct rk_light_param *)arg;
+		if (light_param->light_enable) {
+			memcpy(&sc4336p->light_param, light_param, sizeof(struct rk_light_param));
+			sc4336p->enable_light_ctl = true;
+		} else {
+			sc4336p->enable_light_ctl = false;
+		}
+		ret = light_ctl_write(sc4336p->module_index, light_param);
+		break;
 	default:
 		ret = -ENOIOCTLCMD;
 		break;
@@ -938,6 +957,8 @@ static long sc4336p_compat_ioctl32(struct v4l2_subdev *sd,
 	struct rkmodule_inf *inf;
 	struct rkmodule_hdr_cfg *hdr;
 	struct preisp_hdrae_exp_s *hdrae;
+	struct rk_light_param *light_param;
+
 	long ret;
 	u32 stream = 0;
 
@@ -1005,6 +1026,19 @@ static long sc4336p_compat_ioctl32(struct v4l2_subdev *sd,
 		else
 			ret = -EFAULT;
 		break;
+	case RKCIS_CMD_FLASH_LIGHT_CTRL:
+		light_param = kzalloc(sizeof(*light_param), GFP_KERNEL);
+		if (!light_param) {
+			ret = -ENOMEM;
+			return ret;
+		}
+		ret = copy_from_user(light_param, up, sizeof(*light_param));
+		if (!ret)
+			ret = sc4336p_ioctl(sd, cmd, light_param);
+		else
+			ret = -EFAULT;
+		kfree(light_param);
+		break;
 	default:
 		ret = -ENOIOCTLCMD;
 		break;
@@ -1039,6 +1073,7 @@ static int __sc4336p_stop_stream(struct sc4336p *sc4336p)
 		sc4336p->is_first_streamoff = true;
 		pm_runtime_put(&sc4336p->client->dev);
 	}
+	sc4336p->enable_light_ctl = false;
 	return sc4336p_write_reg(sc4336p->client, SC4336P_REG_CTRL_MODE,
 				 SC4336P_REG_VALUE_08BIT, SC4336P_MODE_SW_STANDBY);
 }
