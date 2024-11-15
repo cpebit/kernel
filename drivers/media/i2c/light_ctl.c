@@ -37,7 +37,7 @@ static int light_ctl_set(struct lightctl_device *lightctl_dev, bool on)
 
 	info = lightctl_dev->light_info;
 
-	if (!info || !info->pwm) {
+	if (!info || (!info->pwm && !info->light_gpio)) {
 		dev_info(&lightctl_dev->pdev->dev, "invalid param!\n");
 		return -EINVAL;
 	}
@@ -187,7 +187,7 @@ static int lightctl_parse_dt(struct lightctl_device *lightctl_dev)
 	struct pwm_state *pwm_state = &lightctl_dev->light_info->pwm_state;
 	int ret = 0;
 
-	light_gpio = devm_gpiod_get(dev, "light", GPIOD_ASIS);
+	light_gpio = devm_gpiod_get(dev, "light", GPIOD_OUT_LOW);
 	if (IS_ERR(light_gpio)) {
 		ret = PTR_ERR(light_gpio);
 		dev_info(dev, "Unable to claim light-gpio\n");
