@@ -92,6 +92,29 @@ static void __iomem *gpio_base[3];
 static void __iomem *perisgrf_base;
 static void __iomem *pmusgrf_base;
 
+static void __iomem *qos_cpu_base;
+static void __iomem *qos_crypto_base;
+static void __iomem *qos_dcf_base;
+static void __iomem *qos_decom_base;
+static void __iomem *qos_dma2ddr_base;
+static void __iomem *qos_mac_base;
+static void __iomem *qos_mcu_base;
+static void __iomem *qos_rga2e_rd_base;
+static void __iomem *qos_rga2e_wr_base;
+static void __iomem *qos_rkdma_base;
+static void __iomem *qos_sdmmc1_base;
+static void __iomem *qos_usb_base;
+static void __iomem *qos_emmc_base;
+static void __iomem *qos_fspi_base;
+static void __iomem *qos_isp_base;
+static void __iomem *qos_sdmmc0_base;
+static void __iomem *qos_vicap_base;
+static void __iomem *qos_npu_base;
+static void __iomem *qos_rkvdec_base;
+static void __iomem *qos_fspi_pmu_base;
+static void __iomem *qos_lpmcu_base;
+static void __iomem *qos_spi2ahb_base;
+
 static void __iomem *gicd_base;
 static void __iomem *gicc_base;
 
@@ -135,6 +158,10 @@ static struct reg_region vd_core_reg_rgns[] = {
 
 	/* npu_grf */
 	{ REG_REGION(0x000, 0x000, 4, &npugrf_base, 0)},
+
+	/* qos */
+	{ REG_REGION(0x08, 0x18, 4, &qos_cpu_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_npu_base, 0)},
 };
 
 static struct reg_region vd_log_reg_rgns[] = {
@@ -283,6 +310,25 @@ static struct reg_region vd_log_reg_rgns[] = {
 	/* wdt_s */
 	{ REG_REGION(0x04, 0x04, 4, &wdt_s_base, 0)},
 	{ REG_REGION(0x00, 0x00, 4, &wdt_s_base, 0)},
+
+	/* qos */
+	{ REG_REGION(0x08, 0x18, 4, &qos_crypto_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_dcf_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_decom_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_dma2ddr_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_mac_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_mcu_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_rga2e_rd_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_rga2e_wr_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_rkdma_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_sdmmc1_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_usb_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_emmc_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_fspi_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_isp_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_sdmmc0_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_vicap_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_rkvdec_base, 0)},
 };
 
 static struct reg_region pd_pmu1_reg_rgns[] = {
@@ -303,6 +349,11 @@ static struct reg_region pd_pmu1_reg_rgns[] = {
 	{ REG_REGION(0x704, 0x704, 4, &ioc1_base, WMSK_VAL)},
 	{ REG_REGION(0x800, 0x804, 4, &ioc1_base, WMSK_VAL)},
 	{ REG_REGION(0x808, 0x808, 4, &ioc1_base, 0)},
+
+	/* qos */
+	{ REG_REGION(0x08, 0x18, 4, &qos_fspi_pmu_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_lpmcu_base, 0)},
+	{ REG_REGION(0x08, 0x18, 4, &qos_spi2ahb_base, 0)},
 };
 
 static struct reg_region pvtpll_core_reg_rgns[] = {
@@ -1488,6 +1539,29 @@ static int __init rv1103b_suspend_init(void)
 
 	perisgrf_base = dev_reg_base + RV1103B_PERISGRF_OFFSET;
 	pmusgrf_base = dev_reg_base + RV1103B_PMUSGRF_OFFSET;
+
+	qos_cpu_base = dev_reg_base + 0x310000;
+	qos_crypto_base = dev_reg_base + 0x320000;
+	qos_dcf_base = dev_reg_base + 0x320100;
+	qos_decom_base = dev_reg_base + 0x320200;
+	qos_dma2ddr_base = dev_reg_base + 0x320300;
+	qos_mac_base = dev_reg_base + 0x320400;
+	qos_mcu_base = dev_reg_base + 0x320500;
+	qos_rga2e_rd_base = dev_reg_base + 0x320600;
+	qos_rga2e_wr_base = dev_reg_base + 0x320700;
+	qos_rkdma_base = dev_reg_base + 0x320800;
+	qos_sdmmc1_base = dev_reg_base + 0x320900;
+	qos_usb_base = dev_reg_base + 0x320a00;
+	qos_emmc_base = dev_reg_base + 0x330000;
+	qos_fspi_base = dev_reg_base + 0x330100;
+	qos_isp_base = dev_reg_base + 0x330200;
+	qos_sdmmc0_base = dev_reg_base + 0x330300;
+	qos_vicap_base = dev_reg_base + 0x330400;
+	qos_npu_base = dev_reg_base + 0x340000;
+	qos_rkvdec_base = dev_reg_base + 0x350000;
+	qos_fspi_pmu_base = dev_reg_base + 0x360000;
+	qos_lpmcu_base = dev_reg_base + 0x360100;
+	qos_spi2ahb_base = dev_reg_base + 0x360200;
 
 	gicd_base = dev_reg_base + RV1103B_GIC_OFFSET + 0x1000;
 	gicc_base = dev_reg_base + RV1103B_GIC_OFFSET + 0x2000;
