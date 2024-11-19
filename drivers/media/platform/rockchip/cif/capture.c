@@ -2726,8 +2726,6 @@ static void rkcif_assign_new_buffer_init(struct rkcif_stream *stream,
 
 		} else if (!stream->next_buf && stream->curr_buf) {
 			stream->next_buf = stream->curr_buf;
-			if (stream->lack_buf_cnt < 2)
-				stream->lack_buf_cnt++;
 		}
 		if (stream->next_buf) {
 			buff_addr_y = stream->next_buf->buff_addr[RKCIF_PLANE_Y];
@@ -2744,6 +2742,9 @@ static void rkcif_assign_new_buffer_init(struct rkcif_stream *stream,
 				if (stream->cif_fmt_out->fmt_type != CIF_FMT_TYPE_RAW)
 					rkcif_write_register(dev, frm1_addr_uv, buff_addr_cbcr);
 			}
+		} else {
+			if (stream->lack_buf_cnt < 2)
+				stream->lack_buf_cnt++;
 		}
 	}
 	spin_unlock_irqrestore(&stream->vbq_lock, flags);
