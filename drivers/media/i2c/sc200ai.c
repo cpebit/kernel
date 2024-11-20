@@ -217,6 +217,7 @@ struct sc200ai {
  * Xclk 24Mhz
  */
 static const struct regval sc200ai_global_regs[] = {
+	{0x0103, 0x01},
 	{REG_NULL, 0x00},
 };
 
