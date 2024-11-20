@@ -12013,13 +12013,10 @@ static int rkcif_stop_dma_capture(struct rkcif_stream *stream)
 	if (mbus_cfg->type == V4L2_MBUS_CSI2_DPHY ||
 	    mbus_cfg->type == V4L2_MBUS_CSI2_CPHY) {
 		val = rkcif_read_register(cif_dev, get_reg_index_of_id_ctrl0(stream->id));
-		if (cif_dev->chip_id < CHIP_RK3576_CIF) {
+		if (cif_dev->chip_id < CHIP_RK3576_CIF)
 			val &= ~CSI_DMA_ENABLE;
-		} else {
+		else
 			val &= ~CSI_DMA_ENABLE_RK3576;
-			rkcif_write_register_and(cif_dev, CIF_REG_MIPI_LVDS_INTEN,
-						~CSI_START_INTEN_RK3576(stream->id));
-		}
 		if (stream->is_stop_capture) {
 			val &= ~CSI_ENABLE_CAPTURE;
 			stream->is_stop_capture = false;
@@ -12478,6 +12475,10 @@ static void rkcif_deal_sof(struct rkcif_device *cif_dev)
 	detect_stream->readout.fs_timestamp = rkcif_time_get_ns(cif_dev);
 	spin_unlock_irqrestore(&detect_stream->fps_lock, flags);
 
+	if (cif_dev->sditf[0] &&
+	    cif_dev->sditf[0]->mode.rdbk_mode >= RKISP_VICAP_RDBK_AIQ &&
+	    (!detect_stream->dma_en))
+		return;
 	if (cif_dev->sync_cfg.type != NO_SYNC_MODE &&
 	    cif_dev->sync_cfg.type != SOFT_SYNC_MODE) {
 		struct rkcif_multi_sync_config *sync_config;
