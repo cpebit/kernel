@@ -95,7 +95,7 @@
             linux,code = <KEY_F15>;
             linux,input-type = <1>;
             gpio-key,wakeup = <1>;
-            debounce-interval = <100>;
+            debounce-interval = <5>;
             pinctrl-names = "default";
             pinctrl-0 = <&pwrbtn>;
         };
