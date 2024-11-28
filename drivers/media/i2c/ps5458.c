@@ -229,7 +229,7 @@ static const struct regval ps5458_linear_10_2560x1440_30fps_regs[] = {
 	{0x0879, 0xB4},
 	{0x087B, 0xA5},
 	{0x0107, 0x1E},
-	{0x000C, 0x02}, //R_SMD_En_PREROL
+	{0x000C, 0x02},
 	{0x2256, 0x70},
 	{0x0723, 0x78},
 	{0x0724, 0x00},
@@ -428,12 +428,12 @@ static const struct regval ps5458_linear_10_2560x1440_30fps_regs[] = {
 	{0x2342, 0x01},
 	{0x0506, 0x04},//06 <={1'b0,1'b0,1'b0,1'b0,1'b0, R_Data_Format[2:0]}
 	{0x00eb, 0x01},//updateflag
-	{0x002E, 0x00},//R_ExpGain_AutoCalc_Preroll_En=0, temp setting
+	{0x002E, 0x00},
 	{0x002F, 0x00},//R_ExpGain_AutoCalc_Stream_En=0, temp setting
-	{0x0149, 0xF5},//R_ExpLine_PreRoll=8693 (R_LPF - 2)
-	{0x014A, 0x21},//R_ExpLine_PreRoll=8693 (R_LPF - 2)
-	{0x014B, 0x26},//R_GainIndex_PreRoll=38 (AG=1.509X)
-	{0x014C, 0x00},//R_GainIndex_PreRoll=38 (AG=1.509X)
+	{0x0149, 0xF5},
+	{0x014A, 0x21},
+	{0x014B, 0x26},
+	{0x014C, 0x00},
 	{0x014E, 0x3E},//R_ExpLine_Stream=1598 (R_LPF - 2)
 	{0x014F, 0x06},//R_ExpLine_Stream=1598 (R_LPF - 2)
 	{0x0150, 0x40},//R_GainIndex_Stream=64 (AG=2X)
@@ -514,7 +514,7 @@ static const struct regval ps5458_linear_10_2560x1440_15fps_regs[] = {
 	{0x0879, 0xB4},
 	{0x087B, 0xA5},
 	{0x0107, 0x1E},
-	{0x000C, 0x02}, //R_SMD_En_PREROL
+	{0x000C, 0x02},
 	{0x2256, 0x70},
 	{0x0723, 0x78},
 	{0x0724, 0x00},
@@ -716,12 +716,12 @@ static const struct regval ps5458_linear_10_2560x1440_15fps_regs[] = {
 	{0x2342, 0x01},
 	{0x0506, 0x04},//06 <={1'b0,1'b0,1'b0,1'b0,1'b0, R_Data_Format[2:0]}
 	{0x00eb, 0x01},//updateflag
-	{0x002E, 0x00},//R_ExpGain_AutoCalc_Preroll_En=0, temp setting
+	{0x002E, 0x00},
 	{0x002F, 0x00},//R_ExpGain_AutoCalc_Stream_En=0, temp setting
-	{0x0149, 0xF5},//R_ExpLine_PreRoll=8693 (R_LPF - 2)
-	{0x014A, 0x21},//R_ExpLine_PreRoll=8693 (R_LPF - 2)
-	{0x014B, 0x26},//R_GainIndex_PreRoll=38 (AG=1.509X)
-	{0x014C, 0x00},//R_GainIndex_PreRoll=38 (AG=1.509X)
+	{0x0149, 0xF5},
+	{0x014A, 0x21},
+	{0x014B, 0x26},
+	{0x014C, 0x00},
 	{0x014E, 0x3E},//R_ExpLine_Stream=1598 (R_LPF - 2)
 	{0x014F, 0x06},//R_ExpLine_Stream=1598 (R_LPF - 2)
 	{0x0150, 0x40},//R_GainIndex_Stream=64 (AG=2X)
