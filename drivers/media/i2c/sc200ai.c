@@ -1624,6 +1624,8 @@ static long sc200ai_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			if (stream) {
 				if (!IS_ERR(sc200ai->pwdn_gpio))
 					gpiod_set_value_cansleep(sc200ai->pwdn_gpio, 1);
+				// Make sure __v4l2_ctrl_handler_setup can be called correctly
+				sc200ai->is_standby = false;
 				ret = sc200ai_write_reg(sc200ai->client, SC200AI_REG_MIPI_CTRL,
 					SC200AI_REG_VALUE_08BIT, SC200AI_MIPI_CTRL_ON);
 
@@ -1648,7 +1650,6 @@ static long sc200ai_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 					SC200AI_REG_VALUE_08BIT, SC200AI_MODE_STREAMING);
 
 				dev_info(&sc200ai->client->dev, "quickstream, streaming on: exit hw standby mode\n");
-				sc200ai->is_standby = false;
 			} else {
 				ret = sc200ai_write_reg(sc200ai->client, SC200AI_REG_CTRL_MODE,
 					SC200AI_REG_VALUE_08BIT, SC200AI_MODE_SW_STANDBY);
