@@ -2466,6 +2466,8 @@ static long sc450ai_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 				/* pwdn gpio pull up */
 				if (!IS_ERR(sc450ai->pwdn_gpio))
 					gpiod_set_value_cansleep(sc450ai->pwdn_gpio, 1);
+				// Make sure __v4l2_ctrl_handler_setup can be called correctly
+				sc450ai->is_standby = false;
 				/* mipi clk on */
 				ret |= sc450ai_write_reg(sc450ai->client, SC450AI_REG_MIPI_CTRL,
 							 SC450AI_REG_VALUE_08BIT,
@@ -2507,7 +2509,6 @@ static long sc450ai_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 							 SC450AI_MODE_STREAMING);
 				dev_info(&sc450ai->client->dev,
 					"quickstream, streaming on: exit hw standby mode\n");
-				sc450ai->is_standby = false;
 			} else {
 				u32 val;
 
