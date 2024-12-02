@@ -80,8 +80,8 @@
         BT,power_gpio = <&gpio3 RK_PA6 GPIO_ACTIVE_HIGH>;
         BT,wake_host_irq = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
         pinctrl-names = "default", "rts_gpio";
-        pinctrl-0 = <&uart5m1_rtsn>;
-        pinctrl-1 = <&uart5m1_rtsn_gpio>;
+        pinctrl-0 = <&uart5m1_rtsn &bluetooth_enable>;
+        pinctrl-1 = <&uart5m1_rtsn_gpio &bluetooth_enable>;
         status = "okay";
     };
 
@@ -230,6 +230,12 @@
     wireless-wlan {
         wifi_wake_host: wifi-wake-host {
             rockchip,pins = <3 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>;
+        };
+    };
+
+    wireless-bluetooth {
+        bluetooth_enable: bluetooth-enable {
+            rockchip,pins = <3 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
         };
     };
 
