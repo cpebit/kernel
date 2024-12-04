@@ -744,7 +744,7 @@ static const struct regval ps5458_linear_10_2560x1440_15fps_regs[] = {
  * max_framerate 30fps
  * mipi_datarate per lane 840Mbps, 2lane
  */
-static const struct regval ps5458_linear_10_2688x1520_30fps_regs[] = {
+static const struct regval ps5458_linear_10_2560x1472_30fps_regs[] = {
 	{0x00FF, 0xA5},
 	{0x00A9, 0x00},
 	{0x00A8, 0x02},
@@ -929,12 +929,12 @@ static const struct regval ps5458_linear_10_2688x1520_30fps_regs[] = {
 	{0x01C7, 0x02},
 	{0x01C8, 0x00},
 	{0x01C9, 0x06},
-	{0x01CF, 0x80},
+	{0x01CF, 0x00},
 	{0x01D0, 0x0A},
-	{0x01D1, 0xF0},
+	{0x01D1, 0xc0},
 	{0x01d2, 0x05},
-	{0x01D3, 0x04},
-	{0x01D5, 0x08},
+	{0x01D3, 0x30},
+	{0x01D5, 0x1e},
 	{0x01D7, 0x00},
 	{0x01D8, 0x00},
 	{0x0064, 0x01},
@@ -971,8 +971,8 @@ static const struct regval ps5458_linear_10_2688x1520_30fps_regs[] = {
 
 static const struct ps5458_mode supported_modes[] = {
 	{
-		.width = 2688,
-		.height = 1520,
+		.width = 2560,
+		.height = 1472,
 		.max_fps = {
 			.numerator = 10000,
 			.denominator = 300000,
@@ -981,7 +981,7 @@ static const struct ps5458_mode supported_modes[] = {
 		.hts_def = 0x05dc * 2,
 		.vts_def = 0x0640,
 		.bus_fmt = MEDIA_BUS_FMT_SBGGR10_1X10,
-		.reg_list = ps5458_linear_10_2688x1520_30fps_regs,
+		.reg_list = ps5458_linear_10_2560x1472_30fps_regs,
 		.hdr_mode = NO_HDR,
 		.vc[PAD0] = V4L2_MBUS_CSI2_CHANNEL_0,
 	},
@@ -1637,9 +1637,9 @@ static int ps5458_get_selection(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_selection *sel)
 {
 	if (sel->target == V4L2_SEL_TGT_CROP_BOUNDS) {
-		sel->r.left = (2688 - 2560 - 40) / 2;
+		sel->r.left = 0;
 		sel->r.width = DST_WIDTH;
-		sel->r.top = (1520 - 1472) / 2;
+		sel->r.top = 0;
 		sel->r.height = DST_HEIGHT;
 		return 0;
 	}
