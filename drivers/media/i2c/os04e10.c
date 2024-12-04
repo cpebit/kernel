@@ -27,6 +27,7 @@
 #include <media/v4l2-subdev.h>
 #include <linux/pinctrl/consumer.h>
 #include "../platform/rockchip/isp/rkisp_tb_helper.h"
+#include "cam-tb-setup.h"
 
 #define DRIVER_VERSION			KERNEL_VERSION(0, 0x01, 0x01)
 
@@ -52,6 +53,9 @@
 #define OS04E10_REG_EXPOSURE_H		0x3500
 #define OS04E10_REG_EXPOSURE_M		0x3501
 #define OS04E10_REG_EXPOSURE_L		0x3502
+#define OS04E10_REG_EXPOSURE_SHORT_H	0x3510
+#define OS04E10_REG_EXPOSURE_SHORT_M	0x3511
+#define OS04E10_REG_EXPOSURE_SHORT_L	0x3512
 #define	OS04E10_EXPOSURE_MIN		2
 #define	OS04E10_EXPOSURE_STEP		1
 #define OS04E10_VTS_MAX			0x7fff
@@ -60,7 +64,13 @@
 #define OS04E10_REG_ANA_GAIN_L		0x3509
 #define OS04E10_REG_DIG_GAIN_H		0x350A
 #define OS04E10_REG_DIG_GAIN_L		0x350B
+#define OS04E10_REG_ANA_GAIN_SHORT_H	0x350C
+#define OS04E10_REG_ANA_GAIN_SHORT_L	0x350D
+#define OS04E10_REG_DIG_GAIN_SHORT_H	0x350E
+#define OS04E10_REG_DIG_GAIN_SHORT_L	0x350F
 
+#define OS04E10_LGAIN			0
+#define OS04E10_SGAIN			1
 #define OS04E10_GAIN_MIN		0x0080
 #define OS04E10_GAIN_MAX		(31743)	//15.5 * 16 * 128
 #define OS04E10_GAIN_STEP		1
@@ -100,6 +110,7 @@
 
 #define OF_CAMERA_PINCTRL_STATE_DEFAULT	"rockchip,camera_default"
 #define OF_CAMERA_PINCTRL_STATE_SLEEP	"rockchip,camera_sleep"
+#define OF_CAMERA_HDR_MODE              "rockchip,camera-hdr-mode"
 #define OS04E10_NAME			"os04e10"
 
 static const char * const os04e10_supply_names[] = {
@@ -570,6 +581,408 @@ static const struct regval os04e10_linear_10_2048x2048_regs[] = {
 	{REG_NULL, 0x00},
 };
 
+
+/*
+ * Xclk 24Mhz
+ * max_framerate 15fps
+ * mipi_datarate per lane 900Mbps, 2lane
+ */
+static const struct regval os04e10_hdrx2_10_2048x2048_15fps_regs[] = {
+	{0x0103, 0x01},
+	{0x0301, 0x44},
+	{0x0303, 0x02},
+	{0x0304, 0x00},
+	{0x0305, 0x4b},
+	{0x0306, 0x00},
+	{0x0325, 0x3b},
+	{0x0327, 0x04},
+	{0x0328, 0x05},
+	{0x3002, 0x21},
+	{0x3016, 0x32},
+	{0x301b, 0xf0},
+	{0x301e, 0xb4},
+	{0x301f, 0xf0},
+	{0x3021, 0x03},
+	{0x3022, 0x01},
+	{0x3107, 0xa1},
+	{0x3108, 0x7d},
+	{0x3109, 0xfc},
+	{0x3500, 0x00},
+	{0x3501, 0x04},
+	{0x3502, 0x2a},
+	{0x3503, 0x88},
+	{0x3508, 0x01},
+	{0x3509, 0x00},
+	{0x350a, 0x04},
+	{0x350b, 0x00},
+	{0x350c, 0x04},
+	{0x350d, 0x00},
+	{0x350e, 0x04},
+	{0x350f, 0x00},
+	{0x3510, 0x00},
+	{0x3511, 0x00},
+	{0x3512, 0x20},
+	{0x3600, 0x4c},
+	{0x3601, 0x08},
+	{0x3610, 0x87},
+	{0x3611, 0x24},
+	{0x3614, 0x4c},
+	{0x3620, 0x0c},
+	{0x3621, 0x04},
+	{0x3632, 0x80},
+	{0x3633, 0x00},
+	{0x3660, 0x04},
+	{0x3662, 0x10},
+	{0x3664, 0x70},
+	{0x3665, 0x00},
+	{0x3666, 0x00},
+	{0x3667, 0x00},
+	{0x366a, 0x54},
+	{0x3670, 0x0b},
+	{0x3671, 0x0b},
+	{0x3672, 0x0b},
+	{0x3673, 0x0b},
+	{0x3674, 0x00},
+	{0x3678, 0x2b},
+	{0x3679, 0x43},
+	{0x3681, 0xff},
+	{0x3682, 0x86},
+	{0x3683, 0x44},
+	{0x3684, 0x24},
+	{0x3685, 0x00},
+	{0x368a, 0x00},
+	{0x368d, 0x2b},
+	{0x368e, 0x6b},
+	{0x3690, 0x00},
+	{0x3691, 0x0b},
+	{0x3692, 0x0b},
+	{0x3693, 0x0b},
+	{0x3694, 0x0b},
+	{0x3699, 0x03},
+	{0x369d, 0xff},
+	{0x369e, 0x86},
+	{0x369f, 0x44},
+	{0x36a0, 0x24},
+	{0x36a1, 0x77},
+	{0x36a2, 0xf0},
+	{0x36a3, 0x82},
+	{0x36a4, 0x82},
+	{0x36b0, 0x30},
+	{0x36b1, 0xf0},
+	{0x36b2, 0x00},
+	{0x36b3, 0x00},
+	{0x36b4, 0x00},
+	{0x36b5, 0x00},
+	{0x36b6, 0x00},
+	{0x36b7, 0x00},
+	{0x36b8, 0x00},
+	{0x36b9, 0x00},
+	{0x36ba, 0x00},
+	{0x36bb, 0x00},
+	{0x36bc, 0x1f},
+	{0x36bd, 0x00},
+	{0x36be, 0x00},
+	{0x36bf, 0x00},
+	{0x36c0, 0x1f},
+	{0x36c1, 0x00},
+	{0x36c2, 0x00},
+	{0x36c3, 0x00},
+	{0x36c4, 0x00},
+	{0x36c5, 0x00},
+	{0x36c6, 0x00},
+	{0x36c7, 0x00},
+	{0x36c8, 0x00},
+	{0x36c9, 0x00},
+	{0x36ca, 0x0c},
+	{0x36cb, 0x0c},
+	{0x36cc, 0x0c},
+	{0x36cd, 0x0c},
+	{0x36ce, 0x0c},
+	{0x36cf, 0x0c},
+	{0x36d0, 0x0c},
+	{0x36d1, 0x0c},
+	{0x36d2, 0x00},
+	{0x36d3, 0x08},
+	{0x36d4, 0x10},
+	{0x36d5, 0x10},
+	{0x36d6, 0x00},
+	{0x36d7, 0x08},
+	{0x36d8, 0x10},
+	{0x36d9, 0x10},
+	{0x3704, 0x01},
+	{0x3705, 0x00},
+	{0x3706, 0x2b},
+	{0x3709, 0x46},
+	{0x370a, 0x00},
+	{0x370b, 0x60},
+	{0x370e, 0x0c},
+	{0x370f, 0x1c},
+	{0x3710, 0x00},
+	{0x3713, 0x00},
+	{0x3714, 0x24},
+	{0x3716, 0x24},
+	{0x371a, 0x1e},
+	{0x3724, 0x0d},
+	{0x3725, 0xb2},
+	{0x372b, 0x54},
+	{0x3739, 0x10},
+	{0x373f, 0xb0},
+	{0x3740, 0x2b},
+	{0x3741, 0x2b},
+	{0x3742, 0x2b},
+	{0x3743, 0x2b},
+	{0x3744, 0x60},
+	{0x3745, 0x60},
+	{0x3746, 0x60},
+	{0x3747, 0x60},
+	{0x3748, 0x00},
+	{0x3749, 0x00},
+	{0x374a, 0x00},
+	{0x374b, 0x00},
+	{0x374c, 0x00},
+	{0x374d, 0x00},
+	{0x374e, 0x00},
+	{0x374f, 0x00},
+	{0x3756, 0x00},
+	{0x3757, 0x00},
+	{0x3760, 0x22},
+	{0x3767, 0x08},
+	{0x3773, 0x01},
+	{0x3774, 0x02},
+	{0x3775, 0x12},
+	{0x3776, 0x02},
+	{0x377b, 0x4a},
+	{0x377c, 0x00},
+	{0x377d, 0x0c},
+	{0x3782, 0x01},
+	{0x3787, 0x14},
+	{0x3795, 0x14},
+	{0x3796, 0x01},
+	{0x3798, 0x40},
+	{0x379c, 0x0c},
+	{0x379d, 0x1c},
+	{0x379e, 0x0c},
+	{0x379f, 0x00},
+	{0x37a1, 0x10},
+	{0x37a6, 0x00},
+	{0x37ac, 0x00},
+	{0x37bb, 0x01},
+	{0x37be, 0x0a},
+	{0x37bf, 0x0a},
+	{0x37c2, 0x04},
+	{0x37c4, 0x11},
+	{0x37c5, 0x80},
+	{0x37c6, 0x14},
+	{0x37c7, 0x08},
+	{0x37c8, 0x42},
+	{0x37cd, 0x17},
+	{0x37ce, 0x04},
+	{0x37d9, 0x08},
+	{0x37dc, 0x01},
+	{0x37e0, 0x30},
+	{0x37e1, 0x10},
+	{0x37e2, 0x14},
+	{0x37e4, 0x28},
+	{0x37ef, 0x00},
+	{0x37f4, 0x00},
+	{0x37f5, 0x00},
+	{0x37f6, 0x00},
+	{0x37f7, 0x00},
+	{0x3800, 0x00},
+	{0x3801, 0x00},
+	{0x3802, 0x00},
+	{0x3803, 0x00},
+	{0x3804, 0x08},
+	{0x3805, 0x0f},
+	{0x3806, 0x08},
+	{0x3807, 0x0f},
+	{0x3808, 0x08},
+	{0x3809, 0x00},
+	{0x380a, 0x08},
+	{0x380b, 0x00},
+	{0x380c, 0x06},
+	{0x380d, 0x34},
+	{0x380e, 0x08},
+	{0x380f, 0x9b},
+	{0x3810, 0x00},
+	{0x3811, 0x08},
+	{0x3812, 0x00},
+	{0x3813, 0x08},
+	{0x3814, 0x01},
+	{0x3815, 0x01},
+	{0x3816, 0x01},
+	{0x3817, 0x01},
+	{0x3818, 0x00},
+	{0x3819, 0x00},
+	{0x381a, 0x00},
+	{0x381b, 0x01},
+	{0x3820, 0x88},
+	{0x3821, 0x04},
+	{0x3822, 0x14},
+	{0x3823, 0x08},
+	{0x3824, 0x00},
+	{0x3825, 0x20},
+	{0x3826, 0x00},
+	{0x3827, 0x08},
+	{0x3829, 0x03},
+	{0x382a, 0x00},
+	{0x382b, 0x00},
+	{0x3832, 0x08},
+	{0x3838, 0x00},
+	{0x3839, 0x00},
+	{0x383a, 0x00},
+	{0x383b, 0x00},
+	{0x383d, 0x01},
+	{0x383e, 0x00},
+	{0x383f, 0x00},
+	{0x3843, 0x00},
+	{0x3848, 0x08},
+	{0x3849, 0x00},
+	{0x384a, 0x08},
+	{0x384b, 0x00},
+	{0x384c, 0x00},
+	{0x384d, 0x08},
+	{0x384e, 0x00},
+	{0x384f, 0x08},
+	{0x3880, 0x16},
+	{0x3881, 0x16},
+	{0x3882, 0x08},
+	{0x388a, 0x00},
+	{0x389a, 0x00},
+	{0x389b, 0x00},
+	{0x389c, 0x00},
+	{0x38a2, 0x01},
+	{0x38a3, 0x01},
+	{0x38a4, 0x01},
+	{0x38a5, 0x01},
+	{0x38a7, 0x04},
+	{0x38ae, 0x1e},
+	{0x38b8, 0x02},
+	{0x38c3, 0x06},
+	{0x3c80, 0x3e},
+	{0x3c86, 0x01},
+	{0x3c87, 0x02},
+	{0x3ca0, 0x01},
+	{0x3ca2, 0x0c},
+	{0x3d8c, 0x71},
+	{0x3d8d, 0xe2},
+	{0x3f00, 0xcb},
+	{0x3f04, 0x04},
+	{0x3f07, 0x04},
+	{0x3f09, 0x50},
+	{0x3f9e, 0x07},
+	{0x3f9f, 0x04},
+	{0x4000, 0xf3},
+	{0x4002, 0x00},
+	{0x4003, 0x40},
+	{0x4008, 0x00},
+	{0x4009, 0x0f},
+	{0x400a, 0x01},
+	{0x400b, 0x78},
+	{0x400f, 0x89},
+	{0x4040, 0x00},
+	{0x4041, 0x07},
+	{0x4090, 0x14},
+	{0x40b0, 0x00},
+	{0x40b1, 0x00},
+	{0x40b2, 0x00},
+	{0x40b3, 0x00},
+	{0x40b4, 0x00},
+	{0x40b5, 0x00},
+	{0x40b7, 0x00},
+	{0x40b8, 0x00},
+	{0x40b9, 0x00},
+	{0x40ba, 0x01},
+	{0x4300, 0xff},
+	{0x4301, 0x00},
+	{0x4302, 0x0f},
+	{0x4303, 0x01},
+	{0x4304, 0x01},
+	{0x4305, 0x83},
+	{0x4306, 0x21},
+	{0x430d, 0x00},
+	{0x4501, 0x00},
+	{0x4505, 0xc4},
+	{0x4506, 0x00},
+	{0x4507, 0x43},
+	{0x4508, 0x00},
+	{0x4600, 0x00},
+	{0x4601, 0x40},
+	{0x4603, 0x03},
+	{0x4800, 0x64},
+	{0x4803, 0x00},
+	{0x4809, 0x8e},
+	{0x480e, 0x04},
+	{0x4813, 0xe4},
+	{0x4814, 0x2a},
+	{0x481b, 0x3c},
+	{0x481f, 0x26},
+	{0x4825, 0x32},
+	{0x4829, 0x64},
+	{0x4837, 0x11},
+	{0x484b, 0x27},
+	{0x4883, 0x36},
+	{0x4885, 0x03},
+	{0x488b, 0x00},
+	{0x4d00, 0x04},
+	{0x4d01, 0x99},
+	{0x4d02, 0xbd},
+	{0x4d03, 0xac},
+	{0x4d04, 0xf2},
+	{0x4d05, 0x54},
+	{0x4e00, 0x2a},
+	{0x4e0d, 0x00},
+	{0x5000, 0xbb},
+	{0x5001, 0x09},
+	{0x5004, 0x00},
+	{0x5005, 0x0e},
+	{0x5036, 0x80},
+	{0x5080, 0x04},
+	{0x5082, 0x00},
+	{0x5180, 0x70},
+	{0x5181, 0x10},
+	{0x5182, 0x71},
+	{0x5183, 0xdf},
+	{0x5184, 0x02},
+	{0x5185, 0x6c},
+	{0x5189, 0x48},
+	{0x5324, 0x09},
+	{0x5325, 0x11},
+	{0x5326, 0x1f},
+	{0x5327, 0x3b},
+	{0x5328, 0x49},
+	{0x5329, 0x61},
+	{0x532a, 0x9c},
+	{0x532b, 0xc9},
+	{0x5335, 0x04},
+	{0x5336, 0x00},
+	{0x5337, 0x04},
+	{0x5338, 0x00},
+	{0x5339, 0x0b},
+	{0x533a, 0x00},
+	{0x53a4, 0x09},
+	{0x53a5, 0x11},
+	{0x53a6, 0x1f},
+	{0x53a7, 0x3b},
+	{0x53a8, 0x49},
+	{0x53a9, 0x61},
+	{0x53aa, 0x9c},
+	{0x53ab, 0xc9},
+	{0x53b5, 0x04},
+	{0x53b6, 0x00},
+	{0x53b7, 0x04},
+	{0x53b8, 0x00},
+	{0x53b9, 0x0b},
+	{0x53ba, 0x00},
+	{0x580b, 0x03},
+	{0x580d, 0x00},
+	{0x580f, 0x00},
+	{0x5820, 0x00},
+	{0x5821, 0x00},
+	{0x5888, 0x01},
+	{REG_NULL, 0x00},
+};
+
 static const struct os04e10_mode supported_modes[] = {
 	{
 		.width = 2048,
@@ -585,7 +998,25 @@ static const struct os04e10_mode supported_modes[] = {
 		.reg_list = os04e10_linear_10_2048x2048_regs,
 		.hdr_mode = NO_HDR,
 		.vc[PAD0] = V4L2_MBUS_CSI2_CHANNEL_0,
-	}
+	},
+	{
+		.width = 2048,
+		.height = 2048,
+		.max_fps = {
+			.numerator = 10000,
+			.denominator = 150000,
+		},
+		.exp_def = 0x0080,
+		.hts_def = 0x0634 * 2,
+		.vts_def = 0x089B,
+		.bus_fmt = MEDIA_BUS_FMT_SBGGR10_1X10,
+		.reg_list = os04e10_hdrx2_10_2048x2048_15fps_regs,
+		.hdr_mode = HDR_X2,
+		.vc[PAD0] = V4L2_MBUS_CSI2_CHANNEL_1,
+		.vc[PAD1] = V4L2_MBUS_CSI2_CHANNEL_0,//L->csi wr0
+		.vc[PAD2] = V4L2_MBUS_CSI2_CHANNEL_1,
+		.vc[PAD3] = V4L2_MBUS_CSI2_CHANNEL_1,//M->csi wr2
+	},
 };
 
 static const s64 link_freq_menu_items[] = {
@@ -676,7 +1107,8 @@ static int os04e10_read_reg(struct i2c_client *client, u16 reg, unsigned int len
 	return 0;
 }
 
-static int os04e10_set_gain_reg(struct os04e10 *os04e10, u32 gain)
+/* mode: 0 = lgain  1 = sgain */
+static int os04e10_set_gain_reg(struct os04e10 *os04e10, u32 gain, int mode)
 {
 	struct i2c_client *client = os04e10->client;
 	u32 again = 0, dgain = 0;
@@ -695,26 +1127,113 @@ static int os04e10_set_gain_reg(struct os04e10 *os04e10, u32 gain)
 		dgain = gain * 1024 / 0x7c0;
 	}
 
-	dev_dbg(&client->dev, "again: 0x%02x, dgain: 0x%02x\n",
-		again, dgain);
+	dev_dbg(&client->dev, "again: 0x%02x, dgain: 0x%02x mode %d\n",
+		again, dgain, mode);
 
+	if (mode == OS04E10_LGAIN) {
+		ret = os04e10_write_reg(os04e10->client,
+					OS04E10_REG_ANA_GAIN_H,
+					OS04E10_REG_VALUE_08BIT,
+					OS04E10_FETCH_AGAIN_H(again));
+		ret |= os04e10_write_reg(os04e10->client,
+					OS04E10_REG_ANA_GAIN_L,
+					OS04E10_REG_VALUE_08BIT,
+					OS04E10_FETCH_AGAIN_L(again));
+		ret |= os04e10_write_reg(os04e10->client,
+					 OS04E10_REG_DIG_GAIN_H,
+					 OS04E10_REG_VALUE_08BIT,
+					 OS04E10_FETCH_DGAIN_H(dgain));
+		ret |= os04e10_write_reg(os04e10->client,
+					 OS04E10_REG_DIG_GAIN_L,
+					 OS04E10_REG_VALUE_08BIT,
+					 OS04E10_FETCH_DGAIN_L(dgain));
+	} else if (mode == OS04E10_SGAIN) {
+		ret = os04e10_write_reg(os04e10->client,
+					OS04E10_REG_ANA_GAIN_SHORT_H,
+					OS04E10_REG_VALUE_08BIT,
+					OS04E10_FETCH_AGAIN_H(again));
+		ret |= os04e10_write_reg(os04e10->client,
+					OS04E10_REG_ANA_GAIN_SHORT_L,
+					OS04E10_REG_VALUE_08BIT,
+					OS04E10_FETCH_AGAIN_L(again));
+		ret |= os04e10_write_reg(os04e10->client,
+					 OS04E10_REG_DIG_GAIN_SHORT_H,
+					 OS04E10_REG_VALUE_08BIT,
+					 OS04E10_FETCH_DGAIN_H(dgain));
+		ret |= os04e10_write_reg(os04e10->client,
+					 OS04E10_REG_DIG_GAIN_SHORT_L,
+					 OS04E10_REG_VALUE_08BIT,
+					 OS04E10_FETCH_DGAIN_L(dgain));
+	}
+
+	return ret;
+}
+
+static int os04e10_set_hdrae(struct os04e10 *os04e10,
+			    struct preisp_hdrae_exp_s *ae)
+{
+	int ret = 0;
+	u32 l_exp_time, m_exp_time, s_exp_time;
+	u32 l_a_gain, m_a_gain, s_a_gain;
+
+	if (!os04e10->has_init_exp && !os04e10->streaming) {
+		os04e10->init_hdrae_exp = *ae;
+		os04e10->has_init_exp = true;
+		dev_dbg(&os04e10->client->dev, "OS04E10 don't stream, record exp for hdr!\n");
+		return ret;
+	}
+	l_exp_time = ae->long_exp_reg;
+	m_exp_time = ae->middle_exp_reg;
+	s_exp_time = ae->short_exp_reg;
+	l_a_gain = ae->long_gain_reg;
+	m_a_gain = ae->middle_gain_reg;
+	s_a_gain = ae->short_gain_reg;
+
+	dev_dbg(&os04e10->client->dev,
+		"rev exp req: L_exp: 0x%x, 0x%x, M_exp: 0x%x, 0x%x S_exp: 0x%x, 0x%x\n",
+		l_exp_time, l_a_gain, m_exp_time,
+		m_a_gain, s_exp_time, s_a_gain);
+
+	if (os04e10->cur_mode->hdr_mode == HDR_X2) {
+		//2 stagger
+		l_a_gain = m_a_gain;
+		l_exp_time = m_exp_time;
+	}
+
+	// (max_l_time = vts - 8)
+	if (l_exp_time > os04e10->cur_vts - 8)
+		l_exp_time = os04e10->cur_vts - 8;
+	// (max_s_time = vts - l_exp_time - 12)
+	if (s_exp_time > os04e10->cur_vts - l_exp_time - 12)
+		s_exp_time = os04e10->cur_vts - l_exp_time - 12;
 	ret = os04e10_write_reg(os04e10->client,
-				OS04E10_REG_ANA_GAIN_H,
+				OS04E10_REG_EXPOSURE_H,
 				OS04E10_REG_VALUE_08BIT,
-				OS04E10_FETCH_AGAIN_H(again));
+				OS04E10_FETCH_EXP_H(l_exp_time));
 	ret |= os04e10_write_reg(os04e10->client,
-				OS04E10_REG_ANA_GAIN_L,
-				OS04E10_REG_VALUE_08BIT,
-				OS04E10_FETCH_AGAIN_L(again));
-	ret |= os04e10_write_reg(os04e10->client,
-				 OS04E10_REG_DIG_GAIN_H,
+				 OS04E10_REG_EXPOSURE_M,
 				 OS04E10_REG_VALUE_08BIT,
-				 OS04E10_FETCH_DGAIN_H(dgain));
+				 OS04E10_FETCH_EXP_M(l_exp_time));
 	ret |= os04e10_write_reg(os04e10->client,
-				 OS04E10_REG_DIG_GAIN_L,
+				 OS04E10_REG_EXPOSURE_L,
 				 OS04E10_REG_VALUE_08BIT,
-				 OS04E10_FETCH_DGAIN_L(dgain));
+				 OS04E10_FETCH_EXP_L(l_exp_time));
 
+	ret |= os04e10_write_reg(os04e10->client,
+				OS04E10_REG_EXPOSURE_SHORT_H,
+				OS04E10_REG_VALUE_08BIT,
+				OS04E10_FETCH_EXP_H(s_exp_time));
+	ret |= os04e10_write_reg(os04e10->client,
+				 OS04E10_REG_EXPOSURE_SHORT_M,
+				 OS04E10_REG_VALUE_08BIT,
+				 OS04E10_FETCH_EXP_M(s_exp_time));
+	ret |= os04e10_write_reg(os04e10->client,
+				 OS04E10_REG_EXPOSURE_SHORT_L,
+				 OS04E10_REG_VALUE_08BIT,
+				 OS04E10_FETCH_EXP_L(s_exp_time));
+
+	ret |= os04e10_set_gain_reg(os04e10, l_a_gain, OS04E10_LGAIN);
+	ret |= os04e10_set_gain_reg(os04e10, s_a_gain, OS04E10_SGAIN);
 	return ret;
 }
 
@@ -739,10 +1258,6 @@ os04e10_find_best_fit(struct v4l2_subdev_format *fmt)
 		if (cur_best_fit_dist == -1 || dist < cur_best_fit_dist) {
 			cur_best_fit_dist = dist;
 			cur_best_fit = i;
-		} else if (dist == cur_best_fit_dist &&
-			   framefmt->code == supported_modes[i].bus_fmt) {
-			cur_best_fit = i;
-			break;
 		}
 	}
 
@@ -781,6 +1296,7 @@ static int os04e10_set_fmt(struct v4l2_subdev *sd,
 					 OS04E10_VTS_MAX - mode->height,
 					 1, vblank_def);
 		os04e10->cur_fps = mode->max_fps;
+		os04e10->cur_vts = mode->vts_def;
 	}
 
 	mutex_unlock(&os04e10->mutex);
@@ -920,9 +1436,6 @@ static long os04e10_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 	u32 i, h, w;
 	long ret = 0;
 	u32 stream = 0;
-	int cur_best_fit = -1;
-	int cur_best_fit_dist = -1;
-	int cur_dist, cur_fps, dst_fps;
 
 	switch (cmd) {
 	case RKMODULE_GET_MODULE_INFO:
@@ -935,44 +1448,33 @@ static long os04e10_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		break;
 	case RKMODULE_SET_HDR_CFG:
 		hdr = (struct rkmodule_hdr_cfg *)arg;
-		if (hdr->hdr_mode == os04e10->cur_mode->hdr_mode)
-			return 0;
 		w = os04e10->cur_mode->width;
 		h = os04e10->cur_mode->height;
-		dst_fps = DIV_ROUND_CLOSEST(os04e10->cur_mode->max_fps.denominator,
-			os04e10->cur_mode->max_fps.numerator);
 		for (i = 0; i < ARRAY_SIZE(supported_modes); i++) {
 			if (w == supported_modes[i].width &&
 			    h == supported_modes[i].height &&
 			    supported_modes[i].hdr_mode == hdr->hdr_mode) {
-				cur_fps = DIV_ROUND_CLOSEST(supported_modes[i].max_fps.denominator,
-					supported_modes[i].max_fps.numerator);
-				cur_dist = abs(cur_fps - dst_fps);
-				if (cur_best_fit_dist == -1 || cur_dist < cur_best_fit_dist) {
-					cur_best_fit_dist = cur_dist;
-					cur_best_fit = i;
-				} else if (cur_dist == cur_best_fit_dist) {
-					cur_best_fit = i;
-					break;
-				}
+				os04e10->cur_mode = &supported_modes[i];
+				break;
 			}
 		}
-		if (cur_best_fit == -1) {
+		if (i == ARRAY_SIZE(supported_modes)) {
 			dev_err(&os04e10->client->dev,
 				"not find hdr mode:%d %dx%d config\n",
 				hdr->hdr_mode, w, h);
 			ret = -EINVAL;
 		} else {
-			os04e10->cur_mode = &supported_modes[cur_best_fit];
 			w = os04e10->cur_mode->hts_def - os04e10->cur_mode->width;
 			h = os04e10->cur_mode->vts_def - os04e10->cur_mode->height;
 			__v4l2_ctrl_modify_range(os04e10->hblank, w, w, 1, w);
 			__v4l2_ctrl_modify_range(os04e10->vblank, h,
 						 OS04E10_VTS_MAX - os04e10->cur_mode->height, 1, h);
 			os04e10->cur_fps = os04e10->cur_mode->max_fps;
+			os04e10->cur_vts = os04e10->cur_mode->vts_def;
 		}
 		break;
 	case PREISP_CMD_SET_HDRAE_EXP:
+		os04e10_set_hdrae(os04e10, arg);
 		break;
 	case RKMODULE_SET_QUICK_STREAM:
 
@@ -1080,6 +1582,14 @@ static long os04e10_compat_ioctl32(struct v4l2_subdev *sd,
 static int __os04e10_start_stream(struct os04e10 *os04e10)
 {
 	int ret;
+
+	dev_info(&os04e10->client->dev,
+		 "%dx%d@%d, mode %d, vts 0x%x\n",
+		 os04e10->cur_mode->width,
+		 os04e10->cur_mode->height,
+		 os04e10->cur_fps.denominator / os04e10->cur_fps.numerator,
+		 os04e10->cur_mode->hdr_mode,
+		 os04e10->cur_vts);
 
 	if (!os04e10->is_thunderboot) {
 		ret = os04e10_write_array(os04e10->client, os04e10->cur_mode->reg_list);
@@ -1435,9 +1945,12 @@ static int os04e10_set_ctrl(struct v4l2_ctrl *ctrl)
 		}
 		break;
 	case V4L2_CID_ANALOGUE_GAIN:
-		dev_dbg(&client->dev, "set gain 0x%x\n", ctrl->val);
+		dev_dbg(&client->dev,
+			"set gain 0x%x mode %d\n",
+			ctrl->val,
+			os04e10->cur_mode->hdr_mode);
 		if (os04e10->cur_mode->hdr_mode == NO_HDR)
-			ret = os04e10_set_gain_reg(os04e10, ctrl->val);
+			ret = os04e10_set_gain_reg(os04e10, ctrl->val, OS04E10_LGAIN);
 		break;
 	case V4L2_CID_VBLANK:
 		dev_dbg(&client->dev, "set vblank 0x%x\n", ctrl->val);
@@ -1610,6 +2123,79 @@ static int os04e10_configure_regulators(struct os04e10 *os04e10)
 				       os04e10->supplies);
 }
 
+#ifdef CONFIG_VIDEO_ROCKCHIP_THUNDER_BOOT_ISP
+static void find_terminal_resolution(struct os04e10 *os04e10)
+{
+	int i = 0;
+	const struct os04e10_mode *mode = NULL;
+	const struct os04e10_mode *fit_mode = NULL;
+	u32 cur_fps = 0;
+	u32 dst_fps = 0;
+	u32 tmp_fps = 0;
+	u32 rk_cam_hdr, rk_cam_w, rk_cam_h, rk_cam_fps;
+
+	rk_cam_hdr = get_rk_cam_hdr();
+	rk_cam_w = get_rk_cam_w();
+	rk_cam_h = get_rk_cam_h();
+	rk_cam_fps = get_rk_cam_fps();
+
+	if (rk_cam_w == 0 || rk_cam_h == 0 ||
+	    rk_cam_fps == 0)
+		goto err_find_res;
+
+	dev_info(&os04e10->client->dev, "find resolution width: %d, height: %d, hdr: %d, fps: %d\n",
+		 rk_cam_w, rk_cam_h, rk_cam_hdr, rk_cam_fps);
+	dst_fps = rk_cam_fps;
+	for (i = 0; i < ARRAY_SIZE(supported_modes); i++) {
+		mode = &supported_modes[i];
+		cur_fps = mode->max_fps.denominator / mode->max_fps.numerator;
+		if (mode->width == rk_cam_w && mode->height == rk_cam_h &&
+		    mode->hdr_mode == rk_cam_hdr) {
+			if (cur_fps == dst_fps) {
+				os04e10->cur_mode = mode;
+				return;
+			}
+			if (cur_fps >= dst_fps) {
+				if (fit_mode) {
+					tmp_fps = fit_mode->max_fps.denominator /
+						  fit_mode->max_fps.numerator;
+					if (tmp_fps - dst_fps > cur_fps - dst_fps)
+						fit_mode = mode;
+				} else {
+					fit_mode = mode;
+				}
+			}
+		}
+	}
+	if (fit_mode) {
+		os04e10->cur_mode = fit_mode;
+		return;
+	}
+err_find_res:
+	dev_err(&os04e10->client->dev, "not match %dx%d@%dfps mode %d\n!",
+		rk_cam_w, rk_cam_h, dst_fps, rk_cam_hdr);
+	os04e10->cur_mode = &supported_modes[0];
+}
+#else
+static void find_terminal_resolution(struct os04e10 *os04e10)
+{
+	u32 hdr_mode = 0;
+	struct device_node *node = os04e10->client->dev.of_node;
+	int i = 0;
+
+	of_property_read_u32(node, OF_CAMERA_HDR_MODE, &hdr_mode);
+	for (i = 0; i < ARRAY_SIZE(supported_modes); i++) {
+		if (hdr_mode == supported_modes[i].hdr_mode) {
+			os04e10->cur_mode = &supported_modes[i];
+			break;
+		}
+	}
+	if (i == ARRAY_SIZE(supported_modes))
+		os04e10->cur_mode = &supported_modes[0];
+
+}
+#endif
+
 static int os04e10_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id)
 {
@@ -1619,7 +2205,6 @@ static int os04e10_probe(struct i2c_client *client,
 	struct v4l2_subdev *sd;
 	char facing[2];
 	int ret;
-	int i, hdr_mode = 0;
 
 	dev_info(dev, "driver version: %02x.%02x.%02x",
 		 DRIVER_VERSION >> 16,
@@ -1646,14 +2231,8 @@ static int os04e10_probe(struct i2c_client *client,
 	os04e10->is_thunderboot = IS_ENABLED(CONFIG_VIDEO_ROCKCHIP_THUNDER_BOOT_ISP);
 
 	os04e10->client = client;
-	for (i = 0; i < ARRAY_SIZE(supported_modes); i++) {
-		if (hdr_mode == supported_modes[i].hdr_mode) {
-			os04e10->cur_mode = &supported_modes[i];
-			break;
-		}
-	}
-	if (i == ARRAY_SIZE(supported_modes))
-		os04e10->cur_mode = &supported_modes[0];
+
+	find_terminal_resolution(os04e10);
 
 	os04e10->xvclk = devm_clk_get(dev, "xvclk");
 	if (IS_ERR(os04e10->xvclk)) {
