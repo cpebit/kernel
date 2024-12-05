@@ -12058,10 +12058,23 @@ static int rkcif_stop_dma_capture(struct rkcif_stream *stream)
 	return 0;
 }
 
+static bool rkcif_check_frame_active(struct rkcif_device *cif_dev)
+{
+	if (cif_dev->sditf[0] &&
+	    cif_dev->sditf[0]->mode.rdbk_mode < RKISP_VICAP_RDBK_AIQ &&
+	    cif_dev->sditf[0]->is_toisp_off)
+		return false;
+
+	return true;
+}
+
 static void rkcif_send_sof(struct rkcif_device *cif_dev)
 {
 	struct v4l2_mbus_config *mbus = &cif_dev->active_sensor->mbus;
 	struct csi2_dev *csi;
+
+	if (!rkcif_check_frame_active(cif_dev))
+		return;
 
 	if (mbus->type == V4L2_MBUS_CSI2_DPHY ||
 	    mbus->type == V4L2_MBUS_CSI2_CPHY) {
@@ -12072,6 +12085,7 @@ static void rkcif_send_sof(struct rkcif_device *cif_dev)
 	} else {
 		rkcif_dvp_event_inc_sof(cif_dev);
 	}
+	v4l2_dbg(3, rkcif_debug, &cif_dev->v4l2_dev, "send sof %d\n\n", rkcif_get_sof(cif_dev));
 }
 
 static int rkcif_g_toisp_ch(unsigned int intstat_glb, int index)
@@ -12298,6 +12312,8 @@ static void rkcif_toisp_check_stop_status(struct sditf_priv *priv,
 				break;
 			}
 		}
+		if (priv->is_toisp_off)
+			continue;
 		if (priv->cif_dev->chip_id < CHIP_RK3576_CIF)
 			ch = rkcif_g_toisp_fs(intstat_glb, index);
 		else
@@ -12432,25 +12448,22 @@ static int rkcif_check_group_sync_state(struct rkcif_device *cif_dev)
 		 sync_config->update_cache,
 		 detect_stream->readout.fs_timestamp);
 
-	if (sync_config->sync_code != sync_config->sync_mask ||
-	    (!detect_stream->dma_en))
+	if (sync_config->sync_code != sync_config->sync_mask)
 		return -EINVAL;
 
 	for (i = 0; i < sync_config->dev_cnt; i++) {
 		if (sync_config->mode == RKCIF_MASTER_MASTER) {
 			if (i < sync_config->ext_master.count)
-				next_stream = &sync_config->ext_master.cif_dev[i]->stream
-					[0];
+				next_stream = &sync_config->ext_master.cif_dev[i]->stream[0];
 			else
-				next_stream = &sync_config->int_master.cif_dev[0]->stream
-					[0];
+				next_stream = &sync_config->int_master.cif_dev[0]->stream[0];
 		} else if (sync_config->mode == RKCIF_MASTER_SLAVE) {
 			if (i < sync_config->slave.count)
-				next_stream = &sync_config->slave.cif_dev[i]->stream
-					[0];
+				next_stream = &sync_config->slave.cif_dev[i]->stream[0];
 			else
-				next_stream = &sync_config->int_master.cif_dev[0]->stream
-					[0];
+				next_stream = &sync_config->int_master.cif_dev[0]->stream[0];
+		} else if (sync_config->mode == RKCIF_SOFT_SYNC) {
+			next_stream = &sync_config->soft_sync.cif_dev[i]->stream[0];
 		} else {
 			v4l2_err(&cif_dev->v4l2_dev,
 				 "ERROR: invalid group sync mode\n");
@@ -12460,8 +12473,7 @@ static int rkcif_check_group_sync_state(struct rkcif_device *cif_dev)
 		if (detect_stream == next_stream)
 			continue;
 		fs_interval = abs(detect_stream->readout.fs_timestamp - next_stream->readout.fs_timestamp);
-		if (fs_interval > RKCIF_MAX_INTERVAL_NS ||
-		    (!next_stream->dma_en)) {
+		if (fs_interval > RKCIF_MAX_INTERVAL_NS) {
 			ret = -EINVAL;
 			break;
 		}
@@ -12536,7 +12548,13 @@ static void rkcif_deal_sof(struct rkcif_device *cif_dev)
 								  rkcif_get_sof(tmp_dev),
 								  tmp_dev->stream[0].frame_idx);
 					}
-					tmp_dev->stream[0].frame_idx = sync_config->frame_idx;
+					if (tmp_dev->sditf[0] &&
+					    tmp_dev->sditf[0]->mode.rdbk_mode < RKISP_VICAP_RDBK_AIQ) {
+						if (!tmp_dev->sditf[0]->is_toisp_off)
+							tmp_dev->stream[0].frame_idx++;
+					} else {
+						tmp_dev->stream[0].frame_idx = sync_config->frame_idx;
+					}
 					spin_unlock_irqrestore(&tmp_dev->stream[0].vbq_lock, flags);
 				}
 			}
@@ -12562,7 +12580,8 @@ static void rkcif_deal_sof(struct rkcif_device *cif_dev)
 					  rkcif_get_sof(cif_dev),
 					  detect_stream->frame_idx);
 		}
-		detect_stream->frame_idx++;
+		if (rkcif_check_frame_active(cif_dev))
+			detect_stream->frame_idx++;
 		spin_unlock_irqrestore(&detect_stream->vbq_lock, flags);
 		if (detect_stream->cifdev->rdbk_debug &&
 		    detect_stream->frame_idx < 15 &&

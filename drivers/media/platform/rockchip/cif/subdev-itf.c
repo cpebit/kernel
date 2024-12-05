@@ -850,8 +850,6 @@ static int sditf_channel_enable_rv1103b(struct sditf_priv *priv, int user)
 				width | (height << 16));
 		}
 	}
-	if (priv->mode.rdbk_mode == RKISP_VICAP_ONLINE_MULTI)
-		rkcif_write_register_or(cif_dev, CIF_REG_MIPI_LVDS_CTRL, CSI_ENABLE_CAPTURE);
 	read_ctrl_ch0 = rkcif_read_register(cif_dev, CIF_REG_TOISP0_CTRL);
 	v4l2_dbg(3, rkcif_debug, &cif_dev->v4l2_dev,  "isp%d, toisp ch0 %d, width %d, height %d, reg w:0x%x r:0x%x\n",
 		 user, ch0, width, height, ctrl_ch0, read_ctrl_ch0);
@@ -1017,9 +1015,6 @@ static void sditf_channel_disable_rv1103b(struct sditf_priv *priv, int user)
 	struct rkcif_device *cif_dev = priv->cif_dev;
 	u32 ctrl_val = 0x1;
 	u32 read_ctrl_ch0 = 0;
-
-	if (priv->mode.rdbk_mode == RKISP_VICAP_ONLINE_MULTI)
-		rkcif_write_register_and(cif_dev, CIF_REG_MIPI_LVDS_CTRL, ~CSI_ENABLE_CAPTURE);
 
 	rkcif_write_register_and(cif_dev, CIF_REG_TOISP0_CTRL, ~ctrl_val);
 	read_ctrl_ch0 = rkcif_read_register(cif_dev, CIF_REG_TOISP0_CTRL);
