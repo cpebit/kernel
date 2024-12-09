@@ -483,6 +483,15 @@ static long sditf_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		if (mode->rdbk_mode == RKISP_VICAP_ONLINE_UNITE &&
 		    priv->cif_dev->chip_id < CHIP_RV1103B_CIF)
 			return -EINVAL;
+
+		ret = v4l2_subdev_call(cif_dev->terminal_sensor.sd,
+				       core, ioctl,
+				       RKMODULE_GET_SYNC_MODE,
+				       &sync_type);
+		if (ret || sync_type == NO_SYNC_MODE)
+			mode->input.multi_sync = 0;
+		else
+			mode->input.multi_sync = 1;
 		memcpy(&priv->mode_src, mode, sizeof(*mode));
 		if (cif_dev->is_thunderboot &&
 		    cif_dev->is_thunderboot_start) {
@@ -501,15 +510,6 @@ static long sditf_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		else
 			mode->input.merge_num = 1;
 		mode->input.index = priv->combine_index;
-
-		ret = v4l2_subdev_call(cif_dev->terminal_sensor.sd,
-				       core, ioctl,
-				       RKMODULE_GET_SYNC_MODE,
-				       &sync_type);
-		if (ret || sync_type == NO_SYNC_MODE)
-			mode->input.multi_sync = 0;
-		else
-			mode->input.multi_sync = 1;
 #ifdef CONFIG_VIDEO_ROCKCHIP_THUNDER_BOOT_SETUP
 		if (cif_dev->is_thunderboot)
 			sditf_select_sensor_setting_for_thunderboot(priv);
