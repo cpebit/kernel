@@ -16,6 +16,7 @@
 #include "clk.h"
 
 #define RV1103B_GRF_SOC_STATUS0		0x10
+#define RV1103B_GRF_SYS_PERI_CON2	0x50008
 
 #define RV1103B_FRAC_MAX_PRATE		1200000000
 
@@ -158,10 +159,10 @@ static struct rockchip_clk_branch rv1103b_clk_branches[] __initdata = {
 	COMPOSITE_NOMUX(CLK_GPLL_DIV12, "clk_gpll_div12", "gpll", 0,
 			RV1103B_CLKSEL_CON(0), 5, 5, DFLAGS,
 			RV1103B_CLKGATE_CON(0), 1, GFLAGS),
-	COMPOSITE_NOMUX(CLK_GPLL_DIV6, "clk_gpll_div6", "gpll", 0,
+	COMPOSITE_NOMUX(CLK_GPLL_DIV6, "clk_gpll_div6", "gpll", CLK_IS_CRITICAL,
 			RV1103B_CLKSEL_CON(1), 0, 5, DFLAGS,
 			RV1103B_CLKGATE_CON(0), 3, GFLAGS),
-	COMPOSITE_NOMUX(CLK_GPLL_DIV4, "clk_gpll_div4", "gpll", 0,
+	COMPOSITE_NOMUX(CLK_GPLL_DIV4, "clk_gpll_div4", "gpll", CLK_IS_CRITICAL,
 			RV1103B_CLKSEL_CON(1), 10, 5, DFLAGS,
 			RV1103B_CLKGATE_CON(0), 5, GFLAGS),
 	COMPOSITE_NOMUX(CLK_GPLL_DIV3, "clk_gpll_div3", "gpll", 0,
@@ -275,12 +276,10 @@ static struct rockchip_clk_branch rv1103b_clk_branches[] __initdata = {
 	COMPOSITE(CCLK_SDMMC1, "cclk_sdmmc1", mux_gpll_24m_p, 0,
 			RV1103B_CLKSEL_CON(36), 15, 1, MFLAGS, 0, 8, DFLAGS,
 			RV1103B_CLKGATE_CON(5), 1, GFLAGS),
-	COMPOSITE_NODIV(CLK_CORE_CRYPTO, "clk_core_crypto", mux_300m_200m_100m_p, 0,
-			RV1103B_CLKSEL_CON(35), 2, 2, MFLAGS,
-			RV1103B_CLKGATE_CON(5), 2, GFLAGS),
-	COMPOSITE_NODIV(CLK_PKA_CRYPTO, "clk_pka_crypto", mux_300m_200m_100m_p, 0,
-			RV1103B_CLKSEL_CON(35), 4, 2, MFLAGS,
-			RV1103B_CLKGATE_CON(5), 3, GFLAGS),
+	MUX(0, "clk_core_crypto_src", mux_300m_200m_100m_p, 0,
+			RV1103B_CLKSEL_CON(35), 2, 2, MFLAGS),
+	MUX(0, "clk_pka_crypto_src", mux_300m_200m_100m_p, 0,
+			RV1103B_CLKSEL_CON(35), 4, 2, MFLAGS),
 	COMPOSITE_NODIV(CLK_CORE_RGA, "clk_core_rga", mux_400m_300m_p, 0,
 			RV1103B_CLKSEL_CON(35), 8, 1, MFLAGS,
 			RV1103B_CLKGATE_CON(5), 4, GFLAGS),
@@ -533,14 +532,8 @@ static struct rockchip_clk_branch rv1103b_clk_branches[] __initdata = {
 			RV1103B_PERICLKGATE_CON(7), 0, GFLAGS),
 	GATE(HCLK_SAI, "hclk_sai", "lsclk_peri_src", 0,
 			RV1103B_PERICLKGATE_CON(7), 1, GFLAGS),
-	GATE(ACLK_CRYPTO, "aclk_crypto", "lsclk_peri_src", 0,
-			RV1103B_PERICLKGATE_CON(8), 2, GFLAGS),
-	GATE(HCLK_CRYPTO, "hclk_crypto", "lsclk_peri_src", 0,
+	GATE(HCLK_CRYPTO, "hclk_crypto", "lsclk_peri_src", CLK_IS_CRITICAL,
 			RV1103B_PERICLKGATE_CON(8), 3, GFLAGS),
-	GATE(HCLK_RK_RNG_S, "hclk_rk_rng_s", "lsclk_peri_src", 0,
-			RV1103B_PERICLKGATE_CON(8), 5, GFLAGS),
-	GATE(HCLK_RK_RNG_NS, "hclk_rk_rng_ns", "hclk_rk_rng_s", 0,
-			RV1103B_PERICLKGATE_CON(8), 4, GFLAGS),
 	GATE(PCLK_OTPC_NS, "pclk_otpc_ns", "pclk_peri_root", 0,
 			RV1103B_PERICLKGATE_CON(8), 6, GFLAGS),
 	GATE(CLK_OTPC_ROOT_NS, "clk_otpc_root_ns", "xin24m", 0,
@@ -626,6 +619,17 @@ static struct rockchip_clk_branch rv1103b_armclk __initdata =
 	MUX(ARMCLK, "armclk", mux_armclk_p, CLK_IS_CRITICAL | CLK_SET_RATE_PARENT,
 			RV1103B_CORECLKSEL_CON(0), 1, 1, MFLAGS);
 
+static struct rockchip_clk_branch rv1103b_grf_clk_branches[] __initdata = {
+	GATE(CLK_CORE_CRYPTO, "clk_core_crypto", "clk_core_crypto_src", 0,
+			RV1103B_GRF_SYS_PERI_CON2, 6, GFLAGS),
+	GATE(CLK_PKA_CRYPTO, "clk_pka_crypto", "clk_pka_crypto_src", 0,
+			RV1103B_GRF_SYS_PERI_CON2, 7, GFLAGS),
+	GATE(ACLK_CRYPTO, "aclk_crypto", "lsclk_peri_src", 0,
+			RV1103B_GRF_SYS_PERI_CON2, 4, GFLAGS),
+	GATE(HCLK_RK_RNG_NS, "hclk_rk_rng_ns", "lsclk_peri_src", 0,
+			RV1103B_GRF_SYS_PERI_CON2, 5, GFLAGS),
+};
+
 static void __iomem *rv1103b_cru_base;
 static struct rockchip_clk_provider *cru_ctx;
 
@@ -704,6 +708,30 @@ static void __init rv1103b_clk_init(struct device_node *np)
 
 CLK_OF_DECLARE(rv1103b_cru, "rockchip,rv1103b-cru", rv1103b_clk_init);
 
+static void __init rv1103b_grf_clk_init(struct device_node *np)
+{
+	struct rockchip_clk_provider *ctx;
+	void __iomem *reg_base;
+
+	reg_base = of_iomap(of_get_parent(np), 0);
+	if (!reg_base) {
+		pr_err("%s: could not map cru grf region\n", __func__);
+		return;
+	}
+
+	ctx = rockchip_clk_init(np, reg_base, CLK_NR_GRF_CLKS);
+	if (IS_ERR(ctx)) {
+		pr_err("%s: rockchip grf clk init failed\n", __func__);
+		return;
+	}
+
+	rockchip_clk_register_branches(ctx, rv1103b_grf_clk_branches,
+				       ARRAY_SIZE(rv1103b_grf_clk_branches));
+
+	rockchip_clk_of_add_provider(np, ctx);
+}
+CLK_OF_DECLARE(rv1103b_grf_cru, "rockchip,rv1103b-grf-cru", rv1103b_grf_clk_init);
+
 #ifdef MODULE
 struct clk_rv1103b_inits {
 	void (*inits)(struct device_node *np);
@@ -713,10 +741,17 @@ static const struct clk_rv1103b_inits clk_rv1103b_init = {
 	.inits = rv1103b_clk_init,
 };
 
+static const struct clk_rv1103b_inits clk_rv1103b_grf_init = {
+	.inits = rv1103b_grf_clk_init,
+};
+
 static const struct of_device_id clk_rv1103b_match_table[] = {
 	{
 		.compatible = "rockchip,rv1103b-cru",
 		.data = &clk_rv1103b_init,
+	}, {
+		.compatible = "rockchip,rv1103b-grf-cru",
+		.data = &clk_rv1103b_grf_init,
 	},
 	{ }
 };
