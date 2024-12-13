@@ -539,6 +539,11 @@
 		compatible = "rockchip,rv1103b-grf", "syscon", "simple-mfd";
 		reg = <0x20100000 0x61000>;
 
+		grf_cru: grf-clock-controller {
+			compatible = "rockchip,rv1103b-grf-cru";
+			#clock-cells = <1>;
+		};
+
 		reboot_mode: reboot-mode {
 			compatible = "syscon-reboot-mode";
 			offset = <0x60200>;
@@ -746,10 +751,10 @@
 		compatible = "rockchip,crypto-v4";
 		reg = <0x20680000 0x2000>;
 		interrupts = <GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&cru ACLK_CRYPTO>, <&cru HCLK_CRYPTO>,
-			 <&cru CLK_CORE_CRYPTO>, <&cru CLK_PKA_CRYPTO>;
+		clocks = <&grf_cru ACLK_CRYPTO>, <&cru HCLK_CRYPTO>,
+			 <&grf_cru CLK_CORE_CRYPTO>, <&grf_cru CLK_PKA_CRYPTO>;
 		clock-names = "aclk", "hclk", "sclk", "pka";
-		assigned-clocks = <&cru CLK_CORE_CRYPTO>, <&cru CLK_PKA_CRYPTO>;
+		assigned-clocks = <&grf_cru CLK_CORE_CRYPTO>, <&grf_cru CLK_PKA_CRYPTO>;
 		assigned-clock-rates = <300000000>, <300000000>;
 		resets = <&cru SRST_RESETN_CORE_CRYPTO>;
 		reset-names = "crypto-rst";
@@ -760,7 +765,7 @@
 		compatible = "rockchip,rkrng";
 		reg = <0x20690000 0x200>;
 		interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&cru HCLK_RK_RNG_NS>;
+		clocks = <&grf_cru HCLK_RK_RNG_NS>;
 		clock-names = "hclk_trng";
 		resets = <&cru SRST_HRESETN_RK_RNG_NS>;
 		reset-names = "reset";
