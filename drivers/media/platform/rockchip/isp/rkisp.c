@@ -1030,11 +1030,8 @@ static void rkisp_rdbk_trigger_handle(struct rkisp_device *dev, u32 cmd)
 		}
 		hw->is_idle = true;
 		hw->pre_dev_id = dev->dev_id;
-		/* fast unite offline switch to online */
-		if (dev->unite_div > ISP_UNITE_DIV1 && !IS_HDR_RDBK(dev->rd_mode))
-			isp = dev;
-		else
-			isp = hw->isp[!dev->dev_id];
+
+		isp = hw->isp[!dev->dev_id];
 		if (isp &&
 		    isp->isp_state & ISP_START &&
 		    !IS_HDR_RDBK(isp->rd_mode)) {
@@ -1303,8 +1300,10 @@ void rkisp_check_idle(struct rkisp_device *dev, u32 irq)
 		}
 	}
 
-	if (!IS_HDR_RDBK(dev->rd_mode))
+	if (!IS_HDR_RDBK(dev->rd_mode)) {
+		dev->irq_ends = 0;
 		return;
+	}
 
 	val = 0;
 	switch (dev->rd_mode) {
@@ -1319,7 +1318,11 @@ void rkisp_check_idle(struct rkisp_device *dev, u32 irq)
 		/* FALLTHROUGH */
 	}
 	rkisp2_rawrd_isr(val, dev);
-
+	/* fast maybe switch online after rkisp2_rawrd_isr */
+	if (!IS_HDR_RDBK(dev->rd_mode)) {
+		dev->irq_ends = 0;
+		return;
+	}
 end:
 	dev->irq_ends = 0;
 	if (dev->is_wait_aiq &&
@@ -3245,9 +3248,9 @@ static int rkisp_rx_qbuf(struct rkisp_device *dev,
 	}
 
 	v4l2_dbg(2, rkisp_debug, &dev->v4l2_dev,
-		 "%s rd_mode:%d seq:%d dma:0x%x\n",
+		 "%s rd_mode:%d seq:%d dma:0x%x timestamp:%lld\n",
 		 __func__, dev->rd_mode, dbufs->sequence,
-		 pool->buf.buff_addr[RKISP_PLANE_Y]);
+		 pool->buf.buff_addr[RKISP_PLANE_Y], dbufs->timestamp);
 
 	if (!IS_HDR_RDBK(dev->rd_mode)) {
 		rkisp_rx_qbuf_online(stream, pool);
