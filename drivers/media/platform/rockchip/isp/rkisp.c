@@ -2806,7 +2806,7 @@ static void rkisp_isp_sd_try_crop(struct v4l2_subdev *sd,
 	struct rkisp_device *dev = sd_to_isp_dev(sd);
 	struct v4l2_rect in_crop = isp_sd->in_crop;
 	struct rkisp_hw_dev *hw = dev->hw_dev;
-	u32 size;
+	u32 size, max_w;
 
 	crop->left = ALIGN(crop->left, 2);
 	crop->width = ALIGN(crop->width, 2);
@@ -2821,15 +2821,19 @@ static void rkisp_isp_sd_try_crop(struct v4l2_subdev *sd,
 			dev->unite_div = ISP_UNITE_DIV1;
 			switch (dev->isp_ver) {
 			case ISP_V30:
+				max_w = CIF_ISP_INPUT_W_MAX_V30;
 				size = CIF_ISP_INPUT_W_MAX_V30 * CIF_ISP_INPUT_H_MAX_V30;
 				break;
 			case ISP_V32:
+				max_w = CIF_ISP_INPUT_W_MAX_V32;
 				size = CIF_ISP_INPUT_W_MAX_V32 * CIF_ISP_INPUT_H_MAX_V32;
 				break;
 			case ISP_V32_L:
+				max_w = CIF_ISP_INPUT_W_MAX_V32_L;
 				size = CIF_ISP_INPUT_W_MAX_V32_L * CIF_ISP_INPUT_H_MAX_V32_L;
 				break;
 			case ISP_V33:
+				max_w = CIF_ISP_INPUT_W_MAX_V33;
 				size = CIF_ISP_INPUT_W_MAX_V33 * CIF_ISP_INPUT_H_MAX_V33;
 				break;
 			default:
@@ -2837,7 +2841,7 @@ static void rkisp_isp_sd_try_crop(struct v4l2_subdev *sd,
 			}
 			if (crop->width * crop->height > size * 2)
 				dev->unite_div = ISP_UNITE_DIV4;
-			else if (crop->width * crop->height > size)
+			else if (crop->width * crop->height > size || crop->width > max_w)
 				dev->unite_div = ISP_UNITE_DIV2;
 		}
 	} else if (pad == RKISP_ISP_PAD_SOURCE_PATH) {
