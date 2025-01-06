@@ -237,7 +237,7 @@ static const u32 gain_level_table[27] = {
 	3033,	//47.640625
 	3593,	//57.312500
 	4216,	//68.234375
-	0xffffffff,
+	0xffff,
 };
 
 /*
@@ -1277,7 +1277,7 @@ static int gc8613_set_gain_reg(struct gc8613 *gc8613, u32 gain)
 {
 	int i;
 	int total;
-	// u32 tol_dig_gain = 0;
+	u32 tol_dig_gain = 0;
 
 	if (gain < 64)
 		gain = 64;
@@ -1287,9 +1287,10 @@ static int gc8613_set_gain_reg(struct gc8613 *gc8613, u32 gain)
 		    gain < gain_level_table[i + 1])
 			break;
 	}
-	// tol_dig_gain = gain * 64 / gain_level_table[i];
+
 	if (i >= total)
 		i = total - 1;
+	tol_dig_gain = gain * 64 / gain_level_table[i];
 
 	// again
 	gc8613_write_reg(gc8613->client, 0x031d,
@@ -1312,6 +1313,12 @@ static int gc8613_set_gain_reg(struct gc8613 *gc8613, u32 gain)
 			 GC8613_REG_VALUE_08BIT, reg_val_table_liner[i][6]);
 	gc8613_write_reg(gc8613->client, 0x1447,
 			 GC8613_REG_VALUE_08BIT, reg_val_table_liner[i][7]);
+
+	// dgain
+	gc8613_write_reg(gc8613->client, 0x0064,
+			 GC8613_REG_VALUE_08BIT, (tol_dig_gain >> 6));
+	gc8613_write_reg(gc8613->client, 0x0065,
+			 GC8613_REG_VALUE_08BIT, (tol_dig_gain & 0x3f));
 
 	return 0;
 }
