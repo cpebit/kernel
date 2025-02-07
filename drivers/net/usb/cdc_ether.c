@@ -68,7 +68,7 @@ void usbnet_cdc_update_filter(struct usbnet *dev)
 	struct net_device	*net = dev->net;
 
 	u16 cdc_filter = USB_CDC_PACKET_TYPE_DIRECTED
-			| USB_CDC_PACKET_TYPE_BROADCAST;
+			| USB_CDC_PACKET_TYPE_BROADCAST | USB_CDC_PACKET_TYPE_MULTICAST;
 
 	/* filtering on the device is an optional feature and not worth
 	 * the hassle so we just roughly care about snooping and if any
