@@ -101,31 +101,26 @@
         };
     };
 
-    gpio-leds {
-        compatible = "gpio-leds";
-        pinctrl-names = "default";
-        pinctrl-0 = <&rgb_red &rgb_blue &rgb_green>;
+    pwm-leds {
+        compatible = "pwm-leds";
         status = "okay";
 
         rgb-red {
             label = "rgb-red";
-            gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
+            pwms = <&pwm1 0 1000000>;
             linux,default-trigger = "none";
-            default-state = "off";
-        };
-
-        rgb-blue {
-            label = "rgb-blue";
-            gpios = <&gpio3 RK_PA3 GPIO_ACTIVE_HIGH>;
-            linux,default-trigger = "none";
-            default-state = "off";
         };
 
         rgb-green {
             label = "rgb-green";
-            gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
+            pwms = <&pwm0 0 1000000>;
             linux,default-trigger = "default-on";
-            default-state = "on";
+        };
+
+        rgb-blue {
+            label = "rgb-blue";
+            pwms = <&pwm8 0 1000000>;
+            linux,default-trigger = "none";
         };
     };
 };
@@ -207,18 +202,6 @@
         uart5m1_rtsn_gpio: uart5m1-rtsn-gpio {
             rockchip,pins = <1 RK_PD0 RK_FUNC_GPIO &pcfg_pull_none>;
         };
-
-        rgb_red: rgb-red {
-            rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
-        };
-
-        rgb_blue: rgb-blue {
-            rockchip,pins = <3 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
-        };
-
-        rgb_green: rgb-green {
-            rockchip,pins = <1 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
-        };
     };
 
     sdio-pwrseq {
@@ -272,10 +255,6 @@
     status = "okay";
 };
 
-&gpio0 {
-    status = "okay";
-};
-
 &gpio1 {
     status = "okay";
 };
@@ -288,4 +267,16 @@
     status = "okay";
     pinctrl-names = "default";
     pinctrl-0 = <&i2c0m2_xfer>;
+};
+
+&pwm0 {
+    status = "okay";
+};
+
+&pwm1 {
+    status = "okay";
+};
+
+&pwm8 {
+    status = "okay";
 };
