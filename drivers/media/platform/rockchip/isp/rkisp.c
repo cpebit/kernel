@@ -4021,6 +4021,19 @@ err:
 	return ret;
 }
 
+static int rkisp_vicap_sof(struct rkisp_device *dev, struct rkisp_vicap_sof *sof)
+{
+	dev->vicap_sof = *sof;
+	if (!IS_HDR_RDBK(dev->rd_mode) &&
+	    sof->sequence - atomic_read(&dev->isp_sdev.frm_sync_seq) > 0) {
+		v4l2_dbg(4, rkisp_debug, &dev->v4l2_dev,
+			 "vicap sof %d, isp sof %d\n",
+			 sof->sequence, atomic_read(&dev->isp_sdev.frm_sync_seq));
+		atomic_set(&dev->isp_sdev.frm_sync_seq, sof->sequence);
+	}
+	return 0;
+}
+
 static long rkisp_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 {
 	struct rkisp_device *isp_dev = sd_to_isp_dev(sd);
@@ -4201,6 +4214,9 @@ static long rkisp_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		break;
 	case RKISP_CMD_SET_FPN:
 		ret = rkisp_set_fpn(isp_dev, arg);
+		break;
+	case RKISP_VICAP_CMD_SOF:
+		ret = rkisp_vicap_sof(isp_dev, arg);
 		break;
 	default:
 		ret = -ENOIOCTLCMD;
