@@ -142,8 +142,43 @@ struct usb_hub *usb_hub_to_struct_hub(struct usb_device *hdev)
 
 int usb_device_supports_lpm(struct usb_device *udev)
 {
-    // disable LPM for all devices, it only causes issues for us and we never need it
-    return 0;
+	/* Some devices have trouble with LPM */
+	if (udev->quirks & USB_QUIRK_NO_LPM)
+		return 0;
+
+	/* USB 2.1 (and greater) devices indicate LPM support through
+	 * their USB 2.0 Extended Capabilities BOS descriptor.
+	 */
+	if (udev->speed == USB_SPEED_HIGH || udev->speed == USB_SPEED_FULL) {
+		if (udev->bos->ext_cap &&
+			(USB_LPM_SUPPORT &
+			 le32_to_cpu(udev->bos->ext_cap->bmAttributes)))
+			return 1;
+		return 0;
+	}
+
+	/*
+	 * According to the USB 3.0 spec, all USB 3.0 devices must support LPM.
+	 * However, there are some that don't, and they set the U1/U2 exit
+	 * latencies to zero.
+	 */
+	if (!udev->bos->ss_cap) {
+		dev_info(&udev->dev, "No LPM exit latency info found, disabling LPM.\n");
+		return 0;
+	}
+
+	if (udev->bos->ss_cap->bU1devExitLat == 0 &&
+			udev->bos->ss_cap->bU2DevExitLat == 0) {
+		if (udev->parent)
+			dev_info(&udev->dev, "LPM exit latency is zeroed, disabling LPM.\n");
+		else
+			dev_info(&udev->dev, "We don't know the algorithms for LPM for this host, disabling LPM.\n");
+		return 0;
+	}
+
+	if (!udev->parent || udev->parent->lpm_capable)
+		return 1;
+	return 0;
 }
 
 /*
@@ -2704,7 +2739,28 @@ static unsigned hub_is_wusb(struct usb_hub *hub)
 static bool use_new_scheme(struct usb_device *udev, int retry,
 			   struct usb_port *port_dev)
 {
-    return false; // disable new scheme USB HUB enumeration
+	int old_scheme_first_port =
+		(port_dev->quirks & USB_PORT_QUIRK_OLD_SCHEME) ||
+		old_scheme_first;
+
+	/*
+	 * "New scheme" enumeration causes an extra state transition to be
+	 * exposed to an xhci host and causes USB3 devices to receive control
+	 * commands in the default state.  This has been seen to cause
+	 * enumeration failures, so disable this enumeration scheme for USB3
+	 * devices.
+	 */
+	if (udev->speed >= USB_SPEED_SUPER)
+		return false;
+
+	/*
+	 * If use_both_schemes is set, use the first scheme (whichever
+	 * it is) for the larger half of the retries, then use the other
+	 * scheme.  Otherwise, use the first scheme for all the retries.
+	 */
+	if (use_both_schemes && retry >= (PORT_INIT_TRIES + 1) / 2)
+		return old_scheme_first_port;	/* Second half */
+	return !old_scheme_first_port;		/* First half or all */
 }
 
 /* Is a USB 3.0 port in the Inactive or Compliance Mode state?
@@ -4894,9 +4950,6 @@ check_highspeed(struct usb_hub *hub, struct usb_device *udev, int port1)
 {
 	struct usb_qualifier_descriptor	*qual;
 	int				status;
-
-	// DISABLE USB Device Qualifier for all devices
-	return;
 
 	if (udev->quirks & USB_QUIRK_DEVICE_QUALIFIER)
 		return;
