@@ -513,6 +513,15 @@ static int cdc_ncm_init(struct usbnet *dev)
 		return err; /* GET_NTB_PARAMETERS is required */
 	}
 
+	dev_err(&dev->intf->dev,
+    		"dwNtbInMaxSize=%u dwNtbOutMaxSize=%u wNdpOutPayloadRemainder=%u wNdpOutDivisor=%u wNdpOutAlignment=%u wNtbOutMaxDatagrams=%u\n",
+    		le32_to_cpu(ctx->ncm_parm.dwNtbInMaxSize),
+            le32_to_cpu(ctx->ncm_parm.dwNtbOutMaxSize),
+            le16_to_cpu(ctx->ncm_parm.wNdpOutPayloadRemainder),
+            le16_to_cpu(ctx->ncm_parm.wNdpOutDivisor),
+    		le16_to_cpu(ctx->ncm_parm.wNdpOutAlignment),
+    		le16_to_cpu(ctx->ncm_parm.wNtbOutMaxDatagrams));
+
 	/* set CRC Mode */
 	if (cdc_ncm_flags(dev) & USB_CDC_NCM_NCAP_CRC_MODE) {
 		dev_dbg(&dev->intf->dev, "Setting CRC mode off\n");
@@ -567,7 +576,7 @@ static int cdc_ncm_init(struct usbnet *dev)
 	/* devices prior to NCM Errata shall set this field to zero */
 	ctx->tx_max_datagrams = le16_to_cpu(ctx->ncm_parm.wNtbOutMaxDatagrams);
 
-	dev_dbg(&dev->intf->dev,
+	dev_err(&dev->intf->dev,
 		"dwNtbInMaxSize=%u dwNtbOutMaxSize=%u wNdpOutPayloadRemainder=%u wNdpOutDivisor=%u wNdpOutAlignment=%u wNtbOutMaxDatagrams=%u flags=0x%x\n",
 		ctx->rx_max, ctx->tx_max, ctx->tx_remainder, ctx->tx_modulus,
 		ctx->tx_ndp_modulus, ctx->tx_max_datagrams, cdc_ncm_flags(dev));
