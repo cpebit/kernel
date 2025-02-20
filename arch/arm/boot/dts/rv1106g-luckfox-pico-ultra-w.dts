@@ -130,10 +130,6 @@
 	pinctrl-0 = <&uart1m0_xfer &uart1m0_ctsn>;
 };
 
-&uart2 {
-	status = "okay";
-};
-
 &pinctrl {
   wireless-bluetooth {
     uart1_gpios: uart1-gpios {
