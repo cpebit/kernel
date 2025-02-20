@@ -91,6 +91,16 @@
             default-state = "on";
         };
     };
+
+    reserved_memory: reserved-memory {
+        status = "okay";
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges;
+        mmc_ecsd: mmc@3f000 {
+            reg = <0x3f000 0x00001000>;
+        };
+    };
 };
 
 &emmc {
