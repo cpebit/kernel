@@ -1204,6 +1204,9 @@ static int rkisp_resume(struct device *dev)
 		if (hw->isp_ver == ISP_V32)
 			val |= ISP32_SHP_FST_FRAME;
 		rkisp_unite_set_bits(isp_dev, ISP3X_ISP_CTRL1, 0, val, false);
+	} else if (hw->isp_ver == ISP_V33) {
+		val |= ISP32_SHP_FST_FRAME | ISP33_GIC_FST_FRAME;
+		rkisp_unite_set_bits(isp_dev, ISP3X_ISP_CTRL1, 0, val, false);
 	}
 	for (i = 0; i < RKISP_MAX_STREAM; i++) {
 		stream = &isp_dev->cap_dev.stream[i];
