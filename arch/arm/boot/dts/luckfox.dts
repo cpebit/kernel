@@ -10,7 +10,7 @@
     compatible = "rockchip,aaw2", "rockchip,rv1106g3";
 
     chosen {
-        bootargs = "rk_dma_heap_cma=16M earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 rootwait";
+        bootargs = "earlyprintk rk_dma_heap_cma=16M earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 rootwait";
     };
 
     vdd_arm: vdd-arm {
