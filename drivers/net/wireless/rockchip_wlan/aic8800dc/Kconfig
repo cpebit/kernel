@@ -14,6 +14,6 @@ config AIC_FW_PATH
 	  Path to the firmware & config file.
 
 if AIC_WLAN_SUPPORT
-source "drivers/net/wireless/aic8800/aic8800_fdrv/Kconfig"
-source "drivers/net/wireless/aic8800/aic8800_btlpm/Kconfig"
+source "drivers/net/wireless/rockchip_wlan/aic8800dc/aic8800_fdrv/Kconfig"
+source "drivers/net/wireless/rockchip_wlan/aic8800dc/aic8800_btlpm/Kconfig"
 endif
