@@ -12496,12 +12496,24 @@ static void rkcif_deal_sof(struct rkcif_device *cif_dev)
 	unsigned long flags;
 	int i = 0;
 	int ret = 0;
+	struct v4l2_subdev *sd = NULL;
+	struct rkisp_vicap_sof sof = {0};
 
 	if (cif_dev->chip_id < CHIP_RK3588_CIF)
 		detect_stream->fs_cnt_in_single_frame++;
 	spin_lock_irqsave(&detect_stream->fps_lock, flags);
 	detect_stream->readout.fs_timestamp = rkcif_time_get_ns(cif_dev);
 	spin_unlock_irqrestore(&detect_stream->fps_lock, flags);
+
+	if (cif_dev->chip_id >= CHIP_RK3576_CIF) {
+		sd = get_rkisp_sd(cif_dev->sditf[0]);
+		if (sd) {
+			sof.timestamp = detect_stream->readout.fs_timestamp;
+			sof.sequence = detect_stream->frame_idx;
+			v4l2_subdev_call(sd, core, ioctl,
+					 RKISP_VICAP_CMD_SOF, &sof);
+		}
+	}
 
 	if (cif_dev->sditf[0] &&
 	    cif_dev->sditf[0]->mode.rdbk_mode >= RKISP_VICAP_RDBK_AIQ &&
