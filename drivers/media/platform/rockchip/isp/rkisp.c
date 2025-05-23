@@ -2406,8 +2406,12 @@ static int rkisp_isp_start(struct rkisp_device *dev)
 	       CIF_ISP_CTRL_ISP_INFORM_ENABLE | CIF_ISP_CTRL_ISP_CFG_UPD_PERMANENT;
 	if (dev->isp_ver == ISP_V20)
 		val |= NOC_HURRY_PRIORITY(2) | NOC_HURRY_W_MODE(2) | NOC_HURRY_R_MODE(1);
-	if (atomic_read(&hw->refcnt) == 1)
+	if (atomic_read(&hw->refcnt) == 1) {
 		hw->cur_dev_id = dev->dev_id;
+		if (dev->isp_ver == ISP_V33)
+			rkisp_unite_set_bits(dev, ISP_ACQ_H_OFFS, ISP21_SENSOR_INDEX(7),
+					     ISP21_SENSOR_INDEX(dev->dev_id), false);
+	}
 	rkisp_unite_write(dev, CIF_ISP_CTRL, val, false);
 	rkisp_clear_reg_cache_bits(dev, CIF_ISP_CTRL, CIF_ISP_CTRL_ISP_CFG_UPD);
 
