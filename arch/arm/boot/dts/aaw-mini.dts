@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+
+/dts-v1/;
+
+#include "aaw2b.dtsi"
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "AAWireless Mini";
+};
+
+&pwm_leds {
+	rgb-red {
+		max-brightness = <100>;
+	};
+
+	rgb-green {
+		max-brightness = <100>;
+	};
+
+	rgb-blue {
+		max-brightness = <100>;
+	};
+};
