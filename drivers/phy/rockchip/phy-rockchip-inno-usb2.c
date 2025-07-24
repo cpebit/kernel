@@ -2820,7 +2820,7 @@ static int rv1106_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 	}
 
 	/* Set RX Squelch trigger point configure to 4'b0000(112.5 mV) */
-	//phy_update_bits(rphy->phy_base + 0x64, GENMASK(6, 3), 0x01 << 3);
+	//phy_update_bits(rphy->phy_base + 0x64, GENMASK(6, 3), (0x00 << 3));
 
 	/* Turn on differential receiver */
 	phy_set_bits(rphy->phy_base + 0x100, BIT(6));
