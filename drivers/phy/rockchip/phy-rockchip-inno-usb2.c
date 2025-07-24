@@ -2826,7 +2826,7 @@ static int rv1106_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 	phy_clear_bits(rphy->phy_base + 0x100, BIT(6));
 
 	/* Set 45ohm HS ODT value to 5'b10111 to increase driver strength */
-	phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x17);
+	phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x1F);
 
 	/* Set Tx HS eye height tuning to 3'b011(462 mV)*/
 	phy_update_bits(rphy->phy_base + 0x124, GENMASK(4, 2), (0x03 << 2));
