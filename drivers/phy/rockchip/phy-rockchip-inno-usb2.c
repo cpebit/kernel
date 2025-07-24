@@ -2823,10 +2823,10 @@ static int rv1106_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 	phy_update_bits(rphy->phy_base + 0x64, GENMASK(6, 3), (0x00 << 3));
 
 	/* Turn off differential receiver by default to save power */
-	//phy_clear_bits(rphy->phy_base + 0x100, BIT(6));
+	phy_clear_bits(rphy->phy_base + 0x100, BIT(6));
 
 	/* Set 45ohm HS ODT value to 5'b10111 to increase driver strength */
-	phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x17);
+	//phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x17);
 
 	/* Set Tx HS eye height tuning to 3'b011(462 mV)*/
 	phy_update_bits(rphy->phy_base + 0x124, GENMASK(4, 2), (0x03 << 2));
@@ -2851,10 +2851,10 @@ static int rv1106_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 	//phy_update_bits(rphy->phy_base + 0x64, GENMASK(6, 3), 0x01 << 3);
 
 	/* Enable differential receiver */
-	phy_set_bits(rphy->phy_base + 0x100, BIT(6));
+	//phy_set_bits(rphy->phy_base + 0x100, BIT(6));
 
 	/* Set 45-ohm HS ODT value to stronger drive strength: 5'b11111 */
-	//phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x1F);
+	phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x1F);
 
 	/* Maximize Tx HS eye height tuning: 3'b111 (~600 mV) */
 	//phy_update_bits(rphy->phy_base + 0x124, GENMASK(4, 2), 0x07 << 2);
