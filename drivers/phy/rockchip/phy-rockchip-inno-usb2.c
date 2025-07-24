@@ -2820,13 +2820,13 @@ static int rv1106_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 	}
 
 	/* Set RX Squelch trigger point configure to 4'b0000(112.5 mV) */
-	//phy_update_bits(rphy->phy_base + 0x64, GENMASK(6, 3), (0x00 << 3));
+	phy_update_bits(rphy->phy_base + 0x64, GENMASK(6, 3), (0x00 << 3));
 
-	/* Turn on differential receiver */
-	phy_set_bits(rphy->phy_base + 0x100, BIT(6));
+	/* Turn off differential receiver by default to save power */
+	phy_clear_bits(rphy->phy_base + 0x100, BIT(6));
 
 	/* Set 45ohm HS ODT value to 5'b10111 to increase driver strength */
-	phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x1F);
+	phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x17);
 
 	/* Set Tx HS eye height tuning to 3'b011(462 mV)*/
 	phy_update_bits(rphy->phy_base + 0x124, GENMASK(4, 2), (0x03 << 2));
