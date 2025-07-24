@@ -2811,10 +2811,16 @@ static int rv1106_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 	/* Always enable pre-emphasis in SOF & EOP & chirp & non-chirp state */
 	phy_update_bits(rphy->phy_base + 0x30, GENMASK(2, 0), 0x07);
 
-	phy_update_bits(rphy->phy_base + 0x40, GENMASK(5, 3), 0x07 << 3);
+	if (rockchip_get_cpu_version()) {
+		/* Set Tx HS pre_emphasize strength to 3'b001 */
+		phy_update_bits(rphy->phy_base + 0x40, GENMASK(5, 3), (0x01 << 3));
+	} else {
+		/* Set Tx HS pre_emphasize strength to 3'b011 */
+		phy_update_bits(rphy->phy_base + 0x40, GENMASK(5, 3), (0x03 << 3));
+	}
 
 	/* Set RX Squelch trigger point configure to 4'b0000(112.5 mV) */
-	phy_update_bits(rphy->phy_base + 0x64, GENMASK(6, 3), (0x00 << 3));
+	//phy_update_bits(rphy->phy_base + 0x64, GENMASK(6, 3), 0x01 << 3);
 
 	/* Turn on differential receiver */
 	phy_set_bits(rphy->phy_base + 0x100, BIT(6));
@@ -2831,6 +2837,34 @@ static int rv1106_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 
 	/* Set HS disconnect detect mode to single ended detect mode */
 	phy_set_bits(rphy->phy_base + 0x70, BIT(2));
+
+
+
+	// CHATGPT
+	/* Enable all pre-emphasis paths (SOF, EOP, chirp, non-chirp) */
+	//phy_update_bits(rphy->phy_base + 0x30, GENMASK(2, 0), 0x07);
+
+	/* Boost Tx HS pre-emphasis strength to maximum (3'b111) for better signal quality */
+	//phy_update_bits(rphy->phy_base + 0x40, GENMASK(5, 3), 0x07 << 3);
+
+	/* Lower RX squelch threshold to 4'b0001 (~140 mV) — more sensitive for detection */
+	phy_update_bits(rphy->phy_base + 0x64, GENMASK(6, 3), 0x01 << 3);
+
+	/* Enable differential receiver */
+	//phy_set_bits(rphy->phy_base + 0x100, BIT(6));
+
+	/* Set 45-ohm HS ODT value to stronger drive strength: 5'b11111 */
+	//phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x1F);
+
+	/* Maximize Tx HS eye height tuning: 3'b111 (~600 mV) */
+	//phy_update_bits(rphy->phy_base + 0x124, GENMASK(4, 2), 0x07 << 2);
+
+	/* Force bypass of squelch detector calibration (can cause issues on some boards) */
+	//phy_update_bits(rphy->phy_base + 0x1a4, GENMASK(7, 4), 0x0F << 4);
+	//phy_update_bits(rphy->phy_base + 0x1b4, GENMASK(7, 4), 0x0F << 4);
+
+	/* Set HS disconnect detect mode to single-ended detect mode */
+	//phy_set_bits(rphy->phy_base + 0x70, BIT(2));
 
 	return 0;
 }
