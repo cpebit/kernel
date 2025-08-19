@@ -4,7 +4,6 @@ CONFIG_COUNTRY_CODE = "00"
 
 
 MODULE_NAME = aic8800_fdrv
-CONFIG_AIC8800_WLAN_SUPPORT = m
 
 # Support of bootrom start
 CONFIG_START_FROM_BOOTROM = y

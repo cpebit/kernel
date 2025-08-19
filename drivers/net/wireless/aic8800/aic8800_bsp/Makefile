@@ -1,6 +1,5 @@
 CONFIG_SDIO_SUPPORT := y
 CONFIG_SDIO_PWRCTRL := y
-CONFIG_AIC_FW_PATH = "/vendor/etc/firmware"
 export CONFIG_AIC_FW_PATH
 ccflags-y += -DCONFIG_AIC_FW_PATH=\"$(CONFIG_AIC_FW_PATH)\"
 

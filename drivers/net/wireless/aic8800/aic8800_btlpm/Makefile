@@ -1,5 +1,3 @@
-CONFIG_AIC8800_BTLPM_SUPPORT = m
-
 obj-$(CONFIG_AIC8800_BTLPM_SUPPORT) := aic8800_btlpm.o
 
 ccflags-y += -I$(srctree)/$(src)/../aic8800_bsp
