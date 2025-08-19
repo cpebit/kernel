@@ -68,7 +68,7 @@
 #define PROC_DIR	"bluetooth/sleep"
 
 #define DEFAULT_UART_INDEX   1
-#define BT_BLUEDROID_SUPPORT 1
+#define BT_BLUEDROID_SUPPORT 0
 static int bluesleep_start(void);
 static void bluesleep_stop(void);
 
