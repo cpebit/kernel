@@ -1,3 +1,5 @@
+ccflags-y += -Wno-error
+
 obj-$(CONFIG_AIC8800_BTLPM_SUPPORT) += aic8800_btlpm/
 obj-$(CONFIG_AIC8800_WLAN_SUPPORT) += aic8800_fdrv/
 obj-$(CONFIG_AIC_WLAN_SUPPORT) += aic8800_bsp/
@@ -18,7 +20,6 @@ CROSS_COMPILE ?= /home/yaya/E/Rockchip/3229/Android9/rk3229_android9.0_box/prebu
 #KDIR  := /home/yaya/E/Rockchip/3399/rk3399-android-10/kernel
 #ARCH ?= arm64
 #CROSS_COMPILE ?= /home/yaya/E/Rockchip/3399/rk3399-android-10/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
-ccflags-y += -DANDROID_PLATFORM
 ccflags-y += -DCONFIG_PLATFORM_ROCKCHIP
 endif
 
