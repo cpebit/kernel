@@ -1,3 +1,5 @@
+ccflags-y += -Wno-error
+
 CONFIG_SDIO_SUPPORT := y
 CONFIG_SDIO_PWRCTRL := y
 CONFIG_AIC_FW_PATH = "/vendor/etc/firmware"
