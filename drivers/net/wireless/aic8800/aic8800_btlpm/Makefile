@@ -1,5 +1,6 @@
 obj-$(CONFIG_AIC8800_BTLPM_SUPPORT) := aic8800_btlpm.o
 
+ccflags-y += -Wno-error
 ccflags-y += -I$(srctree)/$(src)/../aic8800_bsp
 
 aic8800_btlpm-y := \
