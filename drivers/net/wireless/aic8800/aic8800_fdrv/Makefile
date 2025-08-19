@@ -110,8 +110,8 @@ $(MODULE_NAME)-y := \
 	regdb.o
 
 $(MODULE_NAME)-$(CONFIG_RWNX_RADAR)       += rwnx_radar.o
-$(MODULE_NAME)-$(CONFIG_DEBUG_FS)         += rwnx_debugfs.o
-$(MODULE_NAME)-$(CONFIG_DEBUG_FS)         += rwnx_fw_trace.o
+#$(MODULE_NAME)-$(CONFIG_DEBUG_FS)         += rwnx_debugfs.o
+#$(MODULE_NAME)-$(CONFIG_DEBUG_FS)         += rwnx_fw_trace.o
 $(MODULE_NAME)-$(CONFIG_NL80211_TESTMODE) += rwnx_testmode.o
 $(MODULE_NAME)-$(CONFIG_RWNX_BFMER)       += rwnx_bfmer.o
 $(MODULE_NAME)-$(CONFIG_RWNX_MUMIMO_TX)   += rwnx_mu_group.o
@@ -123,8 +123,8 @@ $(MODULE_NAME)-$(CONFIG_USB_SUPPORT)     += usb_host.o
 $(MODULE_NAME)-$(CONFIG_USB_SUPPORT)     += aicwf_txrxif.o
 $(MODULE_NAME)-$(CONFIG_USB_SUPPORT)     += aicwf_usb.o
 
-ccflags-$(CONFIG_DEBUG_FS) += -DCONFIG_RWNX_DEBUGFS
-ccflags-$(CONFIG_DEBUG_FS) += -DCONFIG_RWNX_UM_HELPER_DFLT=\"$(CONFIG_RWNX_UM_HELPER_DFLT)\"
+#ccflags-$(CONFIG_DEBUG_FS) += -DCONFIG_RWNX_DEBUGFS
+#ccflags-$(CONFIG_DEBUG_FS) += -DCONFIG_RWNX_UM_HELPER_DFLT=\"$(CONFIG_RWNX_UM_HELPER_DFLT)\"
 ccflags-$(CONFIG_RWNX_P2P_DEBUGFS) += -DCONFIG_RWNX_P2P_DEBUGFS
 
 # FW VARS
