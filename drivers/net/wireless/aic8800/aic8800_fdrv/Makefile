@@ -3,6 +3,7 @@ EXTRA_CFLAGS += -Wno-implicit-fallthrough
 #EXTRA_CFLAGS += -Wno-unused-function
 #EXTRA_CFLAGS += -Wno-maybe-uninitialized
 #EXTRA_CFLAGS += -Wno-unused-variable
+EXTRA_CFLAGS += -Wno-error
 
 RWNX_VERS_NUM := 6.4.3.0
 
