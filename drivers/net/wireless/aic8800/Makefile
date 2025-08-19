@@ -14,11 +14,11 @@ export CONFIG_RESV_MEM_SUPPORT = y
 ###################################
 
 ########## Platform support list ##########
-export CONFIG_PLATFORM_ROCKCHIP = n
+export CONFIG_PLATFORM_ROCKCHIP = y
 export CONFIG_PLATFORM_ROCKCHIP2 = n
 export CONFIG_PLATFORM_ALLWINNER = n
 export CONFIG_PLATFORM_AMLOGIC = n
-export CONFIG_PLATFORM_UBUNTU = y
+export CONFIG_PLATFORM_UBUNTU = n
 
 ifeq ($(CONFIG_PLATFORM_ROCKCHIP), y)
 ARCH = arm64
