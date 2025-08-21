@@ -18,7 +18,7 @@
 	wireless_bluetooth: wireless-bluetooth {
 		compatible = "bluetooth-platdata";
 		uart_rts_gpios = <&gpio1 RK_PD0 GPIO_ACTIVE_LOW>;
-		BT,reset_gpio = <&gpio3 RK_PA6 GPIO_ACTIVE_HIGH>;
+		BT,power_gpio = <&gpio3 RK_PA6 GPIO_ACTIVE_HIGH>;
 		BT,wake_gpio = <&gpio1 RK_PC7 GPIO_ACTIVE_HIGH>;
 		BT,wake_host_irq = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default", "rts_gpio";
