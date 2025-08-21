@@ -22,7 +22,7 @@
 		BT,wake_gpio = <&gpio1 RK_PC7 GPIO_ACTIVE_HIGH>;
 		BT,wake_host_irq = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default", "rts_gpio";
-		pinctrl-0 = <&uart5m1_rtsn &bluetooth_enable>;
+		pinctrl-0 = <&uart5m1_rtsn &uart5m1_ctsn &bluetooth_enable>;
 		pinctrl-1 = <&uart5m1_rtsn_gpio &bluetooth_enable>;
 		status = "okay";
 	};
