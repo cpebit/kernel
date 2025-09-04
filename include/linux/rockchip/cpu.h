@@ -39,8 +39,8 @@ extern unsigned long rockchip_soc_id;
 
 static inline unsigned long rockchip_get_cpu_version(void)
 {
-	return (0x11030000 & 0x0000f000)
-		>> 12;
+	return (0x11030000 & ROCKCHIP_CPU_VERION_MASK)
+		>> ROCKCHIP_CPU_VERION_SHIFT;
 }
 
 static inline void rockchip_set_cpu_version(unsigned long ver)
