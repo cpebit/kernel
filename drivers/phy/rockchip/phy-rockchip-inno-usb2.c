@@ -2813,10 +2813,10 @@ static int rv1106_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 
 	if (rockchip_get_cpu_version()) {
 		/* Set Tx HS pre_emphasize strength to 3'b001 */
-		phy_update_bits(rphy->phy_base + 0x40, GENMASK(5, 3), (0x01 << 3));
+		phy_update_bits(rphy->phy_base + 0x40, GENMASK(5, 3), (0x03 << 3));
 	} else {
 		/* Set Tx HS pre_emphasize strength to 3'b011 */
-		phy_update_bits(rphy->phy_base + 0x40, GENMASK(5, 3), (0x01 << 3));
+		phy_update_bits(rphy->phy_base + 0x40, GENMASK(5, 3), (0x03 << 3));
 	}
 
 	/* Set RX Squelch trigger point configure to 4'b0000(112.5 mV) */
