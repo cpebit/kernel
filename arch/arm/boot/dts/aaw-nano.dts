@@ -11,14 +11,14 @@
 
 &pwm_leds {
 	rgb-red {
-		active-low=true;
+		active-low;
 	};
 
 	rgb-green {
-		active-low=true;
+		active-low;
 	};
 
 	rgb-blue {
-		active-low=true;
+		active-low;
 	};
 };
