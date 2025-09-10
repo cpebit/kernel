@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+
+/dts-v1/;
+
+#include "aaw-mini.dts"
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "AAWireless Nano";
+};
+
+&pwm_leds {
+	rgb-red {
+		active-low;
+	};
+
+	rgb-green {
+		active-low;
+	};
+
+	rgb-blue {
+		active-low;
+	};
+};
