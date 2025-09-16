@@ -210,7 +210,7 @@ static const struct spinand_info winbond_spinand_table[] = {
 		     SPINAND_ECCINFO(&w25n02kv_ooblayout,
 				     w25n02kv_ecc_get_status)),
 	SPINAND_INFO("W25N01KW",
-			 SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0xAA, 0x21),
+			 SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0xBE, 0x21)
 			 NAND_MEMORG(1, 2048, 64, 64, 1024, 10, 1, 1, 1),
 			 NAND_ECCREQ(1, 512),
 			 SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
