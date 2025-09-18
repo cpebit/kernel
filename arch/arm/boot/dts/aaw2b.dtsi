@@ -9,7 +9,7 @@
 	compatible = "rockchip,aaw2b", "rockchip,rv1103";
 
 	chosen {
-		bootargs = "rk_dma_heap_cma=8M console=ttyS2,115200";
+		bootargs = "rk_dma_heap_cma=8M console=ttyS2,115200 earlycon=ttyS2,115200";
 	};
 
 	vdd_arm: vdd-arm {
