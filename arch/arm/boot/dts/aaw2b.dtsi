@@ -9,7 +9,7 @@
 	compatible = "rockchip,aaw2b", "rockchip,rv1103";
 
 	chosen {
-		bootargs = "rk_dma_heap_cma=8M console=ttyS2,115200 earlycon=ttyS2,115200";
+		bootargs = "rk_dma_heap_cma=8M";
 	};
 
 	vdd_arm: vdd-arm {
@@ -244,10 +244,6 @@
 	status = "okay";
 };
 
-&uart2 {
-	status = "okay";
-};
-
 &uart5 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart5m1_xfer &uart5m1_ctsn>;
@@ -277,5 +273,10 @@
 };
 
 &pwm8 {
+	status = "okay";
+};
+
+&fiq_debugger {
+	rockchip,irq-mode-enable = <1>;
 	status = "okay";
 };
