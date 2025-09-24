@@ -9,10 +9,6 @@
 	model = "AAWireless Nano";
 };
 
-&pwnbtn {
-	rockchip,pins = <3 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
-};
-
 &pwm_leds {
 	rgb-red {
 		active-low;
