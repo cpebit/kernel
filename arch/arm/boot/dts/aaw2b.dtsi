@@ -87,6 +87,8 @@
 	gpio_keys: gpio-keys {
 		compatible = "gpio-keys";
 		status = "okay";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwrbtn>;
 
 		F15 {
 			gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_LOW>;
@@ -95,8 +97,6 @@
 			linux,input-type = <1>;
 			gpio-key,wakeup = <1>;
 			debounce-interval = <5>;
-			pinctrl-names = "default";
-			pinctrl-0 = <&pwrbtn>;
 		};
 	};
 
