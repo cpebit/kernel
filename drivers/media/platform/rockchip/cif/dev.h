@@ -607,6 +607,7 @@ struct rkcif_stream {
 	atomic_t			sub_stream_buf_cnt;
 	u32				rounding_bit;
 	int				frame_loss;
+	int				real_skip_num;
 	bool				stopping;
 	bool				crop_enable;
 	bool				crop_dyn_en;
