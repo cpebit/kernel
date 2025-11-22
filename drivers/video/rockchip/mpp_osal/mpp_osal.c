@@ -30,7 +30,7 @@ int mpp_device_init_wakeup(struct device *dev, bool enable)
 }
 EXPORT_SYMBOL(mpp_device_init_wakeup);
 
-void mpp_device_add_driver(void *dev, void *drv)
+void osal_device_add_driver(void *dev, void *drv)
 {
 #ifdef CONFIG_PM_SLEEP
 	struct device *kdev = (struct device *)dev;
@@ -40,4 +40,4 @@ void mpp_device_add_driver(void *dev, void *drv)
 	kdev->power.no_pm_callbacks = 0;
 #endif
 }
-EXPORT_SYMBOL(mpp_device_add_driver);
+EXPORT_SYMBOL(osal_device_add_driver);
