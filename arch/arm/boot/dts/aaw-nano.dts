@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+
+/dts-v1/;
+
+#include "aaw3.dtsi"
+
+/ {
+	model = "AAWireless Nano";
+};
+
+&gpio_leds {
+	led-red {
+		gpios = <&gpio0 RK_PA2 GPIO_ACTIVE_LOW>;
+	};
+
+	led-green {
+		gpios = <&gpio0 RK_PA1 GPIO_ACTIVE_LOW>;
+	};
+
+	led-blue {
+		gpios = <&gpio1 RK_PB1 GPIO_ACTIVE_LOW>;
+	};
+};
