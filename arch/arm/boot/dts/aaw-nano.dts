@@ -3,21 +3,22 @@
 /dts-v1/;
 
 #include "aaw3.dtsi"
+#include <dt-bindings/pwm/pwm.h>
 
 / {
 	model = "AAWireless Nano";
 };
 
-&gpio_leds {
+&pwm_leds {
 	led-red {
-		gpios = <&gpio0 RK_PA2 GPIO_ACTIVE_LOW>;
+		pwms = <&pwm0_4ch_3 0 1000000 PWM_POLARITY_INVERTED>;
 	};
 
 	led-green {
-		gpios = <&gpio0 RK_PA1 GPIO_ACTIVE_LOW>;
+		pwms = <&pwm0_4ch_0 0 1000000 PWM_POLARITY_INVERTED>;
 	};
 
 	led-blue {
-		gpios = <&gpio1 RK_PB1 GPIO_ACTIVE_LOW>;
+		pwms = <&pwm2_4ch_1 0 1000000 PWM_POLARITY_INVERTED>;
 	};
 };

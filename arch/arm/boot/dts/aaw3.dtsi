@@ -68,7 +68,7 @@
 	wireless_bluetooth: wireless-bluetooth {
 		compatible = "bluetooth-platdata";
 		uart_rts_gpios = <&gpio2 RK_PB2 GPIO_ACTIVE_LOW>;
-		BT,power_gpio = <&gpio1 RK_PA7 GPIO_ACTIVE_HIGH>;
+		BT,power_gpio = <&gpio1 RK_PB1 GPIO_ACTIVE_HIGH>;
 		BT,wake_gpio = <&gpio1 RK_PC0 GPIO_ACTIVE_HIGH>;
 		BT,wake_host_irq = <&gpio2 RK_PA7 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default", "rts_gpio";
@@ -93,31 +93,26 @@
 		};
 	};
 
-	gpio_leds: gpio-leds {
-		compatible = "gpio-leds";
-		pinctrl-names = "default";
-		pinctrl-0 = <&led_red_pin &led_green_pin &led_blue_pin>;
+	pwm_leds: pwm-leds {
+		compatible = "pwm-leds";
 		status = "okay";
 
 		led-red {
 			label = "rgb-red";
-			gpios = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
+			pwms = <&pwm0_4ch_3 0 1000000 0>;
 			linux,default-trigger = "none";
-			default-state = "off";
 		};
 
 		led-green {
 			label = "rgb-green";
-			gpios = <&gpio0 RK_PA1 GPIO_ACTIVE_HIGH>;
+			pwms = <&pwm0_4ch_0 0 1000000 0>;
 			linux,default-trigger = "default-on";
-			default-state = "on";
 		};
 
 		led-blue {
 			label = "rgb-blue";
-			gpios = <&gpio1 RK_PB1 GPIO_ACTIVE_HIGH>;
+			pwms = <&pwm2_4ch_1 0 1000000 0>;
 			linux,default-trigger = "none";
-			default-state = "off";
 		};
 	};
 };
@@ -181,7 +176,7 @@
 		};
 
 		mfi_reset: mfi-reset {
-			rockchip,pins = <1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+			rockchip,pins = <1 RK_PA6 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
@@ -199,7 +194,7 @@
 
 	wireless-bluetooth {
 		bluetooth_enable: bluetooth-enable {
-			rockchip,pins = <1 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>, <1 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <1 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>, <1 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
@@ -250,4 +245,16 @@
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c0m1_xfer_pins &mfi_reset>;
+};
+
+&pwm0_4ch_0 {
+	status = "okay";
+};
+
+&pwm0_4ch_3 {
+	status = "okay";
+};
+
+&pwm2_4ch_1 {
+	status = "okay";
 };
