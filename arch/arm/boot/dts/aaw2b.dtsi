@@ -54,13 +54,6 @@
 		compatible = "mmc-pwrseq-simple";
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_enable>;
-
-		/*
-		 * On the module itself this is one of these (depending
-		 * on the actual card populated):
-		 * - SDIO_RESET_L_WL_REG_ON
-		 * - PDN (power down when low)
-		 */
 		reset-gpios = <&gpio3 RK_PA7 GPIO_ACTIVE_LOW>;    //GPIO2_A2----WIFI_REG_ON
 	};
 
@@ -104,19 +97,19 @@
 		compatible = "pwm-leds";
 		status = "okay";
 
-		rgb-red {
+		led-red {
 			label = "rgb-red";
 			pwms = <&pwm1 0 1000000 0>;
 			linux,default-trigger = "none";
 		};
 
-		rgb-green {
+		led-green {
 			label = "rgb-green";
 			pwms = <&pwm0 0 1000000 0>;
 			linux,default-trigger = "default-on";
 		};
 
-		rgb-blue {
+		led-blue {
 			label = "rgb-blue";
 			pwms = <&pwm8 0 1000000 0>;
 			linux,default-trigger = "none";
@@ -124,39 +117,7 @@
 	};
 };
 
-&mpp_srv {
-	status = "okay";
-};
-
-&mpp_vcodec {
-	status = "okay";
-};
-
-&rga2 {
-	status = "okay";
-};
-
-&rkdvbm {
-	status = "okay";
-};
-
-&rkvenc {
-	status = "okay";
-};
-
-&rkvenc_pp {
-	status = "okay";
-};
-
 &rng {
-	status = "okay";
-};
-
-&rve {
-	status = "okay";
-};
-
-&tsadc {
 	status = "okay";
 };
 
@@ -176,8 +137,8 @@
 
 &usbdrd_dwc3 {
 	extcon = <&u2phy>;
-	status = "okay";
 	dr_mode = "otg";
+	status = "okay";
 };
 
 &cpu0 {
