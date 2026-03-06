@@ -12,10 +12,6 @@
 		bootargs = "rk_dma_heap_cma=8M console=ttyS0,115200 earlycon=uart8250,mmio32,0x20540000 net.ifnames=0 biosdevname=0";
 	};
 
-	restart-poweroff {
-		compatible = "restart-poweroff";
-	};
-
 	vdd_arm: vdd-arm {
 		compatible = "regulator-fixed";
 		regulator-name = "vdd_arm";
@@ -118,6 +114,10 @@
 			pwms = <&pwm2_4ch_1 0 1000000 0>;
 			linux,default-trigger = "none";
 		};
+	};
+
+	restart-poweroff {
+		compatible = "restart-poweroff";
 	};
 };
 
