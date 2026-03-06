@@ -125,6 +125,10 @@
 			linux,default-trigger = "none";
 		};
 	};
+
+	restart-poweroff {
+		compatible = "restart-poweroff";
+	};
 };
 
 &rng {
