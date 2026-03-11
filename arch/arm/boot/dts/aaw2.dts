@@ -238,3 +238,7 @@
 	pinctrl-0 = <&pwm11m1_pins>;
 	status = "okay";
 };
+
+&tsadc {
+	status = "okay";
+};

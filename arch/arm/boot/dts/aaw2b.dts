@@ -241,3 +241,7 @@
 &pwm8 {
 	status = "okay";
 };
+
+&tsadc {
+	status = "okay";
+};

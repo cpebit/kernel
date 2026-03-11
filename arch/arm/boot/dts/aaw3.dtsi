@@ -258,3 +258,7 @@
 &pwm2_4ch_1 {
 	status = "okay";
 };
+
+&tsadc {
+	status = "okay";
+};
