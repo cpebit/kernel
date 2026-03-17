@@ -167,6 +167,10 @@
 		uart5m1_rtsn_gpio: uart5m1-rtsn-gpio {
 			rockchip,pins = <1 RK_PD0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
+
+		mfi_reset: mfi-reset {
+			rockchip,pins = <3 RK_PA2 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
 	};
 
 	sdio-pwrseq {
@@ -231,7 +235,7 @@
 &i2c0 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&i2c0m2_xfer>;
+	pinctrl-0 = <&i2c0m2_xfer &mfi_reset>;
 };
 
 &pwm0 {
