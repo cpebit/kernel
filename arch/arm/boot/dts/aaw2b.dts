@@ -10,7 +10,7 @@
 	compatible = "rockchip,aaw2b", "rockchip,rv1103";
 
 	chosen {
-		bootargs = "rk_dma_heap_cma=8M console=ttyS2,115200 earlycon=uart8250,mmio32,0xff4c0000 net.ifnames=0 biosdevname=0";
+		bootargs = "rk_dma_heap_cma=8M console=ttyS2,115200 earlycon=uart8250,mmio32,0xff4c0000 net.ifnames=0 biosdevname=0 reboot=hard";
 	};
 
 	vdd_arm: vdd-arm {
