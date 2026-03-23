@@ -56,7 +56,7 @@ CONFIG_RTL8733B = y
 ######################### Interface ###########################
 CONFIG_USB_HCI = n
 CONFIG_PCI_HCI = n
-CONFIG_SDIO_HCI = n
+CONFIG_SDIO_HCI = y
 CONFIG_GSPI_HCI = n
 ########################## Features ###########################
 CONFIG_AP_MODE = y
