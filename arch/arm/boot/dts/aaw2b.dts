@@ -57,7 +57,7 @@
 		wifi_chip_type = "rtl8233bs";
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_enable &wifi_wake_host>;
-		WIFI,poweren_gpio = <&gpio3 RK_PA7 GPIO_ACTIVE_HIGH>;
+		WIFI,poweren_gpio = <&gpio3 RK_PA7 GPIO_ACTIVE_LOW>;
 		WIFI,host_wake_irq = <&gpio3 RK_PD0 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
