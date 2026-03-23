@@ -10,7 +10,8 @@
 	compatible = "rockchip,aaw2b", "rockchip,rv1103";
 
 	chosen {
-		bootargs = "rk_dma_heap_cma=8M console=ttyS2,115200 earlycon=uart8250,mmio32,0xff4c0000 net.ifnames=0 biosdevname=0 reboot=force";
+		bootargs =
+				"rk_dma_heap_cma=8M console=ttyS2,115200 earlycon=uart8250,mmio32,0xff4c0000 net.ifnames=0 biosdevname=0 reboot=force";
 	};
 
 	vdd_arm: vdd-arm {
@@ -51,18 +52,12 @@
 		regulator-max-microvolt = <5000000>;
 	};
 
-	sdio_pwrseq: sdio-pwrseq {
-		compatible = "mmc-pwrseq-simple";
-		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_enable>;
-		reset-gpios = <&gpio3 RK_PA7 GPIO_ACTIVE_LOW>;    //GPIO2_A2----WIFI_REG_ON
-	};
-
 	wireless_wlan: wireless-wlan {
 		compatible = "wlan-platdata";
 		wifi_chip_type = "rtl8233bs";
 		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_wake_host>;
+		pinctrl-0 = <&wifi_enable &wifi_wake_host>;
+		WIFI,poweren_gpio = <&gpio3 RK_PA7 GPIO_ACTIVE_HIGH>;
 		WIFI,host_wake_irq = <&gpio3 RK_PD0 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
@@ -173,13 +168,11 @@
 		};
 	};
 
-	sdio-pwrseq {
+	wireless-wlan {
 		wifi_enable: wifi-enable {
 			rockchip,pins = <3 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
-	};
 
-	wireless-wlan {
 		wifi_wake_host: wifi-wake-host {
 			rockchip,pins = <3 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
@@ -208,7 +201,6 @@
 	rockchip,default-sample-phase = <90>;
 	sd-uhs-sdr104;
 	supports-sdio;
-	mmc-pwrseq = <&sdio_pwrseq>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1m1_cmd &sdmmc1m1_clk &sdmmc1m1_bus4>;
 	status = "okay";
