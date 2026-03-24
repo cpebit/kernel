@@ -2480,7 +2480,7 @@ void rtw_stop_drv_threads(_adapter *padapter)
 	{
 		if (padapter->xmitThread) {
 			_rtw_up_sema(&padapter->xmitpriv.xmit_sema);
-			rtw_thread_stop(padapter->xmitThread);
+			//rtw_thread_stop(padapter->xmitThread);
 			padapter->xmitThread = NULL;
 		}
 	}
