@@ -6215,7 +6215,7 @@ thread_return rtw_xmit_thread(thread_context context)
 	do {
 		err = rtw_hal_xmit_thread_handler(padapter);
 		flush_signals_thread();
-	} while (_SUCCESS == err);
+	} while (_SUCCESS == err && !kthread_should_stop());
 
 	RTW_INFO(FUNC_ADPT_FMT " Exit\n", FUNC_ADPT_ARG(padapter));
 
