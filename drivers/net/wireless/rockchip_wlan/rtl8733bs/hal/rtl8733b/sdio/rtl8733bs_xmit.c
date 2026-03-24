@@ -134,7 +134,7 @@ s32 rtl8733bs_xmit_buf_handler(PADAPTER adapter)
 
 	do {
 		queue_empty = rtw_mi_dequeue_writeport(adapter);
-	} while (!queue_empty);
+	} while (!queue_empty && !kthread_should_stop());
 
 #ifdef CONFIG_LPS_LCLK
 	rtw_unregister_tx_alive(adapter);
