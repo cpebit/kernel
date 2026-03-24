@@ -2463,8 +2463,6 @@ void rtw_stop_drv_threads(_adapter *padapter)
 	if (is_primary_adapter(padapter))
 		rtw_stop_cmd_thread(padapter);
 
-	RTW_INFO(FUNC_ADPT_FMT" stop cmd\n", FUNC_ADPT_ARG(padapter));
-
 #ifdef CONFIG_EVENT_THREAD_MODE
 	if (padapter->evtThread) {
 		_rtw_up_sema(&padapter->evtpriv.evt_notify);
@@ -2472,8 +2470,6 @@ void rtw_stop_drv_threads(_adapter *padapter)
 		padapter->evtThread = NULL;
 	}
 #endif
-
-	RTW_INFO(FUNC_ADPT_FMT" stop evt\n", FUNC_ADPT_ARG(padapter));
 
 #ifdef CONFIG_XMIT_THREAD_MODE
 	/* Below is to termindate tx_thread... */
@@ -2484,16 +2480,11 @@ void rtw_stop_drv_threads(_adapter *padapter)
 	{
 		if (padapter->xmitThread) {
 			_rtw_up_sema(&padapter->xmitpriv.xmit_sema);
-			rtw_sdio_free_xmitbuf_sema_up(&padapter->xmitpriv);
-			RTW_INFO(FUNC_ADPT_FMT" stop tx sema\n", FUNC_ADPT_ARG(padapter));
-			// rtw_thread_stop(padapter->xmitThread); // HACK
-			RTW_INFO(FUNC_ADPT_FMT" stop tx thread\n", FUNC_ADPT_ARG(padapter));
+			rtw_thread_stop(padapter->xmitThread);
 			padapter->xmitThread = NULL;
 		}
 	}
 #endif
-
-	RTW_INFO(FUNC_ADPT_FMT" stop tx\n", FUNC_ADPT_ARG(padapter));
 
 #ifdef CONFIG_RECV_THREAD_MODE
 	if (is_primary_adapter(padapter) && padapter->recvThread) {
@@ -2503,8 +2494,6 @@ void rtw_stop_drv_threads(_adapter *padapter)
 		padapter->recvThread = NULL;
 	}
 #endif
-
-	RTW_INFO(FUNC_ADPT_FMT" stop rx\n", FUNC_ADPT_ARG(padapter));
 
 	rtw_hal_stop_thread(padapter);
 }
