@@ -2486,7 +2486,7 @@ void rtw_stop_drv_threads(_adapter *padapter)
 			_rtw_up_sema(&padapter->xmitpriv.xmit_sema);
 			rtw_sdio_free_xmitbuf_sema_up(&padapter->xmitpriv);
 			RTW_INFO(FUNC_ADPT_FMT" stop tx sema\n", FUNC_ADPT_ARG(padapter));
-			rtw_thread_stop(padapter->xmitThread);
+			// rtw_thread_stop(padapter->xmitThread); // HACK
 			RTW_INFO(FUNC_ADPT_FMT" stop tx thread\n", FUNC_ADPT_ARG(padapter));
 			padapter->xmitThread = NULL;
 		}
