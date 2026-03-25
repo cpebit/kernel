@@ -9,7 +9,7 @@
 	compatible = "rockchip,aaw3", "rockchip,rv1103b";
 
 	chosen {
-		bootargs = "rk_dma_heap_cma=8M console=ttyS0,115200 earlycon=uart8250,mmio32,0x20540000 net.ifnames=0 biosdevname=0";
+		bootargs = "rk_dma_heap_cma=8M net.ifnames=0 biosdevname=0";
 	};
 
 	vdd_arm: vdd-arm {
