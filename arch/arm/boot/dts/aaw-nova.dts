@@ -5,5 +5,5 @@
 #include "aaw3.dtsi"
 
 / {
-	model = "AAWireless 3";
+	model = "AAWireless Nova";
 };
