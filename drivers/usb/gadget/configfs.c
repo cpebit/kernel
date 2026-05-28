@@ -23,6 +23,7 @@ void acc_disconnect(void);
 static struct class *android_class;
 static struct device *android_device;
 static int index;
+static int gadget_index;
 
 struct device *create_function_device(char *name)
 {
@@ -1718,21 +1719,21 @@ static int android_device_create(struct gadget_info *gi)
 	struct device_attribute *attr;
 
 	INIT_WORK(&gi->work, android_work);
-	android_device = device_create(android_class, NULL,
-				MKDEV(0, 0), NULL, "android0");
-	if (IS_ERR(android_device))
-		return PTR_ERR(android_device);
+	gi->dev = device_create(android_class, NULL, MKDEV(0, 0), NULL, "android%d", gadget_index++);
+	if (IS_ERR(gi->dev))
+		return PTR_ERR(gi->dev);
 
-	dev_set_drvdata(android_device, gi);
+	dev_set_drvdata(gi->dev, gi);
+	if (!android_device)
+		android_device = gi->dev;
 
 	attrs = android_usb_attributes;
 	while ((attr = *attrs++)) {
 		int err;
 
-		err = device_create_file(android_device, attr);
+		err = device_create_file(gi->dev, attr);
 		if (err) {
-			device_destroy(android_device->class,
-				       android_device->devt);
+			device_destroy(gi->dev->class, gi->dev->devt);
 			return err;
 		}
 	}
