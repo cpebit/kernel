@@ -751,7 +751,8 @@ void _halrf_tssi_set_powerlevel_8733b(void *dm_void, s16 power_offset,u8 path)
 
 	if(path == RF_PATH_B && channel > 14)
 		return;
-
+	if(channel == 0)
+		return;
 	for (i = 0; i < 20; i++) {  //ODM_MGN_MCS7 = 0x87,tssi_rate = 19
 		rate = _halrf_tssi_rate_to_driver_rate_8733b(dm, i);
 		db_temp = (s32)phydm_get_tx_power_mdbm(dm, path, rate, bandwidth, channel);
@@ -1397,8 +1398,9 @@ void _halrf_set_power_base_8733b(void *dm_void, u8 path)
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
 		"[RF][TSSI] current_path = %d, txagc_offset[0] = 0x%x\n",
 		path, tssi->txagc_offset_thermaltrack[path]);
-	if ((!(dm->rfe_type <= 2 ||
-		dm->rfe_type == 4 || dm->rfe_type == 9))) {
+	if (!(dm->rfe_type <= 2 ||
+		dm->rfe_type == 4 || dm->rfe_type == 9
+		|| dm->rfe_type == 13)) {
 		/*if not only one path, do another pathK*/
 		poll_cnt = 0;
 		path = ~path & 0x1;
@@ -1466,10 +1468,10 @@ void halrf_do_tssi_8733b(void *dm_void)
 	struct dm_rf_calibration_struct *cali_info = &dm->rf_calibrate_info;
 	struct _hal_rf_ *rf = &dm->rf_table;
 	struct _halrf_tssi_data *tssi = &rf->halrf_tssi_data;
-	u32 backup_num = 6;
-	u32 bb_reg[6] = {R_0x1c38, R_0x1860, R_0x1d40,
+	u32 backup_num = 5;
+	u32 bb_reg[5] = {R_0x1860, R_0x1d40,
 				  R_0x1e70, R_0x522, R_0x4384};
-	u32 bb_reg_backup[6] = {0};
+	u32 bb_reg_backup[5] = {0};
 	u8 i;
 	//s32 db_temp;
 	s8 pwr_threshold = 0xe4;

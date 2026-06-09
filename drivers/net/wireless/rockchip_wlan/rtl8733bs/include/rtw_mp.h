@@ -293,6 +293,11 @@ enum {
 	MP_GET_TSSIDE,
 	MP_SET_TSSIDE,
 	MP_ANTDIV,
+#ifdef CONFIG_MP_INCLUDED
+#ifdef RTW_HALMAC
+	MP_GPIO,
+#endif
+#endif
 	MP_NULL,
 #ifdef CONFIG_APPEND_VENDOR_IE_ENABLE
 	VENDOR_IE_SET ,
@@ -311,7 +316,6 @@ enum {
 #endif
 	MP_SD_IREAD,
 	MP_SD_IWRITE,
-	GET_IC_TYPE,
 };
 
 struct mp_priv {
@@ -393,6 +397,7 @@ struct mp_priv {
     u32		mplink_rx_len;
 	BOOLEAN mplink_brx;
 	BOOLEAN mplink_btx;
+	BOOLEAN blim_pkt_intvl;
 
 	bool tssitrk_on;
 	bool efuse_update_on;
@@ -710,6 +715,13 @@ void	PhySetTxPowerLevel(PADAPTER pAdapter);
 void	fill_txdesc_for_mp(PADAPTER padapter, u8 *ptxdesc);
 void	SetPacketTx(PADAPTER padapter);
 void	SetPacketRx(PADAPTER pAdapter, u8 bStartRx, u8 bAB);
+
+#ifdef CONFIG_MP_INCLUDED
+#ifdef RTW_HALMAC
+int SetGpio(PADAPTER pAdapter, u8 gpio_id, u8 gpio_enable, u8 gpio_func_offset, u8 gpio_mode);
+#endif
+#endif
+
 void	ResetPhyRxPktCount(PADAPTER pAdapter);
 u32	GetPhyRxPktReceived(PADAPTER pAdapter);
 u32	GetPhyRxPktCRC32Error(PADAPTER pAdapter);
@@ -754,7 +766,11 @@ void mpt_trigger_tssi_tracking(PADAPTER pAdapter, u8 rf_path);
 u32 hal_mpt_tssi_turn_target_power(PADAPTER padapter, s16 power_offset, u8 path);
 void hal_mpt_tssi_set_power_offset(PADAPTER padapter, s16 power_offset, u8 path);
 
-
+#ifdef CONFIG_MP_INCLUDED
+#ifdef RTW_HALMAC
+int hal_mpt_SetGpio(PADAPTER pAdapter, u8 gpio_id, u8 gpio_enable, u8 gpio_func_offset, u8 gpio_mode);
+#endif
+#endif
 
 void
 PMAC_Get_Pkt_Param(
@@ -953,4 +969,12 @@ int rtw_mp_set_tsside(struct net_device *dev,
 int rtw_mp_ant_div(struct net_device *dev,
 			struct iw_request_info *info,
 			union iwreq_data *wrqu, char *extra);
+#ifdef CONFIG_MP_INCLUDED
+#ifdef RTW_HALMAC
+int rtw_mp_gpio(struct net_device *dev,
+		struct iw_request_info *info,
+		struct iw_point *wrqu, char *extra);
+#endif
+#endif
+
 #endif /* _RTW_MP_H_ */

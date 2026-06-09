@@ -810,6 +810,10 @@ void phydm_read_cckpd_para_type4(void *dm_void)
 	reg1 = odm_get_bb_reg(dm, R_0x1acc, MASKDWORD);
 	reg2 = odm_get_bb_reg(dm, R_0x1ad0, MASKDWORD);
 	reg3 = odm_get_bb_reg(dm, R_0x1ad4, MASKDWORD);
+
+	PHYDM_DBG(dm, DBG_CCKPD, "reg={0x%x,0x%x,0x%x,0x%x}\n",
+		  reg0, reg1, reg2, reg3);
+
 	curr_cck_pd_t[0][0][0] = (u8)(reg0 & 0x000000ff);
 	curr_cck_pd_t[1][0][0] = (u8)(reg1 & 0x000000ff);
 	curr_cck_pd_t[0][0][1] = (u8)(reg2 & 0x0000001f);
@@ -989,6 +993,9 @@ void phydm_cck_pd_init_type4(void *dm_void)
 	reg2 = odm_get_bb_reg(dm, R_0x1ad0, MASKDWORD);
 	reg3 = odm_get_bb_reg(dm, R_0x1ad4, MASKDWORD);
 
+	PHYDM_DBG(dm, DBG_CCKPD, "reg={0x%x,0x%x,0x%x,0x%x}\n",
+		  reg0, reg1, reg2, reg3);
+
 	for (i = 0 ; i < CCK_PD_LV_MAX ; i++) {
 		pw_step = i * 2;
 		cs_step = i * 2;
@@ -1004,8 +1011,8 @@ void phydm_cck_pd_init_type4(void *dm_void)
 		}
 		#endif
 
-		#if (RTL8822C_SUPPORT)
-		if (dm->support_ic_type & ODM_RTL8822C) {
+		#if (RTL8822C_SUPPORT || RTL8822E_SUPPORT)
+		if (dm->support_ic_type & (ODM_RTL8822C | ODM_RTL8822E)) {
 			if (i == CCK_PD_LV_1) {
 				pw_step = 9; /*IGI-19.2:0x11=d'17*/
 				cs_step = 0;
@@ -1288,9 +1295,6 @@ void phydm_set_cck_pd_lv_type5(void *dm_void, enum cckpd_lv lv)
 			cck_mode = CCK_BW40_4R;
 	} break;
 	#endif
-	default:
-		/*@pr_debug("[%s] warning!\n", __func__);*/
-		break;
 	}
 
 
@@ -1478,6 +1482,40 @@ void phydm_cck_pd_init_type5(void *dm_void)
 
 		#if (RTL8733B_SUPPORT)
 		if (dm->support_ic_type & ODM_RTL8733B) {
+			if (i == CCK_PD_LV_1) {
+				pw_step = 9; /*IGI-19.2:0x11=d'17*/
+				cs_step = 0;
+			} else if (i == CCK_PD_LV_2) {
+				pw_step = 12; /*IGI-15.5:0x14=d'20*/
+				cs_step = 1;
+			} else if (i == CCK_PD_LV_3) {
+				pw_step = 14; /*IGI-14:0x16=d'22*/
+				cs_step = 1;
+			} else if (i == CCK_PD_LV_4) {
+				pw_step = 17; /*IGI-12:0x19=d'25*/
+				cs_step = 1;
+			}
+		}
+		#endif
+		#if (RTL8735B_SUPPORT)
+		if (dm->support_ic_type & ODM_RTL8735B) {
+			if (i == CCK_PD_LV_1) {
+				pw_step = 9; /*IGI-19.2:0x11=d'17*/
+				cs_step = 0;
+			} else if (i == CCK_PD_LV_2) {
+				pw_step = 12; /*IGI-15.5:0x14=d'20*/
+				cs_step = 1;
+			} else if (i == CCK_PD_LV_3) {
+				pw_step = 14; /*IGI-14:0x16=d'22*/
+				cs_step = 1;
+			} else if (i == CCK_PD_LV_4) {
+				pw_step = 17; /*IGI-12:0x19=d'25*/
+				cs_step = 1;
+			}
+		}
+		#endif
+		#if (RTL8730A_SUPPORT)
+		if (dm->support_ic_type & ODM_RTL8730A) {
 			if (i == CCK_PD_LV_1) {
 				pw_step = 9; /*IGI-19.2:0x11=d'17*/
 				cs_step = 0;

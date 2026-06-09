@@ -677,9 +677,9 @@ odm_txpowertracking_thermal_meter_init(
 	cali_info->thermal_value_iqk	= hal_data->eeprom_thermal_meter;
 	cali_info->thermal_value_lck	= hal_data->eeprom_thermal_meter;
 
-#if (RTL8822C_SUPPORT == 1 || RTL8814B_SUPPORT == 1 || RTL8733B_SUPPORT == 1 || RTL8814C_SUPPORT == 1)
-	if (dm->support_ic_type == ODM_RTL8822C || 
-	    dm->support_ic_type == ODM_RTL8733B) {
+#if (RTL8822C_SUPPORT == 1 || RTL8814B_SUPPORT == 1 || RTL8733B_SUPPORT == 1 ||\
+	RTL8814C_SUPPORT == 1 || RTL8822E_SUPPORT == 1)
+	if (dm->support_ic_type & (ODM_RTL8822C | ODM_RTL8733B | ODM_RTL8822E)) {
 		cali_info->thermal_value_path[RF_PATH_A] = tssi->thermal[RF_PATH_A];
 		cali_info->thermal_value_path[RF_PATH_B] = tssi->thermal[RF_PATH_B];
 		cali_info->thermal_value_iqk = tssi->thermal[RF_PATH_A];
@@ -860,8 +860,8 @@ odm_txpowertracking_direct_call(
 		return;
 #endif
 	}
-	if (dm->support_ic_type & (ODM_RTL8822C | ODM_RTL8814B | ODM_RTL8814C)) {
-#if (RTL8822C_SUPPORT == 1 || RTL8814B_SUPPORT == 1 || RTL8814C_SUPPORT == 1)
+	if (dm->support_ic_type & (ODM_RTL8822C | ODM_RTL8814B | ODM_RTL8814C | ODM_RTL8822E)) {
+#if (RTL8822C_SUPPORT == 1 || RTL8814B_SUPPORT == 1 || RTL8814C_SUPPORT == 1 || RTL8822E_SUPPORT == 1)
 		odm_txpowertracking_new_callback_thermal_meter(dm);
 #endif
 	} else
@@ -891,7 +891,7 @@ odm_txpowertracking_thermal_meter_check(
 		    || IS_HARDWARE_TYPE_8822B(adapter) || IS_HARDWARE_TYPE_8723D(adapter) || IS_HARDWARE_TYPE_8821C(adapter) || IS_HARDWARE_TYPE_8710B(adapter)
 		    )/* JJ ADD 20161014 */
 			PHY_SetRFReg(adapter, RF_PATH_A, RF_T_METER_88E, BIT(17) | BIT(16), 0x03);
-		else if (IS_HARDWARE_TYPE_8822C(adapter)) {
+		else if (dm->support_ic_type & (ODM_RTL8822C | ODM_RTL8822E)) {
 			odm_set_rf_reg(dm, RF_PATH_A, R_0x42, BIT(19), 0x01);
 			odm_set_rf_reg(dm, RF_PATH_A, R_0x42, BIT(19), 0x00);
 			odm_set_rf_reg(dm, RF_PATH_A, R_0x42, BIT(19), 0x01);
@@ -904,7 +904,7 @@ odm_txpowertracking_thermal_meter_check(
 			odm_set_rf_reg(dm, RF_PATH_B, 0x42, BIT(17), 0x1);
 			odm_set_rf_reg(dm, RF_PATH_C, 0x42, BIT(17), 0x1);
 			odm_set_rf_reg(dm, RF_PATH_D, 0x42, BIT(17), 0x1);
-		} else if (IS_HARDWARE_TYPE_8733B(adapter)) {
+		} else if (dm->support_ic_type & ODM_RTL8733B) {
 			odm_set_rf_reg(dm, RF_PATH_A, R_0x42, BIT(16), 0x01);
 			odm_set_rf_reg(dm, RF_PATH_A, R_0x42, BIT(16), 0x00);
 			odm_set_rf_reg(dm, RF_PATH_A, R_0x42, BIT(16), 0x01);
@@ -912,7 +912,7 @@ odm_txpowertracking_thermal_meter_check(
 		else
 			PHY_SetRFReg(adapter, RF_PATH_A, RF_T_METER, RFREGOFFSETMASK, 0x60);
 
-		if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C)) {
+		if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C | ODM_RTL8822E)) {
 			ODM_delay_us(300);
 			odm_txpowertracking_direct_call(adapter);
 			tssi->thermal_trigger = 1;
@@ -926,7 +926,7 @@ odm_txpowertracking_thermal_meter_check(
 		RT_TRACE(COMP_POWER_TRACKING, DBG_LOUD, ("Schedule TxPowerTracking direct call!!\n"));
 		odm_txpowertracking_direct_call(adapter);
 
-		if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C))
+		if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C | ODM_RTL8822E))
 			tssi->thermal_trigger = 0;
 
 		tm_trigger = 0;

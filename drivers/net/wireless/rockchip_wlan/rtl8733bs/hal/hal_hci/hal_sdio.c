@@ -170,6 +170,11 @@ void rtw_hal_set_sdio_tx_max_length(PADAPTER padapter, u8 numHQ, u8 numNQ, u8 nu
 	u32	page_size;
 	u32	lenHQ, lenNQ, lenLQ;
 
+	pHalData->tx_high_page = numHQ;
+	pHalData->tx_normal_page = numNQ;
+	pHalData->tx_low_page = numLQ;
+	pHalData->tx_pub_page = numPubQ;
+
 	rtw_hal_get_def_var(padapter, HAL_DEF_TX_PAGE_SIZE, &page_size);
 
 	lenHQ = ((numHQ + numPubQ) / div_num) * page_size;

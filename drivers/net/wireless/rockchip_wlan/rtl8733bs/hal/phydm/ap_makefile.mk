@@ -246,3 +246,29 @@ ifeq ($(CONFIG_WLAN_HAL_8733BE),y)
 		phydm/rtl8733b/phydm_hal_api8733b.o
 	endif
 endif
+ifeq ($(CONFIG_WLAN_HAL_8730A),y)
+	_PHYDM_FILES += phydm/halrf/rtl8730a/halrf_8730a.o
+	_PHYDM_FILES += phydm/halrf/rtl8730a/halrf_iqk_8730a.o
+	_PHYDM_FILES += phydm/halrf/rtl8730a/halrf_dpk_8730a.o
+	_PHYDM_FILES += phydm/halrf/rtl8730a/halrf_rfk_init_8730a.o
+	_PHYDM_FILES += phydm/halrf/rtl8730a/halhwimg8730a_rf.o
+	ifeq ($(CONFIG_RTL_ODM_WLAN_DRIVER),y)
+		_PHYDM_FILES += \
+		phydm/rtl8733b/halhwimg8730a_bb.o\
+		phydm/rtl8733b/phydm_regconfig8730a.o\
+		phydm/rtl8733b/phydm_hal_api8730a.o
+	endif
+endif
+ifeq ($(CONFIG_WLAN_HAL_8822EE),y)
+	_PHYDM_FILES += phydm/halrf/rtl8822e/halrf_8822e.o
+	_PHYDM_FILES += phydm/halrf/rtl8822e/halrf_iqk_8822e.o
+	_PHYDM_FILES += phydm/halrf/rtl8822e/halrf_dpk_8822e.o
+	_PHYDM_FILES += phydm/halrf/rtl8822e/halrf_rfk_init_8822e.o
+	_PHYDM_FILES += phydm/halrf/rtl8822e/halhwimg8822e_rf.o
+	ifeq ($(CONFIG_RTL_ODM_WLAN_DRIVER),y)
+		_PHYDM_FILES += \
+		phydm/rtl8822e/halhwimg8822e_bb.o\
+		phydm/rtl8822e/phydm_regconfig8822e.o\
+		phydm/rtl8822e/phydm_hal_api8822e.o
+	endif
+endif

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2019 Realtek Corporation.
+ * Copyright(c) 2007 - 2021 Realtek Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -685,7 +685,7 @@ void rtw_update_tx_rate_bmp(struct dvobj_priv *dvobj)
 
 		/* TODO: per rfpath and rate section handling? */
 		if (update_ht_rs == _TRUE || update_vht_rs == _TRUE)
-			rtw_hal_update_txpwr_level(adapter);
+			rtw_update_txpwr_level(dvobj, HW_BAND_MAX);
 	}
 #endif /* CONFIG_TXPWR_LIMIT */
 }
@@ -848,18 +848,23 @@ s16 rtw_get_oper_txpwr_max_mbm(struct dvobj_priv *dvobj, bool eirp)
 	return mbm;
 }
 
-s16 rtw_rfctl_get_reg_max_txpwr_mbm(struct rf_ctl_t *rfctl, u8 ch, u8 bw, u8 offset, bool eirp)
+s16 rtw_rfctl_get_reg_max_txpwr_mbm(struct rf_ctl_t *rfctl, enum band_type band, u8 ch, u8 bw, u8 offset, bool eirp)
 {
 	struct dvobj_priv *dvobj = rfctl_to_dvobj(rfctl);
 	struct registry_priv *regsty = dvobj_to_regsty(dvobj);
 	_adapter *adapter = dvobj_get_primary_adapter(dvobj);
 	s16 mbm = -100 * MBM_PDBM;
-	u8 cch = rtw_get_center_ch(ch, bw, offset);
+	u8 cch = rtw_get_center_ch_by_band(band, ch, bw, offset);
 	u16 bmp_cck_ofdm = 0;
 	u32 bmp_ht = 0;
 	u64 bmp_vht = 0;
 
-	if (ch <= 14)
+#if CONFIG_IEEE80211_BAND_6GHZ
+	if (band == BAND_ON_6G) /* TODO: 6G */
+		return 1300;
+#endif
+
+	if (band == BAND_ON_2_4G)
 		bmp_cck_ofdm |= RATE_BMP_CCK;
 
 	/* TODO: NO OFDM? */
@@ -1090,7 +1095,7 @@ static void update_attrib_vcs_info(_adapter *padapter, struct xmit_frame *pxmitf
 		/*RTStoCTS while let TP degree ,while enable full BW*/
 		if (psta != NULL) {
 			rssi = psta->cmn.rssi_stat.rssi;
-			if ((rssi < 18) && (pattrib->vcs_mode == RTS_CTS))
+			if ((rssi < LOW_RSSI_THRESHOLD) && (pattrib->vcs_mode == RTS_CTS))
 				pattrib->vcs_mode = CTS_TO_SELF;
 		}
 		#endif
@@ -1433,7 +1438,7 @@ u8	qos_acm(u8 acm_mask, u8 priority)
 }
 
 /* refer to IEEE802.11-2016 Table R-3; Comply with IETF RFC4594 */
-static u8 tos_to_up(u8 tos)
+static u8 tos_to_up(u8 tos, bool is_ipv6)
 {
 	u8 up = 0;
 	u8 dscp;
@@ -1441,7 +1446,7 @@ static u8 tos_to_up(u8 tos)
 
 
 	/* tos precedence mapping */
-	if (mode == 0) {
+	if (mode == 0 && !is_ipv6) {
 		up = tos >> 5;
 		return up;
 	}
@@ -1479,7 +1484,7 @@ static void set_qos(_pkt *pkt, struct pkt_attrib *pattrib)
 		goto null_pkt;
 
 	/* get UserPriority from IP hdr */
-	if (pattrib->ether_type == 0x0800) {
+	if (pattrib->ether_type == ETH_P_IP) {
 		struct pkt_file ppktfile;
 		struct ethhdr etherhdr;
 		struct iphdr ip_hdr;
@@ -1488,7 +1493,19 @@ static void set_qos(_pkt *pkt, struct pkt_attrib *pattrib)
 		_rtw_pktfile_read(&ppktfile, (unsigned char *)&etherhdr, ETH_HLEN);
 		_rtw_pktfile_read(&ppktfile, (u8 *)&ip_hdr, sizeof(ip_hdr));
 		/*		UserPriority = (ntohs(ip_hdr.tos) >> 5) & 0x3; */
-		UserPriority = tos_to_up(ip_hdr.tos);
+		UserPriority = tos_to_up(ip_hdr.tos, _FALSE);
+	}else if (pattrib->ether_type == ETH_P_IPV6) {
+		struct pkt_file ppktfile;
+		struct ethhdr etherhdr;
+		u8 hdr1, hdr2;
+		u8 traffic_class;
+
+		_rtw_open_pktfile(pkt, &ppktfile);
+		_rtw_pktfile_read(&ppktfile, (unsigned char *)&etherhdr, ETH_HLEN);
+		_rtw_pktfile_read(&ppktfile, (u8 *)&hdr1, sizeof(hdr1));
+		_rtw_pktfile_read(&ppktfile, (u8 *)&hdr2, sizeof(hdr2));
+		traffic_class = (((hdr1 << 8) | hdr2) & 0x0ff0) >> 4;
+		UserPriority = tos_to_up(traffic_class, _TRUE);
 	}
 	/*
 		else if (pattrib->ether_type == 0x888e) {
@@ -1605,7 +1622,7 @@ inline u8 rtw_get_hwseq_no(_adapter *padapter)
 
 #ifdef CONFIG_CONCURRENT_MODE
 	#if defined(CONFIG_RTL8822B) || defined(CONFIG_RTL8821C) || defined(CONFIG_RTL8822C) || defined(CONFIG_RTL8814B) \
-	    || defined(CONFIG_RTL8733B)
+	    || defined(CONFIG_RTL8733B) || defined(CONFIG_RTL8822E)
 	hwseq_num = padapter->iface_id;
 	if (hwseq_num > 3)
 		hwseq_num = 3;
@@ -1644,7 +1661,6 @@ static u8 _rtw_lps_chk_packet_type(struct pkt_attrib *pattrib)
 #endif
 static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattrib)
 {
-	uint i;
 	struct pkt_file pktfile;
 	struct sta_info *psta = NULL;
 	struct ethhdr etherhdr;
@@ -1663,7 +1679,7 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 	DBG_COUNTER(padapter->tx_logs.core_tx_upd_attrib);
 
 	_rtw_open_pktfile(pkt, &pktfile);
-	i = _rtw_pktfile_read(&pktfile, (u8 *)&etherhdr, ETH_HLEN);
+	_rtw_pktfile_read(&pktfile, (u8 *)&etherhdr, ETH_HLEN);
 
 	pattrib->ether_type = ntohs(etherhdr.h_proto);
 
@@ -1922,8 +1938,6 @@ get_sta_info:
 	rtw_set_tx_chksum_offload(pkt, pattrib);
 
 exit:
-
-
 	return res;
 }
 
@@ -4102,7 +4116,7 @@ void rtw_free_mgmt_xmitframe_queue(struct xmit_priv *pxmitpriv, _queue *mgmt_que
 		RTW_INFO("%s seq_num = %u\n", __func__, pxmitframe->attrib.seqnum);
 		#endif
 
-		rtw_free_xmitbuf_ext(pxmitpriv, pxmitframe->pxmitbuf);
+		rtw_free_xmitbuf(pxmitpriv, pxmitframe->pxmitbuf);
 		rtw_free_xmitframe(pxmitpriv, pxmitframe);
 	}
 	_exit_critical_bh(&(mgmt_queue->lock), &irqL);
@@ -4195,35 +4209,12 @@ static struct xmit_frame *dequeue_one_xmitframe(struct xmit_priv *pxmitpriv, str
 	xmitframe_phead = get_list_head(pframe_queue);
 	xmitframe_plist = get_next(xmitframe_phead);
 
-	while ((rtw_end_of_queue_search(xmitframe_phead, xmitframe_plist)) == _FALSE) {
+	if ((rtw_end_of_queue_search(xmitframe_phead, xmitframe_plist)) == _FALSE) {
 		pxmitframe = LIST_CONTAINOR(xmitframe_plist, struct xmit_frame, list);
 
-		/* xmitframe_plist = get_next(xmitframe_plist); */
-
-		/*#ifdef RTK_DMP_PLATFORM
-		#ifdef CONFIG_USB_TX_AGGREGATION
-				if((ptxservq->qcnt>0) && (ptxservq->qcnt<=2))
-				{
-					pxmitframe = NULL;
-
-					tasklet_schedule(&pxmitpriv->xmit_tasklet);
-
-					break;
-				}
-		#endif
-		#endif*/
 		rtw_list_delete(&pxmitframe->list);
 
 		ptxservq->qcnt--;
-
-		/* rtw_list_insert_tail(&pxmitframe->list, &phwxmit->pending); */
-
-		/* ptxservq->qcnt--; */
-
-		break;
-
-		/* pxmitframe = NULL; */
-
 	}
 
 	return pxmitframe;
@@ -4237,10 +4228,8 @@ static struct xmit_frame *get_one_xmitframe(struct xmit_priv *pxmitpriv, struct 
 	xmitframe_phead = get_list_head(pframe_queue);
 	xmitframe_plist = get_next(xmitframe_phead);
 
-	while ((rtw_end_of_queue_search(xmitframe_phead, xmitframe_plist)) == _FALSE) {
+	if ((rtw_end_of_queue_search(xmitframe_phead, xmitframe_plist)) == _FALSE)
 		pxmitframe = LIST_CONTAINOR(xmitframe_plist, struct xmit_frame, list);
-		break;
-	}
 
 	return pxmitframe;
 }
@@ -5161,7 +5150,7 @@ s32 rtw_xmit(_adapter *padapter, _pkt **ppkt, u16 os_qid)
 
 	if ((rtw_linked_check(padapter) == _FALSE)
 #ifdef CONFIG_LAYER2_ROAMING
-		&&(!padapter->mlmepriv.roam_network)
+		&&(!padapter->mlmepriv.roam_buf_pkt)
 #endif
 	   )
 		return -1;
@@ -5208,7 +5197,7 @@ s32 rtw_xmit(_adapter *padapter, _pkt **ppkt, u16 os_qid)
 	}
 #endif /* CONFIG_BR_EXT */
 #ifdef CONFIG_LAYER2_ROAMING
-	if ((pmlmepriv->roam_network) && (skb->protocol != htons(0x888e))) {	/* eapol never enqueue.*/
+	if ((pmlmepriv->roam_buf_pkt) && (skb->protocol != htons(0x888e))) {	/* eapol never enqueue.*/
 		pxmitframe->pkt = *ppkt;
 		rtw_list_delete(&pxmitframe->list);
 		_enter_critical_bh(&pxmitpriv->rpkt_queue.lock, &irqL);
@@ -5332,7 +5321,7 @@ sint xmitframe_enqueue_for_tdls_sleeping_sta(_adapter *padapter, struct xmit_fra
 
 			/* Transmit TDLS PTI via AP */
 			if (ptdls_sta->sleepq_len == 1)
-				rtw_tdls_cmd(padapter, ptdls_sta->cmn.mac_addr, TDLS_ISSUE_PTI);
+				rtw_tdls_cmd(padapter, ptdls_sta->cmn.mac_addr, TDLS_ISSUE_PTI, 0);
 
 			ret = _TRUE;
 		}
@@ -6305,9 +6294,8 @@ bool rtw_xmit_ac_blocked(_adapter *adapter)
 #endif/* #ifdef DBG_CONFIG_ERROR_DETECT */
 
 	if (rfctl->offch_state != OFFCHS_NONE
-		#if CONFIG_DFS
-		|| IS_RADAR_DETECTED(rfctl) || rfctl->csa_ch
-		#endif
+		|| IS_RADAR_DETECTED(rfctl)
+		|| IS_ECSA_STOP_TX(rfctl)
 	) {
 		blocked = _TRUE;
 		goto exit;
@@ -6347,6 +6335,39 @@ bool rtw_xmit_ac_blocked(_adapter *adapter)
 exit:
 	return blocked;
 }
+
+#ifdef CONFIG_LAYER2_ROAMING
+/* dequeuq + xmit the cache skb during the roam procedure	*/
+void dequeuq_roam_pkt(_adapter *padapter, bool drop)
+{
+	struct xmit_frame *rframe;
+	struct xmit_priv *pxmitpriv = &padapter->xmitpriv;
+	_list *plist, *phead;
+	_irqL irqL;
+	int i = 0;
+
+	if (padapter->mlmepriv.roam_network) {
+		padapter->mlmepriv.roam_network = NULL;
+		_enter_critical_bh(&pxmitpriv->rpkt_queue.lock, &irqL);
+		phead = get_list_head(&pxmitpriv->rpkt_queue);
+		plist = get_next(phead);
+		while ((rtw_end_of_queue_search(phead, plist)) == _FALSE) {
+			rframe = LIST_CONTAINOR(plist, struct xmit_frame, list);
+			plist = get_next(plist);
+			rtw_list_delete(&rframe->list);
+
+			if (drop)
+				rtw_free_xmitframe(pxmitpriv, rframe);
+			else
+				rtw_xmit_posthandle(padapter, rframe, rframe->pkt);
+			i++;
+		}
+		_exit_critical_bh(&pxmitpriv->rpkt_queue.lock, &irqL);
+		if (i)
+			RTW_INFO("%s %d roam_buf_pkts\n", drop?"drop":"send", i);
+       }
+}
+#endif
 
 #ifdef CONFIG_TX_AMSDU
 void rtw_amsdu_vo_timeout_handler(void *FunctionContext)
@@ -6611,6 +6632,7 @@ void rtw_sctx_init(struct submit_ctx *sctx, int timeout_ms)
 	init_completion(&sctx->done);
 #endif
 	sctx->status = RTW_SCTX_SUBMITTED;
+	sctx->rsp = NULL;
 }
 
 int rtw_sctx_wait(struct submit_ctx *sctx, const char *msg)

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2017 Realtek Corporation.
+ * Copyright(c) 2007 - 2021 Realtek Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -438,6 +438,38 @@ struct sk_buff *skb_clone(const struct sk_buff *skb)
 }
 
 #endif /* PLATFORM_FREEBSD */
+
+#ifdef CONFIG_PCIE_DMA_COHERENT
+struct sk_buff *dev_alloc_skb_coherent(struct pci_dev *pdev, unsigned int size)
+{
+	struct sk_buff *skb = NULL;
+	unsigned char *data = NULL;
+
+	/* skb = _rtw_zmalloc(sizeof(struct sk_buff)); */ /* for skb->len, etc. */
+
+	skb = _rtw_malloc(sizeof(struct sk_buff));
+	if (!skb)
+		goto out;
+
+	data = dma_alloc_coherent(&pdev->dev, size, (dma_addr_t *)&skb->cb, GFP_KERNEL);
+
+	if (!data)
+		goto nodata;
+
+	skb->head = data;
+	skb->data = data;
+	skb_reset_tail_pointer(skb);
+	skb->end = skb->tail + size;
+	skb->len = 0;
+out:
+	return skb;
+nodata:
+	_rtw_mfree(skb, sizeof(struct sk_buff));
+	skb = NULL;
+	goto out;
+
+}
+#endif
 
 inline struct sk_buff *_rtw_skb_alloc(u32 sz)
 {
@@ -1473,7 +1505,11 @@ u32 _rtw_down_sema(_sema *sema)
 inline void thread_exit(_completion *comp)
 {
 #ifdef PLATFORM_LINUX
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
 	complete_and_exit(comp, 0);
+#else
+	kthread_complete_and_exit(comp, 0);
+#endif
 #endif
 
 #ifdef PLATFORM_FREEBSD
@@ -1792,21 +1828,28 @@ inline bool _rtw_time_after(systime a, systime b)
 #endif
 }
 
+inline bool _rtw_time_after_eq(systime a, systime b)
+{
+#ifdef PLATFORM_LINUX
+	return time_after_eq(a, b);
+#else
+	#error "TBD\n"
+#endif
+}
+
 sysptime rtw_sptime_get(void)
 {
-	/* CLOCK_MONOTONIC */
 #ifdef PLATFORM_LINUX
-	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
-	struct timespec64 cur;
+	return ktime_get(); /* CLOCK_MONOTONIC */
+#else
+	#error "TBD\n"
+#endif
+}
 
-	ktime_get_ts64(&cur);
-	return timespec64_to_ktime(cur);
-	#else
-	struct timespec cur;
-
-	ktime_get_ts(&cur);
-	return timespec_to_ktime(cur);
-	#endif
+sysptime rtw_sptime_get_raw(void)
+{
+#ifdef PLATFORM_LINUX
+	return ktime_get_raw(); /* CLOCK_MONOTONIC */
 #else
 	#error "TBD\n"
 #endif
@@ -2541,6 +2584,33 @@ inline bool ATOMIC_INC_UNLESS(ATOMIC_T *v, int u)
 }
 
 #ifdef PLATFORM_LINUX
+
+#if defined(CONFIG_RTW_ANDROID_GKI) && !defined(CONFIG_LOAD_FILE_BY_REQ_FW_API)
+#define CONFIG_LOAD_FILE_BY_REQ_FW_API
+#endif
+
+#ifdef CONFIG_LOAD_FILE_BY_REQ_FW_API
+#include <linux/firmware.h>
+
+static const char *get_file_name_from_path(const char *path)
+{
+	char *ret;
+	size_t path_len;
+
+	if (!path)
+		return NULL;
+
+	path_len = strlen(path);
+	if (path_len == 0)
+		return NULL;
+
+	ret = strrchr(path, '/');
+	if (ret && ret - path < path_len)
+		return ret + 1;
+	return NULL;
+}
+#endif /* CONFIG_LOAD_FILE_BY_REQ_FW_API */
+
 #if !defined(CONFIG_RTW_ANDROID_GKI)
 /*
 * Open a file with the specific @param path, @param flag, @param mode
@@ -2652,53 +2722,6 @@ static int isDirReadable(const char *pathname, u32 *sz)
 }
 
 /*
-* Test if the specifi @param path is a file and readable
-* If readable, @param sz is got
-* @param path the path of the file to test
-* @return Linux specific error code
-*/
-static int isFileReadable(const char *path, u32 *sz)
-{
-	struct file *fp;
-	int ret = 0;
-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
-	mm_segment_t oldfs;
-	#endif
-	char buf;
-
-	fp = filp_open(path, O_RDONLY, 0);
-	if (IS_ERR(fp))
-		ret = PTR_ERR(fp);
-	else {
-		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
-		oldfs = get_fs();
-		#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
-		set_fs(KERNEL_DS);
-		#else
-		set_fs(get_ds());
-		#endif
-		#endif
-
-		if (1 != readFile(fp, &buf, 1))
-			ret = PTR_ERR(fp);
-
-		if (ret == 0 && sz) {
-			#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
-			*sz = i_size_read(fp->f_path.dentry->d_inode);
-			#else
-			*sz = i_size_read(fp->f_dentry->d_inode);
-			#endif
-		}
-
-		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
-		set_fs(oldfs);
-		#endif
-		filp_close(fp, NULL);
-	}
-	return ret;
-}
-
-/*
 * Open the file with @param path and wirte @param sz byte of data starting from @param buf into the file
 * @param path the path of the file to open and write
 * @param buf the starting address of the data to write into file
@@ -2745,6 +2768,86 @@ static int storeToFile(const char *path, u8 *buf, u32 sz)
 	return ret;
 }
 #endif /* !defined(CONFIG_RTW_ANDROID_GKI)*/
+
+/*
+* Test if the specifi @param path is a file and readable
+* If readable, @param sz is got
+* @param path the path of the file to test
+* @return Linux specific error code
+*/
+static int isFileReadable(const char *path, u32 *sz)
+{
+#if defined(CONFIG_LOAD_FILE_BY_REQ_FW_API)
+	int ret = -EINVAL;
+	const struct firmware *fw = NULL;
+	const char *name;
+
+	if (path == NULL) {
+		RTW_ERR("%s() NULL pointer\n", __func__);
+		goto exit;
+	}
+
+	name = get_file_name_from_path(path);
+	if (name == NULL) {
+		RTW_ERR("%s() parsing file name fail\n", __func__);
+		goto exit;
+	}
+
+	/* request_firmware() will find file in /vendor/firmware but not in path */
+	ret = request_firmware(&fw, name, NULL);
+	if (ret != 0) {
+		RTW_ERR("%s() request_firmware file : %s, error : %d\n", __func__, name, ret);
+		goto exit;
+	}
+
+	if (sz)
+		*sz = (u32)fw->size;
+
+exit:
+	if (fw)
+		release_firmware(fw);
+
+	return ret;
+#else /* !defined(CONFIG_LOAD_FILE_BY_REQ_FW_API) */
+	struct file *fp;
+	int ret = 0;
+	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+	mm_segment_t oldfs;
+	#endif
+	char buf;
+
+	fp = filp_open(path, O_RDONLY, 0);
+	if (IS_ERR(fp))
+		ret = PTR_ERR(fp);
+	else {
+		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+		oldfs = get_fs();
+		#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
+		set_fs(KERNEL_DS);
+		#else
+		set_fs(get_ds());
+		#endif
+		#endif
+
+		if (1 != readFile(fp, &buf, 1))
+			ret = PTR_ERR(fp);
+
+		if (ret == 0 && sz) {
+			#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
+			*sz = i_size_read(fp->f_path.dentry->d_inode);
+			#else
+			*sz = i_size_read(fp->f_dentry->d_inode);
+			#endif
+		}
+
+		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+		set_fs(oldfs);
+		#endif
+		filp_close(fp, NULL);
+	}
+	return ret;
+#endif /* defined(CONFIG_LOAD_FILE_BY_REQ_FW_API) */
+}
 #endif /* PLATFORM_LINUX */
 
 #if !defined(CONFIG_RTW_ANDROID_GKI)
@@ -2776,40 +2879,50 @@ int rtw_is_dir_readable(const char *path)
 */
 static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 {
-#if defined(CONFIG_RTW_ANDROID_GKI)
-	int ret = -1;
-	//char req_fw_buf[4096];
+#if defined(CONFIG_LOAD_FILE_BY_REQ_FW_API)
+	int ret = -EINVAL;
 	const struct firmware *fw = NULL;
-	char* const delim = "/";
-	char *name, *token, *cur, path_tmp[1024] = {0};
+	const char *name;
 
-	if (path && buf) {
-		_rtw_memcpy(path_tmp, path, strlen(path));
-		cur = path_tmp;
+	if (path == NULL || buf == NULL) {
+		RTW_ERR("%s() NULL pointer\n", __func__);
+		goto err;
+	}
 
-		token = strsep(&cur, delim);
-		while (token != NULL) {
-			token = strsep(&cur, delim);
-			if(token)
-				name = token;
-		}
+	name = get_file_name_from_path(path);
+	if (name == NULL) {
+		RTW_ERR("%s() parsing file name fail\n", __func__);
+		goto err;
+	}
 
-		ret = request_firmware(&fw, name, NULL);
-		if (ret == 0) {
-			RTW_INFO("%s() success, file size : %zu\n", __func__, fw->size);
+	/* request_firmware() will find file in /vendor/firmware but not in path */
+	ret = request_firmware(&fw, name, NULL);
+	if (ret == 0) {
+		RTW_INFO("%s() Success. retrieve file : %s, file size : %zu\n", __func__, name, fw->size);
+
+		if ((u32)fw->size <= sz) {
 			_rtw_memcpy(buf, fw->data, (u32)fw->size);
 			ret = (u32)fw->size;
+			goto exit;
 		} else {
-			RTW_INFO("%s() fail, error : %d\n", __func__, ret);
+			RTW_ERR("%s() file size : %zu exceed buf size : %u\n", __func__, fw->size, sz);
+			ret = -EFBIG;
+			goto err;
 		}
-		if(fw)
-			release_firmware(fw);
-	}else {
-		RTW_INFO("%s NULL pointer\n", __FUNCTION__);
-		ret =  -EINVAL;
+	} else {
+		RTW_ERR("%s() Fail. retrieve file : %s, error : %d\n", __func__, name, ret);
+		goto err;
 	}
+
+
+
+err:
+	RTW_ERR("%s() Fail. retrieve file : %s, error : %d\n", __func__, path, ret);
+exit:
+	if (fw)
+		release_firmware(fw);
 	return ret;
-#else /* !defined(CONFIG_RTW_ANDROID_GKI) */
+#else /* !defined(CONFIG_LOAD_FILE_BY_REQ_FW_API) */
 	int ret = -1;
 	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 	mm_segment_t oldfs;
@@ -2846,7 +2959,7 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 		ret =  -EINVAL;
 	}
 	return ret;
-#endif /* defined(CONFIG_RTW_ANDROID_GKI) */
+#endif /* defined(CONFIG_LOAD_FILE_BY_REQ_FW_API) */
 }
 
 /*
@@ -2857,15 +2970,10 @@ static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 int rtw_is_file_readable(const char *path)
 {
 #ifdef PLATFORM_LINUX
-#if !defined(CONFIG_RTW_ANDROID_GKI)
 	if (isFileReadable(path, NULL) == 0)
 		return _TRUE;
 	else
 		return _FALSE;
-#else
-	RTW_INFO("%s() Android GKI prohibbit kernel_read, return _TRUE\n", __func__);
-	return  _TRUE;
-#endif /* !defined(CONFIG_RTW_ANDROID_GKI) */
 #else
 	/* Todo... */
 	return _FALSE;
@@ -2881,16 +2989,10 @@ int rtw_is_file_readable(const char *path)
 int rtw_is_file_readable_with_size(const char *path, u32 *sz)
 {
 #ifdef PLATFORM_LINUX
-#if !defined(CONFIG_RTW_ANDROID_GKI)
 	if (isFileReadable(path, sz) == 0)
 		return _TRUE;
 	else
 		return _FALSE;
-#else
-	RTW_INFO("%s() Android GKI prohibbit kernel_read, return _TRUE\n", __func__);
-	*sz = 0;
-	return  _TRUE;
-#endif /* !defined(CONFIG_RTW_ANDROID_GKI) */
 #else
 	/* Todo... */
 	return _FALSE;
@@ -2961,7 +3063,7 @@ struct net_device *rtw_alloc_etherdev_with_old_priv(int sizeof_priv, void *old_p
 	struct rtw_netdev_priv_indicator *pnpi;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35))
-	pnetdev = alloc_etherdev_mq(sizeof(struct rtw_netdev_priv_indicator), 4);
+	pnetdev = alloc_etherdev_mq(sizeof(struct rtw_netdev_priv_indicator), 5);
 #else
 	pnetdev = alloc_etherdev(sizeof(struct rtw_netdev_priv_indicator));
 #endif
@@ -3126,7 +3228,9 @@ u64 rtw_division64(u64 x, u64 y)
 inline u32 rtw_random32(void)
 {
 #ifdef PLATFORM_LINUX
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
+	return get_random_u32();
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	return prandom_u32();
 #elif (LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18))
 	u32 random_int;
@@ -3144,19 +3248,12 @@ inline u32 rtw_random32(void)
 
 void rtw_buf_free(u8 **buf, u32 *buf_len)
 {
-	u32 ori_len;
-
-	if (!buf || !buf_len)
+	if (!buf || !(*buf) || !buf_len)
 		return;
 
-	ori_len = *buf_len;
-
-	if (*buf) {
-		u32 tmp_buf_len = *buf_len;
-		*buf_len = 0;
-		rtw_mfree(*buf, tmp_buf_len);
-		*buf = NULL;
-	}
+	rtw_mfree(*buf, *buf_len);
+	*buf = NULL;
+	*buf_len = 0;
 }
 
 void rtw_buf_update(u8 **buf, u32 *buf_len, const u8 *src, u32 src_len)
@@ -3510,6 +3607,7 @@ void dump_blacklist(void *sel, _queue *blist, const char *title)
 {
 	struct blacklist_ent *ent = NULL;
 	_list *list, *head;
+	char mac_addr_str[MAC_FMT_LEN];
 
 	enter_critical_bh(&blist->lock);
 	head = &blist->queue;
@@ -3524,9 +3622,9 @@ void dump_blacklist(void *sel, _queue *blist, const char *title)
 			list = get_next(list);
 
 			if (rtw_time_after(rtw_get_current_time(), ent->exp_time))
-				RTW_PRINT_SEL(sel, MAC_FMT" expired\n", MAC_ARG(ent->addr));
+				RTW_PRINT_SEL(sel, "%s expired\n", get_macaddr_str(mac_addr_str, sel, ent->addr));
 			else
-				RTW_PRINT_SEL(sel, MAC_FMT" %u\n", MAC_ARG(ent->addr)
+				RTW_PRINT_SEL(sel, "%s %u\n", get_macaddr_str(mac_addr_str, sel, ent->addr)
 					, rtw_get_remaining_time_ms(ent->exp_time));
 		}
 
@@ -3703,5 +3801,48 @@ int hwaddr_aton_i(const char *txt, u8 *addr)
 	}
 
 	return 0;
+}
+
+void ustrs_add(char **ustrs, int *ustrs_len, const char *str)
+{
+	char *tmp_ustrs;
+	int tmp_ustrs_len;
+
+	if (!str || !strlen(str))
+		return;
+
+	tmp_ustrs = *ustrs;
+	tmp_ustrs_len = *ustrs_len;
+	if (tmp_ustrs) {
+		const char *pos;
+
+		/* search for same string */
+		for (pos = tmp_ustrs; pos < tmp_ustrs + tmp_ustrs_len; pos += strlen(pos) + 1) {
+			if (strcmp(pos, str) == 0)
+				return;
+		}
+
+		/* no match, realloc and add */
+		tmp_ustrs = rtw_malloc(tmp_ustrs_len + strlen(str) + 1);
+		if (!tmp_ustrs) {
+			rtw_warn_on(1);
+			return;
+		}
+		_rtw_memcpy((void *)tmp_ustrs, *ustrs, tmp_ustrs_len);
+		_rtw_memcpy((void *)(tmp_ustrs + tmp_ustrs_len), str, strlen(str) + 1);
+		rtw_mfree((void *)*ustrs, tmp_ustrs_len);
+		*ustrs = tmp_ustrs;
+		*ustrs_len += strlen(str) + 1;
+
+	} else {
+		tmp_ustrs = rtw_malloc(strlen(str) + 1);
+		if (!tmp_ustrs) {
+			rtw_warn_on(1);
+			return;
+		}
+		_rtw_memcpy((void *)tmp_ustrs, str, strlen(str) + 1);
+		*ustrs = tmp_ustrs;
+		*ustrs_len = strlen(str) + 1;
+	}
 }
 

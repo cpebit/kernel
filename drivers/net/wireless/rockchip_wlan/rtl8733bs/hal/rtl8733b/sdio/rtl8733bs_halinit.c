@@ -38,6 +38,10 @@ static u8 fw_ips_leave(struct _ADAPTER *a)
 
 	RTW_INFO("%s: Leaving FW_IPS\n", __func__);
 
+#ifdef CONFIG_LPS_LCLK
+	if (rtw_is_fw_ips_lclk_mode(a) == _FALSE)
+		goto send_fwips_h2c;
+
 	/* for polling cpwm */
 	cpwm_orig = 0;
 	rtw_hal_get_hwreg(a, HW_VAR_CPWM, &cpwm_orig);
@@ -79,16 +83,22 @@ static u8 fw_ips_leave(struct _ADAPTER *a)
 		}
 	} while (1);
 
+send_fwips_h2c:
+#endif /* CONFIG_LPS_LCLK */
 	rtl8733b_set_FwPwrModeInIPS_cmd(a, 0);
 
 	rtw_hal_set_hwreg(a, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
 
+#ifdef CONFIG_LPS_LCLK
 #ifdef DBG_CHECK_FW_PS_STATE
-	if (rtw_fw_ps_state(a) == _FAIL) {
-		RTW_INFO("after hal init, fw ps state in 32k\n");
-		pdbgpriv->dbg_ips_drvopen_fail_cnt++;
+	if (rtw_is_fw_ips_lclk_mode(a) == _TRUE) {
+		if (rtw_fw_ps_state(a) == _FAIL) {
+			RTW_INFO("after hal init, fw ps state in 32k\n");
+			pdbgpriv->dbg_ips_drvopen_fail_cnt++;
+		}
 	}
 #endif /* DBG_CHECK_FW_PS_STATE */
+#endif /* CONFIG_LPS_LCLK */
 
 	return _SUCCESS;
 }
@@ -115,6 +125,10 @@ static u8 fw_ips_enter(struct _ADAPTER *a)
 
 	RTW_INFO("%s: issue H2C to FW when entering IPS\n", __FUNCTION__);
 	rtl8733b_set_FwPwrModeInIPS_cmd(a, 0x1);
+
+#ifdef CONFIG_LPS_LCLK
+	if (rtw_is_fw_ips_lclk_mode(a) == _FALSE)
+		return _SUCCESS;
 
 	/*
 	 * poll 0x1cc to make sure H2C command already finished by FW;
@@ -158,7 +172,7 @@ static u8 fw_ips_enter(struct _ADAPTER *a)
 	do {
 		val8 = rtw_read8(a, REG_CR_8733B);
 		cnt++;
-		RTW_INFO("%s: polling 0x100=0x%x, cnt=%d\n",
+		RTW_DBG("%s: polling 0x100=0x%x, cnt=%d\n",
 			 __FUNCTION__, val8, cnt);
 		if (val8 == 0xEA) {
 			RTW_INFO("%s: polling 0x100=0xEA, cnt=%d, cost %d ms\n",
@@ -186,6 +200,7 @@ exit:
 		 rtw_read8(a, REG_CR_8733B), cnt, rtw_read8(a, REG_HMETFR_8733B));
 
 	pwrctl->pre_ips_type = 0;
+#endif /* CONFIG_LPS_LCLK */
 
 	return _SUCCESS;
 }
@@ -201,8 +216,10 @@ u32 rtl8733bs_init(PADAPTER adapter)
 	hal = GET_HAL_DATA(adapter);
 
 #ifdef CONFIG_FWLPS_IN_IPS
-	if (fw_ips_leave(adapter) == _SUCCESS)
-		return _SUCCESS;
+	if (rtw_is_fw_ips_mode(adapter) == _TRUE) {
+		if (fw_ips_leave(adapter) == _SUCCESS)
+			return _SUCCESS;
+	}
 #endif
 	ok = rtl8733b_hal_init(adapter);
 	if (_FALSE == ok)
@@ -242,8 +259,10 @@ u32 rtl8733bs_init(PADAPTER adapter)
 u32 rtl8733bs_deinit(PADAPTER adapter)
 {
 #ifdef CONFIG_FWLPS_IN_IPS
-	if (fw_ips_enter(adapter) == _SUCCESS)
-		return _SUCCESS;
+	if (rtw_is_fw_ips_mode(adapter) == _TRUE) {
+		if (fw_ips_enter(adapter) == _SUCCESS)
+			return _SUCCESS;
+	}
 #endif
 
 	return rtl8733b_deinit(adapter);
