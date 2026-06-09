@@ -62,7 +62,10 @@ struct h4_struct {
 #define H4_W4_EVENT_HDR		1
 #define H4_W4_ACL_HDR		2
 #define H4_W4_SCO_HDR		3
-#define H4_W4_DATA		4
+#if HCI_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+#define H4_W4_ISO_HDR       4
+#endif
+#define H4_W4_DATA		5
 
 /* Initialize protocol */
 static int h4_open(struct hci_uart *hu)
@@ -158,6 +161,14 @@ static inline int h4_check_data_len(struct hci_dev *hdev, struct h4_struct *h4, 
 	return 0;
 }
 
+#if HCI_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) && \
+	HCI_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+static inline struct hci_iso_hdr *hci_iso_hdr(const struct sk_buff *skb)
+{
+	return (struct hci_iso_hdr *) skb->data;
+}
+#endif
+
 /* Recv data */
 static int h4_recv(struct hci_uart *hu, void *data, int count)
 {
@@ -166,6 +177,9 @@ static int h4_recv(struct hci_uart *hu, void *data, int count)
 	struct hci_event_hdr *eh;
 	struct hci_acl_hdr   *ah;
 	struct hci_sco_hdr   *sh;
+#if HCI_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	struct hci_iso_hdr   *ih;
+#endif
 	register int len, type, dlen;
 
 	BT_DBG("hu %p count %d rx_state %ld rx_count %ld", 
@@ -242,6 +256,14 @@ static int h4_recv(struct hci_uart *hu, void *data, int count)
 				h4_check_data_len(hu->hdev, h4, sh->dlen);
 #endif
 				continue;
+
+#if HCI_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+			case H4_W4_ISO_HDR:
+				ih = hci_iso_hdr(h4->rx_skb);
+				BT_DBG("ISO header: dlen %d", ih->dlen);
+				h4_check_data_len(hu->hdev, h4, ih->dlen);
+				continue;
+#endif
 			}
 		}
 
@@ -267,6 +289,15 @@ static int h4_recv(struct hci_uart *hu, void *data, int count)
 			h4->rx_count = HCI_SCO_HDR_SIZE;
 			type = HCI_SCODATA_PKT;
 			break;
+
+#if HCI_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+		case HCI_ISODATA_PKT:
+			BT_DBG("ISO packet");
+			h4->rx_state = H4_W4_ISO_HDR;
+			h4->rx_count = HCI_ISO_HDR_SIZE;
+			type = HCI_ISODATA_PKT;
+			break;
+#endif
 
 		default:
 			BT_ERR("Unknown HCI packet type %2.2x", (__u8)*ptr);
