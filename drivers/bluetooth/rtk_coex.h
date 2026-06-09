@@ -49,6 +49,13 @@
 #define HCI_EV_LE_CONN_UPDATE_COMPLETE	                0x03
 #define HCI_EV_LE_ENHANCED_CONN_COMPLETE    0x0a
 
+#define HCI_EV_LE_CIS_EST                 0x19
+#define HCI_EV_LE_CREATE_BIG_CPL          0x1b
+#define HCI_EV_LE_TERM_BIG_CPL            0x1c
+#define HCI_EV_LE_BIG_SYNC_EST            0x1d
+#define HCI_EV_LE_BIG_SYNC_LOST           0x1e
+#define HCI_EV_LE_REMOVE_ISO_DATA_PATH    0x23
+
 //vendor cmd to fw
 #define HCI_VENDOR_ENABLE_PROFILE_REPORT_COMMAND        0xfc18
 #define HCI_VENDOR_SET_PROFILE_REPORT_LEGACY_COMMAND    0xfc19
@@ -151,7 +158,11 @@ enum {
 	profile_hogp = 5,
 	profile_voice = 6,
 	profile_sink = 7,
-	profile_max = 8
+	profile_lea_src = 8,
+	profile_opprx = 9,
+	profile_lea_snk = 10,
+	profile_a2dpsink = 11,
+	profile_max = 12
 };
 
 #define A2DP_SIGNAL	0x01
@@ -170,7 +181,10 @@ typedef struct {
 //profile info for each connection
 typedef struct rtl_hci_conn {
 	struct list_head list;
-	uint16_t handle;
+	u16 big_handle;
+	u16 handle;
+	u8 direction;
+	u8 remove_path;
 	struct delayed_work a2dp_count_work;
 	struct delayed_work pan_count_work;
 	struct delayed_work hogp_count_work;
@@ -181,7 +195,7 @@ typedef struct rtl_hci_conn {
 	uint8_t type;		// 0:l2cap, 1:sco/esco, 2:le
 	uint16_t profile_bitmap;
 	uint16_t profile_status;
-	int8_t profile_refcount[8];
+	int8_t profile_refcount[profile_max];
 } rtk_conn_prof, *prtk_conn_prof;
 
 #ifdef RTB_SOFTWARE_MAILBOX
@@ -215,21 +229,40 @@ struct rtl_btinfo_ctl {
 };
 #endif /* RTB_SOFTWARE_MAILBOX */
 
+#define HCI_PT_CMD		0x01
+#define HCI_PT_EVT		0x02
+#define HCI_PT_L2SIG_RX		0x03
+#define HCI_PT_L2SIG_TX		0x04
+#define HCI_PT_L2DATA_RX	0x05
+#define HCI_PT_L2DATA_TX	0x06
+
+struct rtl_hci_hdr {
+	struct list_head list;
+	u8  type;
+	u16 len;
+};
+
 #define MAX_LEN_OF_HCI_EV	32
 #define NUM_RTL_HCI_EV		32
 struct rtl_hci_ev {
-	__u8 data[MAX_LEN_OF_HCI_EV];
-	__u16 len;
 	struct list_head list;
+	u8 type;
+	u16 len;
+
+	/* private */
+	__u8 data[MAX_LEN_OF_HCI_EV];
 };
 
 #define L2_MAX_SUBSEC_LEN	128
 #define L2_MAX_PKTS	16
 struct rtl_l2_buff {
-	__u8 data[L2_MAX_SUBSEC_LEN];
-	__u16 len;
-	__u16 out;
 	struct list_head list;
+	u8 type;
+	u16 len;
+
+	/* private */
+	__u8 data[L2_MAX_SUBSEC_LEN];
+	__u16 out;
 };
 
 struct rtl_coex_struct {
@@ -247,18 +280,18 @@ struct rtl_coex_struct {
 	struct delayed_work sock_work;
 #endif
 	struct workqueue_struct *fw_wq;
-	struct workqueue_struct *timer_wq;
 	struct delayed_work fw_work;
-	struct delayed_work l2_work;
+	struct delayed_work cmd_work;
 #ifdef RTB_SOFTWARE_MAILBOX
 	struct sock *sk;
 #endif
 	struct urb *urb;
 	spinlock_t spin_lock_sock;
 	struct mutex profile_mutex;
+	struct mutex conn_mutex;
 	uint16_t profile_bitmap;
 	uint16_t profile_status;
-	int8_t profile_refcount[8];
+	int8_t profile_refcount[profile_max];
 	uint8_t ispairing;
 	uint8_t isinquirying;
 	uint8_t ispaging;
@@ -280,10 +313,6 @@ struct rtl_coex_struct {
 
 	unsigned long cmd_last_tx;
 
-	/* hci ev buff */
-	struct list_head ev_used_list;
-	struct list_head ev_free_list;
-
 	spinlock_t rxlock;
 	__u8 pkt_type;
 	__u16 expect;
@@ -291,16 +320,18 @@ struct rtl_coex_struct {
 	__u16 elen;
 	__u8 back_buff[HCI_MAX_EVENT_SIZE];
 
-	/* l2cap rx buff */
-	struct list_head l2_used_list;
+	struct list_head ev_free_list;
 	struct list_head l2_free_list;
+	struct list_head hci_pkt_list;
 
 	/* buff addr and size */
 	spinlock_t buff_lock;
 	unsigned long pages_addr;
 	unsigned long buff_size;
 
-#define RTL_COEX_RUNNING	(1 << 0)
+#define RTL_COEX_RUNNING	1
+#define RTL_COEX_PKT_COUNTING	2
+#define RTL_COEX_CONN_REMOVING	3
 	unsigned long flags;
 
 };
