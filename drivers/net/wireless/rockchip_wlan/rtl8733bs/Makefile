@@ -1,5 +1,7 @@
-EXTRA_CFLAGS += $(USER_EXTRA_CFLAGS)
-EXTRA_CFLAGS += -O1
+ccflags-y += -Wno-error
+
+#EXTRA_CFLAGS += $(USER_EXTRA_CFLAGS)
+#EXTRA_CFLAGS += -O1
 #EXTRA_CFLAGS += -O3
 #EXTRA_CFLAGS += -Wall
 #EXTRA_CFLAGS += -Wextra
@@ -8,12 +10,16 @@ EXTRA_CFLAGS += -O1
 #EXTRA_CFLAGS += -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes
 
 EXTRA_CFLAGS += -Wno-unused-variable
+EXTRA_CFLAGS += -Wno-misleading-indentation
+EXTRA_CFLAGS += -Wno-format
 #EXTRA_CFLAGS += -Wno-unused-value
 #EXTRA_CFLAGS += -Wno-unused-label
 #EXTRA_CFLAGS += -Wno-unused-parameter
 #EXTRA_CFLAGS += -Wno-unused-function
 #EXTRA_CFLAGS += -Wno-unused
 #EXTRA_CFLAGS += -Wno-uninitialized
+
+EXTRA_CFLAGS += -DCONFIG_REGD_SRC_FROM_OS
 
 ############ ANDROID COMMON KERNEL ############
 # clang
