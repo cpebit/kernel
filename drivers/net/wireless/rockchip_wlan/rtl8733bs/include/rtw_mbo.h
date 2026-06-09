@@ -101,9 +101,6 @@ void rtw_mbo_build_cell_data_cap_attr(
 void rtw_mbo_update_ie_data(
 	_adapter *padapter, u8 *pie, u32 ie_len);
 	
-void rtw_mbo_build_supp_op_class_elem(
-	_adapter *padapter, u8 **pframe, struct pkt_attrib *pattrib);
-
 void rtw_mbo_build_npref_ch_rpt_attr(
 	_adapter *padapter, u8 **pframe, struct pkt_attrib *pattrib);
 

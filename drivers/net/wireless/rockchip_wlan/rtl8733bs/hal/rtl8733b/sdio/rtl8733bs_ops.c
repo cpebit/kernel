@@ -27,8 +27,8 @@ static void intf_chip_configure(PADAPTER adapter)
 	phal = GET_HAL_DATA(adapter);
 
 #ifdef RTW_RX_AGGREGATION
-	phal->rxagg_mode = HALMAC_RX_AGG_MODE_DMA;
-	phal->rxagg_dma_size = 0xff;
+	phal->rxagg_mode = RX_AGG_DMA;
+	phal->rxagg_dma_size = 0x0f;
 	phal->rxagg_dma_timeout= 0x03;
 #endif
 }

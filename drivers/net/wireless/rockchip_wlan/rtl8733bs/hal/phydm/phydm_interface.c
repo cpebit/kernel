@@ -1393,7 +1393,9 @@ u8 phydm_get_hwrate_to_mrate(struct dm_struct *dm, u8 rate)
 void phydm_set_crystalcap(struct dm_struct *dm, u8 crystal_cap)
 {
 #if (DM_ODM_SUPPORT_TYPE == ODM_IOT)
+#if (! RTL8730A_SUPPORT)
 	ROM_odm_SetCrystalCap(dm, crystal_cap);
+#endif
 #endif
 }
 

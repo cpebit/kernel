@@ -27,6 +27,9 @@
 #define DRIVER_EARLY_INT_TIME_8733B	0x05
 #define BCN_DMA_ATIME_INT_TIME_8733B	0x02
 
+#define C2H_GET_CMD_ID_1BYTE(c2h_pkt) LE_BITS_TO_1BYTE(c2h_pkt + 0X00, 0, 8)
+#define C2H_GET_SEQ_1BYTE(c2h_pkt) LE_BITS_TO_1BYTE(c2h_pkt + 0X01, 0, 8)
+
 /* rtl8733b_ops.c */
 struct hw_port_reg {
 	u32 net_type;

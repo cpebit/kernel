@@ -313,16 +313,22 @@ static s32 xmit_xmitframes(PADAPTER adapter, struct xmit_priv *pxmitpriv)
 					k = 0;
 				}
 
-				/* ok to send, remove frame from queue */
 #ifdef CONFIG_AP_MODE
 				if (MLME_IS_AP(adapter) || MLME_IS_MESH(adapter)) {
 					if ((pxmitframe->attrib.psta->state & WIFI_SLEEP_STATE)
 					    && (pxmitframe->attrib.triggered == 0)) {
-						RTW_INFO("%s: one not triggered pkt in queue when this STA sleep, break and goto next sta\n", __FUNCTION__);
+						RTW_INFO("%s: one not triggered pkt in queue when this STA sleep,"
+							" move to sleep_q and goto next sta\n", __func__);
+						if (xmitframe_enqueue_for_sleeping_sta(adapter, pxmitframe) == _TRUE) {
+							ptxservq->qcnt--;
+							phwxmit->accnt--;
+						}
 						break;
 					}
 				}
 #endif
+
+				/* ok to send, remove frame from queue */
 				rtw_list_delete(&pxmitframe->list);
 				ptxservq->qcnt--;
 				phwxmit->accnt--;
@@ -611,6 +617,7 @@ s32 rtl8733bs_hal_mgmt_xmit_enqueue(PADAPTER adapter, struct xmit_frame *pxmitfr
 
 	ret = rtw_mgmt_xmitframe_enqueue(adapter, pxmitframe);
 	if (ret != _SUCCESS) {
+		rtw_free_xmitbuf(pxmitpriv, pxmitframe->pxmitbuf);
 		rtw_free_xmitframe(pxmitpriv, pxmitframe);
 		pxmitpriv->tx_drop++;
 		return _FALSE;

@@ -175,6 +175,15 @@
 #ifndef RTL8733B_SUPPORT
 	#define	RTL8733B_SUPPORT	0
 #endif
+#ifndef RTL8735B_SUPPORT
+	#define	RTL8735B_SUPPORT	0
+#endif
+#ifndef RTL8730A_SUPPORT
+	#define	RTL8730A_SUPPORT	0
+#endif
+#ifndef RTL8822E_SUPPORT
+	#define	RTL8822E_SUPPORT	0
+#endif
 #if (DM_ODM_SUPPORT_TYPE & ODM_CE) && \
 	(!defined(DM_ODM_CE_MAC80211) && !defined(DM_ODM_CE_MAC80211_V2))
 
@@ -604,7 +613,7 @@ rtw_phydm_cfg_phy_para(
 	#include "rtl8814b/phydm_hal_api8814b.h"
 	#include "rtl8814b/version_rtl8814b.h"
 	#include "rtl8814b/phydm_extraagc8814b.h"
-#if (RTL8814C_SUPPORT == 1)
+	#if (RTL8814C_SUPPORT == 1)
 	#include "rtl8814c/halhwimg8814c_bb.h"
 	#include "rtl8814c/phydm_regconfig8814c.h"
 	#include "halrf/rtl8814c/halrf_8814c.h"
@@ -613,7 +622,7 @@ rtw_phydm_cfg_phy_para(
 	#include "rtl8814c/phydm_hal_api8814c.h"
 	#include "rtl8814c/version_rtl8814c.h"
 	#include "rtl8814c/phydm_extraagc8814c.h"
-#endif
+	#endif
 	#if (DM_ODM_SUPPORT_TYPE == ODM_CE)
 		#include <hal_data.h>		/* @struct HAL_DATA_TYPE */
 		#include <rtl8814b_hal.h>	/* @RX_SMOOTH_FACTOR, reg definition and etc.*/
@@ -660,6 +669,61 @@ rtw_phydm_cfg_phy_para(
 	#include <hal_data.h>
 	/* @RX_SMOOTH_FACTOR, reg definition and etc.*/
 	#include <rtl8733b_hal.h>
+	#endif
+#endif
+#if (RTL8735B_SUPPORT)
+	#include "rtl8735b/halhwimg8735b_bb.h"
+	#include "rtl8735b/halhwimg8735b_mac.h"
+	#include "rtl8735b/phydm_regconfig8735b.h"
+	#include "halrf/rtl8735b/halrf_8735b.h"
+	#include "halrf/rtl8735b/halhwimg8735b_rf.h"
+	#include "halrf/rtl8735b/version_rtl8735b_rf.h"
+	#include "halrf/rtl8735b/halrf_iqk_8735b.h"
+	#include "halrf/rtl8735b/halrf_dpk_8735b.h"
+	#include "halrf/rtl8735b/halrf_txgapk_8735b.h"
+	#include "halrf/rtl8735b/halrf_tssi_8735b.h"
+	#include "halrf/rtl8735b/halrf_rfk_init_8735b.h"
+	#include "rtl8735b/phydm_hal_api8735b.h"
+	#include "rtl8735b/version_rtl8735b.h"
+	#include "rtl8735b/phydm_rtl8735b.h"
+	#if (DM_ODM_SUPPORT_TYPE == ODM_CE)
+	/* @struct HAL_DATA_TYPE */
+	#include <hal_data.h>
+	/* @RX_SMOOTH_FACTOR, reg definition and etc.*/
+	#include <rtl8735b_hal.h>
+	#endif
+#endif
+#if (RTL8730A_SUPPORT)
+	#include "rtl8730a/halhwimg8730a_bb.h"
+	#include "rtl8730a/halhwimg8730a_mac.h"
+	#include "rtl8730a/phydm_regconfig8730a.h"
+	#include "halrf/rtl8730a/halrf_8730a.h"
+	#include "halrf/rtl8730a/halhwimg8730a_rf.h"
+	#include "halrf/rtl8730a/version_rtl8730a_rf.h"
+	#include "halrf/rtl8730a/halrf_iqk_8730a.h"
+	#include "halrf/rtl8730a/halrf_dpk_8730a.h"
+	#include "halrf/rtl8730a/halrf_txgapk_8730a.h"
+	#include "halrf/rtl8730a/halrf_tssi_8730a.h"
+	#include "halrf/rtl8730a/halrf_rfk_init_8730a.h"
+	#include "rtl8730a/phydm_hal_api8730a.h"
+	#include "rtl8730a/version_rtl8730a.h"
+	#include "rtl8730a/phydm_rtl8730a.h"
+	#include <hal_data.h>
+#endif
+#if (RTL8822E_SUPPORT)
+	#include "rtl8822e/halhwimg8822e_bb.h"
+	#include "rtl8822e/phydm_regconfig8822e.h"
+	#include "rtl8822e/phydm_hal_api8822e.h"
+	#include "rtl8822e/version_rtl8822e.h"
+	#include "rtl8822e/phydm_rtl8822e.h"
+	#include "halrf/rtl8822e/halrf_8822e.h"
+	#include "halrf/rtl8822e/halhwimg8822e_rf.h"
+	#include "halrf/rtl8822e/version_rtl8822e_rf.h"
+	#if (DM_ODM_SUPPORT_TYPE == ODM_CE)
+	/* @struct HAL_DATA_TYPE */
+	#include <hal_data.h>
+	/* @RX_SMOOTH_FACTOR, reg definition and etc.*/
+	#include <rtl8822e_hal.h>
 	#endif
 #endif
 #endif /* @__ODM_PRECOMP_H__ */

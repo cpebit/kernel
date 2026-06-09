@@ -31,8 +31,13 @@ void rtl8733b_init_hal_spec(PADAPTER adapter)
 	hal_spec->macid_num = 128;
 	/* hal_spec->sec_cam_ent_num follow halmac setting */
 	hal_spec->sec_cap = SEC_CAP_CHK_BMC | SEC_CAP_CHK_EXTRA_SEC;
+#ifdef CONFIG_USB_HCI
+	hal_spec->wow_cap = WOW_CAP_TKIP_OL | WOW_CAP_HALMAC_ACCESS_PATTERN_IN_TXFIFO | WOW_CAP_DIS_INBAND_SIGNAL;
+#else
 	hal_spec->wow_cap = WOW_CAP_TKIP_OL | WOW_CAP_HALMAC_ACCESS_PATTERN_IN_TXFIFO;
+#endif
 	hal_spec->macid_cap = MACID_DROP;
+	hal_spec->txpause_cap = TXPAUSE_CAP_FW_CTRL;
 
 	hal_spec->rfpath_num_2g = 2;
 	hal_spec->rfpath_num_5g = 1;
@@ -203,6 +208,14 @@ u8 rtl8733b_hal_init(PADAPTER adapter)
 	hal->fw_ractrl = _TRUE;
 #endif /* !CONFIG_NO_FW */
 
+	/* Modify ampdu timing 0x604[20]=0 to fix transmitting ampdu packet with crc error to encrypted router */
+	{
+		u32 val32;
+
+		val32 = rtw_read32(adapter, 0x604);
+		val32 &= ~BIT20;
+		rtw_write32(adapter, 0x604, val32);
+	}
 _exit:
 #ifdef CONFIG_TWO_MAC_DRIVER
 	{
@@ -215,6 +228,7 @@ _exit:
 		RTW_INFO("%s : disable LDPC at 2MAC driver, 0x1430 = 0x%04x\n", __func__, val16);
 	}
 #endif
+
 	return ret;
 }
 

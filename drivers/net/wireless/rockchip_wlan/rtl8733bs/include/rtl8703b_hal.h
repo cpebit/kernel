@@ -216,6 +216,7 @@ void Hal_EfuseParseXtal_8703B(PADAPTER pAdapter, u8 *hwinfo, u8 AutoLoadFail);
 void Hal_EfuseParseThermalMeter_8703B(PADAPTER padapter, u8 *hwinfo, u8 AutoLoadFail);
 void Hal_EfuseParseVoltage_8703B(PADAPTER pAdapter, u8 *hwinfo, BOOLEAN	AutoLoadFail);
 void Hal_EfuseParseBoardType_8703B(PADAPTER Adapter,	u8	*PROMContent, BOOLEAN AutoloadFail);
+u8 Hal_ReadRFEType_8703B(PADAPTER Adapter, u8 *PROMContent, BOOLEAN AutoloadFail);
 
 void rtl8703b_set_hal_ops(struct hal_ops *pHalFunc);
 void init_hal_spec_8703b(_adapter *adapter);

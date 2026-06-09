@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2019 Realtek Corporation.
+ * Copyright(c) 2007 - 2021 Realtek Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -117,7 +117,7 @@ extern uint rtw_drv_log_level;
 
 #ifdef DBG_CPU_INFO
 #define CPU_INFO_FMT	"[%u] "
-#define CPU_INFO_ARG	get_cpu()
+#define CPU_INFO_ARG	task_cpu(current)
 #else /* !DBG_CPU_INFO */
 #define CPU_INFO_FMT	"%s"
 #define CPU_INFO_ARG	""
@@ -681,15 +681,20 @@ int proc_get_smps(struct seq_file *m, void *v);
 int proc_get_defs_param(struct seq_file *m, void *v);
 ssize_t proc_set_defs_param(struct file *file, const char __user *buffer, size_t count, loff_t *pos, void *data);
 
+#ifdef CONFIG_ECSA
 #if defined(CONFIG_CONCURRENT_MODE) && defined(CONFIG_AP_MODE)
 ssize_t proc_set_ap_csa_cnt(struct file *file, const char __user *buffer, size_t count, loff_t *pos, void *data);
 int proc_get_ap_csa_cnt(struct seq_file *m, void *v);
 #endif
+#ifdef PRIVATE_R
+ssize_t proc_set_p2p_park_ch(struct file *file, const char __user *buffer, size_t count, loff_t *pos, void *data);
+int proc_get_p2p_park_ch(struct seq_file *m, void *v);
+#endif /* PRIVATE_R */
+#endif /* CONFIG_ECSA */
 
-#ifdef CONFIG_BSH_PROC
-int proc_get_cur_temp(struct seq_file *m, void *v);
-ssize_t proc_set_cur_temp(struct file *file, const char __user *buffer, size_t count, loff_t *pos, void *data);
-#endif
+int proc_get_disconnect_info(struct seq_file *m, void *v);
+ssize_t proc_set_disconnect_info(struct file *file, const char __user *buffer,
+				 size_t count, loff_t *pos, void *data);
 
 #define _drv_always_		1
 #define _drv_emerg_			2

@@ -25,7 +25,7 @@
 	#define RTW_MBO_INFO(fmt, arg...)	\
 		RTW_INFO(fmt, arg)
 	#define RTW_MBO_DUMP(str, data, len)	\
-		RTW_INFO_DUMP(str, data, len)	
+		RTW_INFO_DUMP(str, data, len)
 #else
 	#define RTW_MBO_INFO(fmt, arg...) do {} while (0)
 	#define RTW_MBO_DUMP(str, data, len) do {} while (0)
@@ -311,79 +311,6 @@ void rtw_mbo_update_ie_data(
 	rtw_mbo_update_cell_data_cap(padapter, pie, ie_len);
 }
 
-static u8 rtw_mbo_current_op_class_get(_adapter *padapter)
-{
-	struct rf_ctl_t *prfctl = adapter_to_rfctl(padapter);
-	struct p2p_channels *pch_list =  &(prfctl->channel_list);
-	struct mlme_ext_priv *pmlmeext = &(padapter->mlmeextpriv);
-	struct p2p_reg_class *preg_class;
-	int class_idx, ch_idx;
-	u8 cur_op_class = 0;
-
-	for(class_idx =0; class_idx < pch_list->reg_classes; class_idx++) {
-		preg_class =  &pch_list->reg_class[class_idx];
-		for (ch_idx = 0; ch_idx <= preg_class->channels; ch_idx++) {
-			if (pmlmeext->cur_channel ==  \
-				preg_class->channel[ch_idx]) {
-				cur_op_class = preg_class->reg_class;
-				RTW_MBO_INFO("%s : current ch : %d,"
-					" op class : %d\n",
-					__func__, pmlmeext->cur_channel,
-					cur_op_class);
-				break;
-			}
-		}
-	}
-
-	return cur_op_class;
-}
-
-static void rtw_mbo_supp_op_classes_get(_adapter *padapter, u8 *pclasses)
-{
-	struct rf_ctl_t *prfctl = adapter_to_rfctl(padapter);
-	struct p2p_channels *pch_list =  &(prfctl->channel_list);
-	int class_idx;
-
-	if (pclasses == NULL)
-		return;
-
-	RTW_MBO_INFO("%s : support op class \n", __func__);
-	for(class_idx = 0; class_idx < pch_list->reg_classes; class_idx++) {
-		*(pclasses + class_idx) = \
-			pch_list->reg_class[class_idx].reg_class;
-		RTW_MBO_INFO("%u ,", *(pclasses + class_idx));
-	}
-
-	RTW_MBO_INFO("%s : \n", __func__);
-}
-
-void rtw_mbo_build_supp_op_class_elem(
-	_adapter *padapter, u8 **pframe, struct pkt_attrib *pattrib)
-{
-	struct rf_ctl_t *prfctl = adapter_to_rfctl(padapter);
-	u8 payload[32] = {0};
-	u8 delimiter_130 = 130;	/*0x82*/
-	u8 reg_class_nm, len;
-
-	if ((reg_class_nm = prfctl->channel_list.reg_classes) == 0)
-		return;
-
-	payload[0] = rtw_mbo_current_op_class_get(padapter);
-	rtw_mbo_supp_op_classes_get(padapter, &payload[1]);
-
-	/* IEEE 802.11 Std Current Operating Class Extension Sequence */
-	payload[reg_class_nm + 1] = delimiter_130;
-	payload[reg_class_nm + 2] = 0x00;
-
-	RTW_MBO_DUMP("op class :", payload, reg_class_nm);
-
-	/* Current Operating Class field + Operating Class field 
-		+ OneHundredAndThirty Delimiter field */
-	len = reg_class_nm + 3;	
-	*pframe = rtw_set_ie(*pframe, EID_SupRegulatory, len , 
-					payload, &(pattrib->pktlen));	
-}
-
 static u8 rtw_mbo_construct_npref_ch_rpt_attr(
 	_adapter *padapter, u8 *pbuf, u32 buf_len, u32 *plen)
 {
@@ -397,7 +324,7 @@ static u8 rtw_mbo_construct_npref_ch_rpt_attr(
 	if (prpt->nm_of_rpt == 0) {
 		*plen = 0;
 		return _FALSE;
-	}	
+	}
 
 	for (i=0; i < prpt->nm_of_rpt; i++) {
 		pch = &prpt->ch_rpt[i];
@@ -500,9 +427,6 @@ void rtw_mbo_build_extended_cap(
 {
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
 
-	if (!rtw_mbo_wifi_logo_test(padapter))
-		return;
-
 	rtw_wnm_add_btm_ext_cap(pmlmepriv->ext_capab_ie_data,
 				&(pmlmepriv->ext_capab_ie_len));
 	rtw_mbo_add_internw_ext_cap(pmlmepriv->ext_capab_ie_data,
@@ -517,13 +441,19 @@ void rtw_mbo_build_extended_cap(
 static void rtw_mbo_non_pref_chans_dump(struct npref_ch* pch)
 {
 	int i;
-	u8 buf[128] = {0};
+	u8 *buf = NULL, offset = 0;
+
+	buf = (u8 *)rtw_zmalloc(512);
+	if (!buf)
+		return;
 
 	for (i=0; i < pch->nm_of_ch; i++)
-		rtw_sprintf(buf, 128, "%s,%d", buf, pch->chs[i]);
+		offset += rtw_sprintf(&buf[offset],
+			sizeof(buf) - 1, "%d ", pch->chs[i]);
 
-	RTW_MBO_INFO("%s : op_class=%01x, ch=%s, preference=%d, reason=%d\n", 
-		__func__, pch->op_class, buf, pch->preference, pch->reason);		
+	RTW_MBO_INFO("%s : op_class=%01x, ch=%s, preference=%d, reason=%d\n",
+		__func__, pch->op_class, buf, pch->preference, pch->reason);
+	rtw_mfree(buf, 512);
 }
 
 static u8 rtw_mbo_non_pref_chan_exist(struct npref_ch* pch, u8 ch)
@@ -537,7 +467,7 @@ static u8 rtw_mbo_non_pref_chan_exist(struct npref_ch* pch, u8 ch)
 			break;
 		}
 	}
-	
+
 	return found;
 }
 
@@ -554,7 +484,7 @@ static struct npref_ch* rtw_mbo_non_pref_chan_get(
 
 	for (i=0; i < prpt->nm_of_rpt; i++) {
 		if ((prpt->ch_rpt[i].op_class == op_class) &&
-			(prpt->ch_rpt[i].preference == prefe) && 
+			(prpt->ch_rpt[i].preference == prefe) &&
 			(prpt->ch_rpt[i].reason == res)) {
 			pch = &prpt->ch_rpt[i];
 			break;
@@ -640,7 +570,7 @@ static void  rtw_mbo_non_pref_chans_set(
 			break;
 		}
 
-	} while(param != '\0');
+	} while(param);
 
 }
 
@@ -661,15 +591,19 @@ ssize_t rtw_mbo_proc_non_pref_chans_set(
 	struct net_device *dev = pdata;
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(dev);
 	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
-	u8 tmp[128] = {0};
+	u8 *tmp = NULL;
 
 	if (count < 1)
 		return -EFAULT;
 
-	if (count > sizeof(tmp)) {
+	if (count > 128) {
 		rtw_warn_on(1);
 		return -EFAULT;
 	}
+
+	tmp = (u8 *)rtw_zmalloc(128);
+	if (!tmp)
+		return -ENOMEM;
 
 	if (buffer && !copy_from_user(tmp, buffer, count)) {
 		if (strncmp(tmp, "add", 3) == 0) {
@@ -681,6 +615,7 @@ ssize_t rtw_mbo_proc_non_pref_chans_set(
 		} else {
 			RTW_ERR("MBO : Invalid format : echo [add|delete]"
 			" <oper_class>:<chan>:<preference>:<reason>\n");
+			rtw_mfree(tmp, 128);
 			return -EFAULT;
 		}
 	}
@@ -692,6 +627,7 @@ ssize_t rtw_mbo_proc_non_pref_chans_set(
 				RTW_WLAN_ACTION_WNM_NOTIF_REQ, 0, 0);
 #endif
 
+	rtw_mfree(tmp, 128);
 	return count;
 }
 
@@ -704,31 +640,34 @@ int rtw_mbo_proc_non_pref_chans_get(
 	struct npref_ch_rtp *prpt = &(prfctl->ch_rtp);
 	struct npref_ch* pch;
 	int i,j;
-	u8 buf[32] = {0};
+	u8 *buf = NULL, offset = 0;
 
 	RTW_PRINT_SEL(m, "op_class                     ch    preference    reason \n");
 	RTW_PRINT_SEL(m, "=======================================================\n");
 
-		
+
 	if (prpt->nm_of_rpt == 0) {
 		RTW_PRINT_SEL(m, " empty table \n");
 		return 0;
 	}
 
-	for (i=0; i < prpt->nm_of_rpt; i++) {
-		pch = &prpt->ch_rpt[i];	
-		buf[0]='\0';
-		for (j=0; j < pch->nm_of_ch; j++) {
-			if (j == 0)
-				rtw_sprintf(buf, 32, "%02u", pch->chs[j]);
-			else				
-				rtw_sprintf(buf, 32, "%s,%02u", buf, pch->chs[j]);
-		}
+	buf = (u8 *)rtw_zmalloc(512);
+	if (!buf)
+		return -ENOMEM;
 
-		RTW_PRINT_SEL(m, "    %04u    %20s           %02u        %02u\n",
-			pch->op_class, buf, pch->preference, pch->reason);		
+	for (i=0; i < prpt->nm_of_rpt; i++) {
+		pch = &prpt->ch_rpt[i];
+		_rtw_memset(buf, 0, 512);
+		offset = 0;
+
+		for (j=0; j < pch->nm_of_ch; j++)
+			offset += rtw_sprintf(&buf[offset], sizeof(buf) - 1,
+					"%02u ", pch->chs[j]);
+
+		RTW_PRINT_SEL(m, "    %02u    %20s           %02u        %02u\n",
+			pch->op_class, buf, pch->preference, pch->reason);
 	}
-	
+	rtw_mfree(buf, 512);
 	return 0;
 }
 
@@ -792,7 +731,7 @@ static void rtw_mbo_disassoc(_adapter *padapter, u8 *da,
         u16 *fctrl;
         int ret = _FAIL;
 
-	if (rtw_rfctl_is_tx_blocked_by_ch_waiting(adapter_to_rfctl(padapter)))
+	if (adapter_regu_block_tx(padapter))
 		return;
 
 	pmgntframe = alloc_mgtxmitframe(pxmitpriv);
@@ -958,13 +897,17 @@ ssize_t rtw_mbo_proc_attr_set(
 	struct mbo_attr_info *pmbo_attr = &(pmlmepriv->mbo_attr);
 	struct mbo_user_btm_req_pkt *puser = &(pmbo_attr->user_raw);
 	u32 id, val;
-	u8 tmp[64] = {0};
+	u8 *tmp = NULL;
 
 	if (count < 1)
 		return -EFAULT;
 
-	if (count > sizeof(tmp))
+	if (count > 64)
 		return -EFAULT;
+
+	tmp = (u8 *)rtw_zmalloc(64);
+	if (!tmp)
+		return -ENOMEM;
 
 	if (buffer && !copy_from_user(tmp, buffer, count)) {
 		int num = sscanf(tmp, "%d %d", &id, &val);
@@ -1138,7 +1081,7 @@ ssize_t rtw_mbo_proc_attr_set(
 				break;
 		}
 	}
-
+	rtw_mfree(tmp, 64);
 	return count;
 }
 
@@ -1187,25 +1130,26 @@ void rtw_mbo_wnm_notification_parsing(
 	_adapter *padapter, const u8 *pdata, size_t data_len)
 {
 	u8 *paction;
-	u8 category, action, dialog, type;
+	/* u8 category, action, dialog, type; */
+	u8 action, type;
 	u32 len;
 
 	if ((pdata == NULL) || (data_len == 0))
 		return;
 
-	RTW_MBO_DUMP("WNM notification data : ", pdata, data_len);	
+	RTW_MBO_DUMP("WNM notification data : ", pdata, data_len);
 	paction = (u8 *)pdata + sizeof(struct rtw_ieee80211_hdr_3addr);
-	category = paction[0];
+	/* category = paction[0]; */
 	action = paction[1];
-	dialog = paction[2];
+	/* dialog = paction[2]; */
 	type = paction[3];
 
-	if ((action == RTW_WLAN_ACTION_WNM_NOTIF_REQ) && 
+	if ((action == RTW_WLAN_ACTION_WNM_NOTIF_REQ) &&
 		(type == WLAN_EID_VENDOR_SPECIFIC)) {
-		rtw_mbo_non_pref_chan_subelem_parsing(padapter, &paction[4], 
+		rtw_mbo_non_pref_chan_subelem_parsing(padapter, &paction[4],
 			(data_len - sizeof(struct rtw_ieee80211_hdr_3addr)));
 	}
-	
+
 }
 
 void rtw_mbo_build_wnm_notification(
@@ -1218,7 +1162,10 @@ void rtw_mbo_build_wnm_notification(
 	u8 non_pref_ch_oui[] = {0x50, 0x6F, 0x9A, 0x2};
 	u8 cell_data_cap_oui[] = {0x50, 0x6F, 0x9A, 0x3};
 	u8 cell_data_con = rtw_mbo_cell_data_conn;
-	u8 len, cell_data_con_len = 0, *pcont = *pframe;
+	u8 len, cell_data_con_len = 0;
+#if RTW_MBO_DBG
+	u8 *pcont = *pframe;
+#endif
 	int i;
 
 	if (rtw_mbo_cell_data_conn > 0) {
@@ -1231,10 +1178,12 @@ void rtw_mbo_build_wnm_notification(
 				cell_data_cap_oui, &(pattrib->pktlen));
 		*pframe = rtw_mbo_set_1byte_ie(*pframe,
 				&cell_data_con, &(pattrib->pktlen));
+#if RTW_MBO_DBG
 		RTW_MBO_INFO("%s : Cellular Data Capabilities subelemen\n",
 				__func__);
 		RTW_MBO_DUMP(":", pcont, len + 2);
 		pcont += len + 2 ;
+#endif
 	}
 
 	if (prpt->nm_of_rpt == 0) {
@@ -1269,10 +1218,12 @@ void rtw_mbo_build_wnm_notification(
 				&pch->preference, &(pattrib->pktlen));
 		*pframe = rtw_mbo_set_1byte_ie(*pframe,
 				&pch->reason, &(pattrib->pktlen));
+#if RTW_MBO_DBG
 		RTW_MBO_INFO("%s :Non-preferred Channel Report"
 				" subelement\n", __func__);
 		RTW_MBO_DUMP(":", pcont, len);
 		pcont = *pframe;
+#endif
 	}
 }
 
@@ -1298,8 +1249,6 @@ void rtw_mbo_build_assoc_req_ies(
 	_adapter *padapter, u8 **pframe, struct pkt_attrib *pattrib)
 {
 	u32 len = 0;
-
-	rtw_mbo_build_supp_op_class_elem(padapter, pframe, pattrib);
 
 	len += rtw_mbo_attr_sz_get(padapter, RTW_MBO_ATTR_CELL_DATA_CAP_ID);
 	len += rtw_mbo_attr_sz_get(padapter, RTW_MBO_ATTR_NPREF_CH_RPT_ID);

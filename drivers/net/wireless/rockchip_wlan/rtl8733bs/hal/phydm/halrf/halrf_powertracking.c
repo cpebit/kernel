@@ -163,16 +163,25 @@ void halrf_set_pwr_track(void *dm_void, u8 enable)
 	if (enable) {
 		rf->rf_supportability = rf->rf_supportability | HAL_RF_TX_PWR_TRACK;
 
-		if (dm->support_ic_type != ODM_RTL8733B) {
-			if (cali_info->txpowertrack_control == 1 || cali_info->txpowertrack_control == 3)
+		if (dm->support_ic_type == ODM_RTL8735B){
+			if (cali_info->txpowertrack_control == 3 ||
+				cali_info->txpowertrack_control == 4) {
+				halrf_tssi_get_efuse(dm);
 				halrf_do_tssi(dm);
+			}
+		} else if (dm->support_ic_type != ODM_RTL8733B) {
+			/*if (cali_info->txpowertrack_control == 1 || cali_info->txpowertrack_control == 3)*/
+			if (cali_info->txpowertrack_control == 3) {
+				halrf_tssi_get_efuse(dm);
+				halrf_do_tssi(dm);
+			}
+		} else {
+			halrf_tssi_get_efuse(dm);
+			halrf_do_tssi(dm);
 		}
-
-		halrf_tssi_get_efuse(dm);
-		halrf_do_tssi(dm);
-
 	} else {
-		rf->rf_supportability = rf->rf_supportability & ~HAL_RF_TX_PWR_TRACK;
+		if (dm->support_ic_type != ODM_RTL8733B)
+			rf->rf_supportability = rf->rf_supportability & ~HAL_RF_TX_PWR_TRACK;
 		odm_clear_txpowertracking_state(dm);
 		halrf_do_tssi(dm);
 		halrf_calculate_tssi_codeword(dm);

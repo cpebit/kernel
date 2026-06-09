@@ -153,8 +153,9 @@ void hal_mpt_CCKTxPowerAdjust(PADAPTER Adapter, BOOLEAN bInCH14)
 	u8				DataRate = 0xFF;
 
 	/* Do not modify CCK TX filter parameters for 8822B*/
-	if(IS_HARDWARE_TYPE_8822B(Adapter) || IS_HARDWARE_TYPE_8821C(Adapter) ||
-		IS_HARDWARE_TYPE_8723D(Adapter) || IS_HARDWARE_TYPE_8192F(Adapter) || IS_HARDWARE_TYPE_8822C(Adapter))
+	if(IS_HARDWARE_TYPE_8822B(Adapter) || IS_HARDWARE_TYPE_8821C(Adapter)
+		|| IS_HARDWARE_TYPE_8723D(Adapter) || IS_HARDWARE_TYPE_8192F(Adapter)
+		|| IS_HARDWARE_TYPE_8822C(Adapter) || IS_HARDWARE_TYPE_8822E(Adapter))
 		return;
 
 	DataRate = mpt_to_mgnt_rate(ulRateIdx);
@@ -180,7 +181,7 @@ void hal_mpt_CCKTxPowerAdjust(PADAPTER Adapter, BOOLEAN bInCH14)
 	} else if (IS_HARDWARE_TYPE_8723D(Adapter)) {
 		/* 2.4G CCK TX DFIR */
 		/* 2016.01.20 Suggest from RS BB mingzhi*/
-		if ((u1Channel == 14)) {
+		if (u1Channel == 14) {
 			phy_set_bb_reg(Adapter, rCCK0_TxFilter2, bMaskDWord, 0x0000B81C);
 			phy_set_bb_reg(Adapter, rCCK0_DebugPort, bMaskDWord, 0x00000000);
 			phy_set_bb_reg(Adapter, 0xAAC, bMaskDWord, 0x00003667);
@@ -440,8 +441,16 @@ mpt_SetTxPower(
 		EndPath = RF_PATH_D;
 		tx_nss = 4;
 	} else if (IS_HARDWARE_TYPE_8188F(pAdapter) || IS_HARDWARE_TYPE_8188GTV(pAdapter)
-		|| IS_HARDWARE_TYPE_8723D(pAdapter) || IS_HARDWARE_TYPE_8821C(pAdapter) || IS_HARDWARE_TYPE_8733B(pAdapter)) {
+		|| IS_HARDWARE_TYPE_8723D(pAdapter) || IS_HARDWARE_TYPE_8733B(pAdapter)) {
 		EndPath = RF_PATH_A;
+		tx_nss = 1;
+	} else if (IS_HARDWARE_TYPE_8821C(pAdapter)) {
+		u8 bMain = MP_PHY_QueryRFPathSwitch(pAdapter);
+		if (bMain == 1)
+			StartPath = RF_PATH_A;
+		else
+			StartPath = RF_PATH_B;
+		RTW_INFO("%s(), %s !!\n", __func__, (bMain ? " mode = 1 RF_PATH_A" : "mode = 0 RF_PATH_B"));
 		tx_nss = 1;
 	}
 
@@ -893,7 +902,8 @@ void mpt_SetRFPath_8814A(PADAPTER	pAdapter)
 
 #endif /* CONFIG_RTL8814A */
 #if defined(CONFIG_RTL8814A) || defined(CONFIG_RTL8822B) || defined(CONFIG_RTL8821C) \
-	|| defined(CONFIG_RTL8822C) || defined(CONFIG_RTL8814B) || defined(CONFIG_RTL8733B)
+	|| defined(CONFIG_RTL8822C) || defined(CONFIG_RTL8814B) || defined(CONFIG_RTL8733B) \
+	|| defined(CONFIG_RTL8822E)
 void
 mpt_SetSingleTone_8814A(
 		PADAPTER	pAdapter,
@@ -1676,6 +1686,13 @@ void hal_mpt_SetAntenna(PADAPTER	pAdapter)
 	}
 #endif
 
+#ifdef CONFIG_RTL8822E
+	if (IS_HARDWARE_TYPE_8822E(pAdapter)) {
+		rtl8822e_mp_config_rfpath(pAdapter);
+		return;
+	}
+#endif
+
 	/*	else if (IS_HARDWARE_TYPE_8821B(pAdapter))
 			mpt_SetRFPath_8821B(pAdapter);
 		Prepare for 8822B
@@ -1729,7 +1746,9 @@ u8 hal_mpt_ReadRFThermalMeter(PADAPTER pAdapter, u8 rf_path)
 	s8 thermal_offset = 0;
 	u32 thermal_reg_mask = 0;
 
-	if (IS_8822C_SERIES(GET_HAL_DATA(pAdapter)->version_id) || IS_8733B_SERIES(GET_HAL_DATA(pAdapter)->version_id))
+	if (IS_8822C_SERIES(GET_HAL_DATA(pAdapter)->version_id)
+		|| IS_8733B_SERIES(GET_HAL_DATA(pAdapter)->version_id)
+		|| IS_8822E_SERIES(GET_HAL_DATA(pAdapter)->version_id))
 			thermal_reg_mask = 0x007e; 	/*0x42: RF Reg[6:1], 35332(themal K  & bias k & power trim) & 35325(tssi )*/
 	else
 			thermal_reg_mask = 0xfc00;	/*0x42: RF Reg[15:10]*/
@@ -2353,8 +2372,8 @@ static	void mpt_StartOfdmContTx(
 }	/* mpt_StartOfdmContTx */
 
 #if defined(CONFIG_RTL8814A) || defined(CONFIG_RTL8821B) || defined(CONFIG_RTL8822B) \
-	|| defined(CONFIG_RTL8821C)  || defined(CONFIG_RTL8822C) || defined(CONFIG_RTL8814B) \
-	|| defined(CONFIG_RTL8733B)
+	|| defined(CONFIG_RTL8821C) || defined(CONFIG_RTL8822C) || defined(CONFIG_RTL8814B) \
+	|| defined(CONFIG_RTL8733B) || defined(CONFIG_RTL8822E)
 #ifdef PHYDM_PMAC_TX_SETTING_SUPPORT
 static void mpt_convert_phydm_txinfo_for_jaguar3(
 	RT_PMAC_TX_INFO	*pMacTxInfo, struct phydm_pmac_info *phydmtxinfo)
@@ -2414,6 +2433,13 @@ u8 mpt_ProSetPMacTx(PADAPTER	Adapter)
 	PRINT_DATA("Src Address", Adapter->mac_addr, ETH_ALEN);
 	PRINT_DATA("Dest Address", PMacTxInfo.MacAddress, ETH_ALEN);
 #endif
+	if (IS_HARDWARE_TYPE_8822E(Adapter)) {
+		if (pmppriv->blim_pkt_intvl && pmppriv->pktInterval < 2000) {
+			pmppriv->pktInterval = 2000;
+			RTW_INFO("limited interval = %d\n", pmppriv->pktInterval);
+		}
+	}
+
 	if (pmppriv->pktInterval != 0)
 		PMacTxInfo.PacketPeriod = pmppriv->pktInterval;
 
@@ -2424,16 +2450,18 @@ u8 mpt_ProSetPMacTx(PADAPTER	Adapter)
 	RTW_INFO("TXSC %d BandWidth %d PacketPeriod %d PacketCount %d PacketLength %d PacketPattern %d\n", PMacTxInfo.TX_SC, PMacTxInfo.BandWidth, PMacTxInfo.PacketPeriod, PMacTxInfo.PacketCount,
 		 PMacTxInfo.PacketLength, PMacTxInfo.PacketPattern);
 
-	if (hal_spec->tx_nss_num < 2 && MPT_IS_2SS_RATE(PMacTxInfo.TX_RATE))
-		return _FALSE;
-	if (hal_spec->tx_nss_num < 3 && MPT_IS_3SS_RATE(PMacTxInfo.TX_RATE))
-		return _FALSE;
-	if (hal_spec->tx_nss_num < 4 && MPT_IS_4SS_RATE(PMacTxInfo.TX_RATE))
-		return _FALSE;
-	if (!is_supported_vht(Adapter->registrypriv.wireless_mode) && MPT_IS_VHT_RATE(PMacTxInfo.TX_RATE))
-		return _FALSE;
-	if (!is_supported_ht(Adapter->registrypriv.wireless_mode) && MPT_IS_HT_RATE(PMacTxInfo.TX_RATE))
-		return _FALSE;
+	if (PMacTxInfo.bEnPMacTx == TRUE) {
+		if (hal_spec->tx_nss_num < 2 && MPT_IS_2SS_RATE(PMacTxInfo.TX_RATE))
+			return _FALSE;
+		if (hal_spec->tx_nss_num < 3 && MPT_IS_3SS_RATE(PMacTxInfo.TX_RATE))
+			return _FALSE;
+		if (hal_spec->tx_nss_num < 4 && MPT_IS_4SS_RATE(PMacTxInfo.TX_RATE))
+			return _FALSE;
+		if (!is_supported_vht(Adapter->registrypriv.wireless_mode) && MPT_IS_VHT_RATE(PMacTxInfo.TX_RATE))
+			return _FALSE;
+		if (!is_supported_ht(Adapter->registrypriv.wireless_mode) && MPT_IS_HT_RATE(PMacTxInfo.TX_RATE))
+			return _FALSE;
+	}
 
 	if (PMacTxInfo.BandWidth == 1 && hal_chk_bw_cap(Adapter, BW_CAP_40M))
 		PMacTxInfo.BandWidth = CHANNEL_WIDTH_40;
@@ -2699,5 +2727,12 @@ void mpt_trigger_tssi_tracking(PADAPTER pAdapter, u8 rf_path)
 	halrf_do_tssi_8814b(pDM_Odm, rf_path);
 #endif
 }
+
+#ifdef RTW_HALMAC
+int hal_mpt_SetGpio(PADAPTER pAdapter, u8 gpio_id, u8 gpio_enable, u8 gpio_func_offset, u8 gpio_mode)
+{
+	return rtw_halmac_set_gpio(adapter_to_dvobj(pAdapter), gpio_id, gpio_enable, gpio_func_offset, gpio_mode);
+}
+#endif
 
 #endif /* CONFIG_MP_INCLUDE*/

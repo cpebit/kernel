@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2017 Realtek Corporation.
+ * Copyright(c) 2007 - 2021 Realtek Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -146,8 +146,6 @@ sint _rtw_init_recv_priv(struct recv_priv *precvpriv, _adapter *padapter)
 
 	precvpriv->signal_stat_sampling_interval = 2000; /* ms */
 	/* precvpriv->signal_stat_converging_constant = 5000; */ /* ms */
-
-	rtw_set_signal_stat_timer(precvpriv);
 #endif /* CONFIG_NEW_SIGNAL_STAT_PROCESS */
 
 	_rtw_memset(&precvpriv->ip_statistic, 0,
@@ -531,11 +529,19 @@ sint recvframe_chkmic(_adapter *adapter,  union recv_frame *precvframe)
 				mickey = &stainfo->dot11tkiprxmickey.skey[0];
 			}
 
+			if (precvframe->u.hdr.len <= prxattrib->hdrlen) {
+				RTW_INFO("%s pkt_len <= hdrlen!!!\n", __func__);
+				return _FAIL;
+			}
 			datalen = precvframe->u.hdr.len - prxattrib->hdrlen - prxattrib->iv_len - prxattrib->icv_len - 8; /* icv_len included the mic code */
 			pframe = precvframe->u.hdr.rx_data;
 			payload = pframe + prxattrib->hdrlen + prxattrib->iv_len;
 
 
+			if (datalen > precvframe->u.hdr.rx_tail - precvframe->u.hdr.rx_data || datalen > precvframe->u.hdr.rx_end - precvframe->u.hdr.rx_data){
+				RTW_INFO("%s datalen is abnormal, too big!!!\n", __func__);
+				return _FAIL;
+			}
 			/* rtw_seccalctkipmic(&stainfo->dot11tkiprxmickey.skey[0],pframe,payload, datalen ,&miccode[0],(unsigned char)prxattrib->priority); */ /* care the length of the data */
 
 			rtw_seccalctkipmic(mickey, pframe, payload, datalen , &miccode[0], (unsigned char)prxattrib->priority); /* care the length of the data */
@@ -817,7 +823,6 @@ union recv_frame *portctrl(_adapter *adapter, union recv_frame *precv_frame)
  */
 #define PN_LESS_CHK(a, b)	(((a-b) & 0x800000000000) != 0)
 #define VALID_PN_CHK(new, old)	(((old) == 0) || PN_LESS_CHK(old, new))
-#define CCMPH_2_KEYID(ch)	(((ch) & 0x00000000c0000000) >> 30)
 sint recv_ucast_pn_decache(union recv_frame *precv_frame);
 sint recv_ucast_pn_decache(union recv_frame *precv_frame)
 {
@@ -826,17 +831,20 @@ sint recv_ucast_pn_decache(union recv_frame *precv_frame)
 	struct stainfo_rxcache *prxcache = &sta->sta_recvpriv.rxcache;
 	u8 *pdata = precv_frame->u.hdr.rx_data;
 	sint tid = precv_frame->u.hdr.attrib.priority;
-	u64 tmp_iv_hdr = 0;
 	u64 curr_pn = 0, pkt_pn = 0;
+	u8 pn[8] = {0};
 
 	if (tid > 15)
 		return _FAIL;
 
-	if (pattrib->encrypt == _AES_) {
-		tmp_iv_hdr = le64_to_cpu(*(u64*)(pdata + pattrib->hdrlen));
-		pkt_pn = CCMPH_2_PN(tmp_iv_hdr);
-		tmp_iv_hdr = le64_to_cpu(*(u64*)prxcache->iv[tid]);
-		curr_pn = CCMPH_2_PN(tmp_iv_hdr);
+	if (pattrib->encrypt == _TKIP_ || pattrib->encrypt == _AES_ ||
+	    pattrib->encrypt == _GCMP_ || pattrib->encrypt == _CCMP_256_ ||
+	    pattrib->encrypt == _GCMP_256_) {
+		rtw_iv_to_pn((pdata + pattrib->hdrlen), pn, NULL, pattrib->encrypt);
+		pkt_pn = RTW_GET_LE64(pn);
+
+		rtw_iv_to_pn(prxcache->iv[tid], pn, NULL, pattrib->encrypt);
+		curr_pn = RTW_GET_LE64(pn);
 
 		if (!VALID_PN_CHK(pkt_pn, curr_pn)) {
 			/* return _FAIL; */
@@ -855,23 +863,21 @@ sint recv_bcast_pn_decache(union recv_frame *precv_frame);
 sint recv_bcast_pn_decache(union recv_frame *precv_frame)
 {
 	_adapter *padapter = precv_frame->u.hdr.adapter;
-	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
 	struct security_priv *psecuritypriv = &padapter->securitypriv;
 	struct rx_pkt_attrib *pattrib = &precv_frame->u.hdr.attrib;
 	u8 *pdata = precv_frame->u.hdr.rx_data;
-	u64 tmp_iv_hdr = 0;
 	u64 curr_pn = 0, pkt_pn = 0;
+	u8 pn[8] = {0};
 	u8 key_id;
 
-	if ((pattrib->encrypt == _AES_) &&
-		(check_fwstate(pmlmepriv, WIFI_STATION_STATE) == _TRUE)) {
-
-		tmp_iv_hdr = le64_to_cpu(*(u64*)(pdata + pattrib->hdrlen));
-		key_id = CCMPH_2_KEYID(tmp_iv_hdr);
-		pkt_pn = CCMPH_2_PN(tmp_iv_hdr);
-
+	if ((pattrib->encrypt == _TKIP_ || pattrib->encrypt == _AES_ ||
+	     pattrib->encrypt == _GCMP_ || pattrib->encrypt == _CCMP_256_ ||
+	     pattrib->encrypt == _GCMP_256_) &&
+	    (MLME_IS_STA(padapter))) {
+		rtw_iv_to_pn((pdata + pattrib->hdrlen), pn, &key_id,
+			     pattrib->encrypt);
+		pkt_pn = RTW_GET_LE64(pn);
 		curr_pn = le64_to_cpu(*(u64*)psecuritypriv->iv_seq[key_id]);
-		curr_pn &= 0x0000ffffffffffff;
 
 		if (!VALID_PN_CHK(pkt_pn, curr_pn))
 			return _FAIL;
@@ -1837,7 +1843,7 @@ static sint validate_mgmt_protect(_adapter *adapter, union recv_frame *precv_fra
 	struct rx_pkt_attrib *pattrib = &precv_frame->u.hdr.attrib;
 	struct sta_info	*psta = precv_frame->u.hdr.psta;
 	u8 *ptr;
-	u8 type;
+	/*u8 type;*/
 	u8 subtype;
 	u8 is_bmc;
 	u8 category = 0xFF;
@@ -1864,7 +1870,7 @@ static sint validate_mgmt_protect(_adapter *adapter, union recv_frame *precv_fra
 		return _SUCCESS;
 
 	ptr = precv_frame->u.hdr.rx_data;
-	type = GetFrameType(ptr);
+	/*type = GetFrameType(ptr);*/
 	subtype = get_frame_sub_type(ptr); /* bit(7)~bit(2) */
 	is_bmc = IS_MCAST(GetAddr1Ptr(ptr));
 
@@ -2073,7 +2079,6 @@ exit:
 
 fail:
 	return _FAIL;
-
 }
 #endif /* defined(CONFIG_IEEE80211W) || defined(CONFIG_RTW_MESH) */
 
@@ -2125,14 +2130,15 @@ exit:
 
 sint validate_recv_data_frame(_adapter *adapter, union recv_frame *precv_frame)
 {
-	u8 bretry, a4_shift;
+	/*u8 bretry;*/
+	u8 a4_shift;
 	struct sta_info *psta = NULL;
 	u8 *ptr = precv_frame->u.hdr.rx_data;
 	struct rx_pkt_attrib	*pattrib = &precv_frame->u.hdr.attrib;
 	struct security_priv	*psecuritypriv = &adapter->securitypriv;
 	sint ret = _SUCCESS;
 
-	bretry = GetRetry(ptr);
+	/*bretry = GetRetry(ptr);*/
 	a4_shift = (pattrib->to_fr_ds == 3) ? ETH_ALEN : 0;
 
 	/* some address fields are different when using AMSDU */
@@ -2398,7 +2404,7 @@ sint validate_recv_frame(_adapter *adapter, union recv_frame *precv_frame)
 	u8 *ptr = precv_frame->u.hdr.rx_data;
 	u8  ver = (unsigned char)(*ptr) & 0x3 ;
 #ifdef CONFIG_FIND_BEST_CHANNEL
-	struct rf_ctl_t *rfctl = adapter_to_rfctl(adapter);
+	struct rtw_chset *chset = adapter_to_chset(adapter);
 	struct mlme_ext_priv *pmlmeext = &adapter->mlmeextpriv;
 #endif
 
@@ -2416,9 +2422,9 @@ sint validate_recv_frame(_adapter *adapter, union recv_frame *precv_frame)
 
 #ifdef CONFIG_FIND_BEST_CHANNEL
 	if (pmlmeext->sitesurvey_res.state == SCAN_PROCESS) {
-		int ch_set_idx = rtw_chset_search_ch(rfctl->channel_set, rtw_get_oper_ch(adapter));
+		int ch_set_idx = rtw_chset_search_ch(chset, rtw_get_oper_ch(adapter));
 		if (ch_set_idx >= 0)
-			rfctl->channel_set[ch_set_idx].rx_count++;
+			chset->chs[ch_set_idx].rx_count++;
 	}
 #endif
 
@@ -2508,7 +2514,8 @@ sint validate_recv_frame(_adapter *adapter, union recv_frame *precv_frame)
 		phdr->bIsWaiPacket = wai_pkt;
 
 		if (wai_pkt != 0) {
-			if (sc != adapter->wapiInfo.wapiSeqnumAndFragNum)
+			if ((sc != adapter->wapiInfo.wapiSeqnumAndFragNum)||
+				(sc == 0))
 				adapter->wapiInfo.wapiSeqnumAndFragNum = sc;
 			else {
 				retval = _FAIL;
@@ -2690,7 +2697,7 @@ union recv_frame *recvframe_defrag(_adapter *adapter, _queue *defrag_q);
 union recv_frame *recvframe_defrag(_adapter *adapter, _queue *defrag_q)
 {
 	_list	*plist, *phead;
-	u8	*data, wlanhdr_offset;
+	u8 wlanhdr_offset;
 	u8	curfragnum;
 	struct recv_frame_hdr *pfhdr, *pnfhdr;
 	union recv_frame *prframe, *pnextrframe;
@@ -2738,8 +2745,6 @@ union recv_frame *recvframe_defrag(_adapter *adapter, _queue *defrag_q)
 	plist = get_list_head(defrag_q);
 
 	plist = get_next(plist);
-
-	data = get_recvframe_data(prframe);
 
 	while (rtw_end_of_queue_search(phead, plist) == _FALSE) {
 		pnextrframe = LIST_CONTAINOR(plist, union recv_frame , u);
@@ -3705,8 +3710,15 @@ static int recv_indicatepkt_reorder(_adapter *padapter, union recv_frame *prfram
 
 	if(rtw_test_and_clear_bit(RTW_RECV_ACK_OR_TIMEOUT, &preorder_ctrl->rec_abba_rsp_ack))
 		preorder_ctrl->indicate_seq = 0xFFFF;
+	if(rtw_test_and_clear_bit(RTW_RECV_REORDER_WOW, &preorder_ctrl->rec_abba_rsp_ack)) {
+		preorder_ctrl->indicate_seq = 0xFFFF;
+		RTW_INFO("DBG_RX_SEQ %s:preorder_ctrl->rec_abba_rsp_ack = %lu,indicate_seq = %d\n"
+		, __func__
+		, preorder_ctrl->rec_abba_rsp_ack
+		, preorder_ctrl->indicate_seq);
+	}
 	#ifdef DBG_RX_SEQ
-	RTW_INFO("DBG_RX_SEQ %s:preorder_ctrl->rec_abba_rsp_ack = %u,indicate_seq = %d\n"
+	RTW_INFO("DBG_RX_SEQ %s:preorder_ctrl->rec_abba_rsp_ack = %lu,indicate_seq = %d\n"
 		, __func__
 		, preorder_ctrl->rec_abba_rsp_ack
 		, preorder_ctrl->indicate_seq);
@@ -3895,11 +3907,11 @@ int validate_mp_recv_frame(_adapter *adapter, union recv_frame *precv_frame)
 			for (i = 0; i < precv_frame->u.hdr.len; i = i + 8)
 				RTW_INFO("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:\n", *(ptr + i),
 					*(ptr + i + 1), *(ptr + i + 2) , *(ptr + i + 3) , *(ptr + i + 4), *(ptr + i + 5), *(ptr + i + 6), *(ptr + i + 7));
-            RTW_INFO("#############################\n");
-            _rtw_memset(pmppriv->mplink_buf, '\0' , sizeof(pmppriv->mplink_buf));
-            _rtw_memcpy(pmppriv->mplink_buf, ptr, precv_frame->u.hdr.len);
-            pmppriv->mplink_rx_len = precv_frame->u.hdr.len;
-            pmppriv->mplink_brx =_TRUE;
+			RTW_INFO("#############################\n");
+			_rtw_memset(pmppriv->mplink_buf, '\0' , sizeof(pmppriv->mplink_buf));
+			_rtw_memcpy(pmppriv->mplink_buf, ptr, precv_frame->u.hdr.len);
+			pmppriv->mplink_rx_len = precv_frame->u.hdr.len;
+			pmppriv->mplink_brx =_TRUE;
 		}
 	}
 	if (pmppriv->bloopback) {
@@ -4438,7 +4450,9 @@ static void rtw_signal_stat_timer_hdl(void *ctx)
 	u8 avg_signal_strength = 0;
 	u8 avg_signal_qual = 0;
 	u32 num_signal_strength = 0;
+#ifdef DBG_RX_SIGNAL_DISPLAY_PROCESSING
 	u32 num_signal_qual = 0;
+#endif
 	u8 ratio_pre_stat = 0, ratio_curr_stat = 0, ratio_total = 0, ratio_profile = SIGNAL_STAT_CALC_PROFILE_0;
 
 	if (adapter->recvpriv.is_signal_dbg) {
@@ -4456,7 +4470,9 @@ static void rtw_signal_stat_timer_hdl(void *ctx)
 
 		if (recvpriv->signal_qual_data.update_req == 0) { /* update_req is clear, means we got rx */
 			avg_signal_qual = recvpriv->signal_qual_data.avg_val;
+#ifdef DBG_RX_SIGNAL_DISPLAY_PROCESSING
 			num_signal_qual = recvpriv->signal_qual_data.total_num;
+#endif
 			/* after avg_vals are accquired, we can re-stat the signal values */
 			recvpriv->signal_qual_data.update_req = 1;
 		}
@@ -4937,6 +4953,7 @@ thread_return rtw_recv_thread(thread_context context)
 		err = _rtw_down_sema(&recvpriv->recv_sema);
 		if (_FAIL == err) {
 			RTW_ERR(FUNC_ADPT_FMT" down recv_sema fail!\n", FUNC_ADPT_ARG(adapter));
+			flush_signals_thread();
 			goto exit;
 		}
 

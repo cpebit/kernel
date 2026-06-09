@@ -165,7 +165,6 @@
 #endif
 /*#define CONFIG_FILE_FWIMG*/
 #define CONFIG_LONG_DELAY_ISSUE
-/*#define CONFIG_PATCH_JOIN_WRONG_CHANNEL*/
 
 #ifdef CONFIG_RTW_NAPI
 #define CONFIG_RTW_NAPI_DYNAMIC
@@ -197,8 +196,11 @@
 
 #ifdef CONFIG_POWER_SAVING
 	#define CONFIG_IPS
-	#define CONFIG_LPS
+	#ifdef CONFIG_IPS
+		/* #define CONFIG_FWLPS_IN_IPS */
+	#endif /* CONFIG_IPS */
 
+	#define CONFIG_LPS
 	#if defined(CONFIG_LPS) && (defined(CONFIG_GSPI_HCI) || defined(CONFIG_SDIO_HCI))
 	#define CONFIG_LPS_LCLK
 	#endif
