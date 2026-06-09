@@ -89,6 +89,10 @@ void halrf_rf_lna_setting_8733b(struct dm_struct *dm_void,
 void odm_tx_pwr_track_set_pwr8733b(void *dm_void, enum pwrtrack_method method,
 				   u8 rf_path, u8 channel_mapped_index)
 {
+#if 1
+	//[TBD]
+	return;
+#else
 	struct dm_struct *dm = (struct dm_struct *)dm_void;
 	struct dm_rf_calibration_struct *cali_info = &dm->rf_calibrate_info;
 	struct _hal_rf_ *rf = &dm->rf_table;
@@ -167,7 +171,7 @@ void odm_tx_pwr_track_set_pwr8733b(void *dm_void, enum pwrtrack_method method,
 			break;
 		}
 	}
-
+#endif
 }
 
 void get_delta_swing_table_8733b(void *dm_void,
@@ -741,7 +745,6 @@ void halrf_dis_cca_8733b(void *dm_void, boolean is_dis_cca)
 {
 	struct dm_struct *dm = (struct dm_struct *)dm_void;
 	struct _hal_rf_ *rf = &(dm->rf_table);
-
 	if (is_dis_cca) {
 		/*disable OFDM pd_flag*/
 		odm_set_bb_reg(dm, 0x1c68, 0x03000000, 0x3);

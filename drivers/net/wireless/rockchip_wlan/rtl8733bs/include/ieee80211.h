@@ -277,8 +277,7 @@ enum NETWORK_TYPE {
 	WIRELESS_11A = BIT(2), /* tx: ofdm only, rx: ofdm only, hw: ofdm only */
 	WIRELESS_11_24N = BIT(3), /* tx: MCS only, rx: MCS & cck, hw: MCS & cck */
 	WIRELESS_11_5N = BIT(4), /* tx: MCS only, rx: MCS & ofdm, hw: ofdm only */
-	WIRELESS_AUTO = BIT(5),
-	WIRELESS_11AC = BIT(6),
+	WIRELESS_11AC = BIT(5),
 
 	/* Combination */
 	/* Type for current wireless mode */
@@ -296,16 +295,20 @@ enum NETWORK_TYPE {
 	WIRELESS_11ABGN = (WIRELESS_11A | WIRELESS_11B | WIRELESS_11G | WIRELESS_11_24N | WIRELESS_11_5N),
 	WIRELESS_MODE_24G = (WIRELESS_11B | WIRELESS_11G | WIRELESS_11_24N),
 	WIRELESS_MODE_5G = (WIRELESS_11A | WIRELESS_11_5N | WIRELESS_11AC),
+	WIRELESS_MODE_6G = 0, /* TODO */
 	WIRELESS_MODE_MAX = (WIRELESS_11A | WIRELESS_11B | WIRELESS_11G | WIRELESS_11_24N | WIRELESS_11_5N | WIRELESS_11AC),
 };
 
 #define SUPPORTED_24G_NETTYPE_MSK WIRELESS_MODE_24G
 #define SUPPORTED_5G_NETTYPE_MSK WIRELESS_MODE_5G
+#define SUPPORTED_6G_NETTYPE_MSK WIRELESS_MODE_6G
 
 #define IsLegacyOnly(NetType)  ((NetType) == ((NetType) & (WIRELESS_11BG | WIRELESS_11A)))
 
 #define IsSupported24G(NetType) ((NetType) & SUPPORTED_24G_NETTYPE_MSK ? _TRUE : _FALSE)
+#define is_supported_24g IsSupported24G
 #define is_supported_5g(NetType) ((NetType) & SUPPORTED_5G_NETTYPE_MSK ? _TRUE : _FALSE)
+#define is_supported_6g(NetType) ((NetType) & SUPPORTED_6G_NETTYPE_MSK ? _TRUE : _FALSE)
 
 #define IsEnableHWCCK(NetType) IsSupported24G(NetType)
 #define IsEnableHWOFDM(NetType) ((NetType) & (WIRELESS_11G | WIRELESS_11_24N | SUPPORTED_5G_NETTYPE_MSK) ? _TRUE : _FALSE)
@@ -314,15 +317,19 @@ enum NETWORK_TYPE {
 #define IsSupportedRxOFDM(NetType) IsEnableHWOFDM(NetType)
 #define IsSupportedRxHT(NetType) IsEnableHWOFDM(NetType)
 
+#define HT_MASK WIRELESS_11ABGN
+#define VHT_MASK (WIRELESS_11AC | HT_MASK)
+
 #define IsSupportedTxCCK(NetType) ((NetType) & (WIRELESS_11B) ? _TRUE : _FALSE)
 #define IsSupportedTxOFDM(NetType) ((NetType) & (WIRELESS_11G | WIRELESS_11A) ? _TRUE : _FALSE)
-#define is_supported_ht(NetType) ((NetType) & (WIRELESS_11_24N | WIRELESS_11_5N) ? _TRUE : _FALSE)
 
+#define is_highest_support_vht(NetType) (!(NetType & ~VHT_MASK) && ((NetType) & (WIRELESS_11AC)) ? _TRUE : _FALSE)
 #define is_supported_vht(NetType) ((NetType) & (WIRELESS_11AC) ? _TRUE : _FALSE)
 
+#define is_supported_ht(NetType) ((NetType) & (WIRELESS_11_24N | WIRELESS_11_5N  | WIRELESS_11AC) ? _TRUE : _FALSE)
+#define is_highest_support_ht(NetType) (!(NetType & ~HT_MASK) && ((NetType) & (WIRELESS_11_24N | WIRELESS_11_5N)) ? _TRUE : _FALSE)
 
-
-
+#define is_supported_he(net_type) 0
 
 typedef struct ieee_param {
 	u32 cmd;
@@ -740,6 +747,7 @@ struct ieee80211_snap_hdr {
 #define WLAN_EID_HT_CAP 45
 #define WLAN_EID_RSN 48
 #define WLAN_EID_EXT_SUPP_RATES 50
+#define WLAN_EID_AP_CHANNEL_RPT 51
 #define WLAN_EID_MOBILITY_DOMAIN 54
 #define WLAN_EID_FAST_BSS_TRANSITION 55
 #define WLAN_EID_TIMEOUT_INTERVAL 56
@@ -765,12 +773,18 @@ struct ieee80211_snap_hdr {
 #define WLAN_EID_GENERIC (WLAN_EID_VENDOR_SPECIFIC)
 #define WLAN_EID_VHT_CAPABILITY 191
 #define WLAN_EID_VHT_OPERATION 192
-#define WLAN_EID_WIDE_BANDWIDTH_CHANNEL_SWITCH 194
+#define WLAN_EID_VHT_WIDE_BW_CHSWITCH 194
 #define WLAN_EID_CHANNEL_SWITCH_WRAPPER 196
 #define WLAN_EID_VHT_OP_MODE_NOTIFY 199
 #define WLAN_EID_RSNX 244
 #define WLAN_EID_EXTENSION 255
 #define WLAN_EID_EXT_OWE_DH_PARAM 32
+
+/* EID Extension */
+#define WLAN_EID_EXTENSION_HE_CAPABILITY	35
+#define WLAN_EID_EXTENSION_HE_OPERATION	36
+#define WLAN_EID_EXTENSION_HE_MU_EDCA	38
+#define WLAN_EID_EXT_HE_6G_CAP 59
 
 #define WLAN_EID_EXT_CAP_MAX_LEN 10
 #define WLAN_EID_CSA_IE_LEN 3
@@ -814,6 +828,7 @@ struct ieee80211_snap_hdr {
 #define IEEE80211_OFDM_RATE_36MB		0x48
 #define IEEE80211_OFDM_RATE_48MB		0x60
 #define IEEE80211_OFDM_RATE_54MB		0x6C
+#define IEEE80211_BSS_MEMBERSHIP_SELECTOR_SAE_H2E_ONLY 0x7B
 #define IEEE80211_BASIC_RATE_MASK		0x80
 
 #define IEEE80211_CCK_RATE_1MB_MASK		(1<<0)
@@ -1392,8 +1407,15 @@ enum ieee80211_state {
 
 #define DEFAULT_MAX_SCAN_AGE (15 * HZ)
 #define DEFAULT_FTS 2346
+
+#ifdef CONFIG_RTW_HIDDEN_MAC_ADDR
+#define MAC_FMT "%02x:%02x:%02x:xx:xx:xx"
+#define MAC_ARG(x) ((u8 *)(x))[0], ((u8 *)(x))[1], ((u8 *)(x))[2]
+#else
 #define MAC_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
 #define MAC_ARG(x) ((u8 *)(x))[0], ((u8 *)(x))[1], ((u8 *)(x))[2], ((u8 *)(x))[3], ((u8 *)(x))[4], ((u8 *)(x))[5]
+#endif /* CONFIG_RTW_HIDDEN_MAC_ADDR */
+
 #define MAC_SFMT "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx"
 #define MAC_SARG(x) ((u8*)(x)),((u8*)(x)) + 1,((u8*)(x)) + 2,((u8*)(x)) + 3,((u8*)(x)) + 4,((u8*)(x)) + 5
 #define IP_FMT "%d.%d.%d.%d"
@@ -1860,6 +1882,18 @@ struct rtw_ieee802_11_elems {
 	u8 *tbtx_cap;
 	u8 tbtx_cap_len;
 #endif
+	u8 *ap_channel_rpt;
+	u8 ap_channel_rpt_len;
+	u8 *country_info;
+	u8 country_info_len;
+#ifdef CONFIG_STA_MULTIPLE_BSSID
+	u8 *mbssid;
+	u8 mbssid_len;
+
+	/* exist in nontransmitted bssid profile */
+	u8 *non_tx_bssid_cap;
+	u8 non_tx_bssid_cap_len;
+#endif
 };
 
 typedef enum { ParseOK = 0, ParseUnknown = 1, ParseFailed = -1 } ParseRes;
@@ -1867,6 +1901,12 @@ typedef enum { ParseOK = 0, ParseUnknown = 1, ParseFailed = -1 } ParseRes;
 ParseRes rtw_ieee802_11_parse_elems(u8 *start, uint len,
 				struct rtw_ieee802_11_elems *elems,
 				int show_errors);
+
+#ifdef CONFIG_STA_MULTIPLE_BSSID
+ParseRes rtw_ieee802_11_override_elems_by_mbssid(
+	u8 *mbssid_ie, uint mbssid_ie_len, u8 mbssid_idx, struct rtw_ieee802_11_elems *elems
+	, int show_errors);
+#endif
 
 u8 *rtw_set_fixed_ie(unsigned char *pbuf, unsigned int len, unsigned char *source, unsigned int *frlen);
 u8 *rtw_set_ie(u8 *pbuf, sint index, uint len, const u8 *source, uint *frlen);
@@ -1878,12 +1918,18 @@ enum secondary_ch_offset {
 };
 u8 secondary_ch_offset_to_hal_ch_offset(u8 ch_offset);
 u8 hal_ch_offset_to_secondary_ch_offset(u8 ch_offset);
+
 u8 *rtw_set_ie_tpc_report(u8 *buf, u32 *buf_len, u8 tx_power, u8 link_margin);
+void rtw_bss_ex_set_tpc_report(WLAN_BSSID_EX *bss, u8 tx_power, u8 link_margin);
+
 u8 *rtw_set_ie_ch_switch(u8 *buf, u32 *buf_len, u8 ch_switch_mode, u8 new_ch, u8 ch_switch_cnt);
 u8 *rtw_set_ie_secondary_ch_offset(u8 *buf, u32 *buf_len, u8 secondary_ch_offset);
+u8 *rtw_set_ie_wide_bw_ch_switch(u8 *buf, u32 *buf_len,
+	u8 ch_width, u8 seg_0, u8 seg_1);
 u8 *rtw_set_ie_mesh_ch_switch_parm(u8 *buf, u32 *buf_len, u8 ttl, u8 flags, u16 reason, u16 precedence);
 
 u8 *rtw_get_ie(const u8 *pbuf, sint index, sint *len, sint limit);
+u8 *rtw_get_ext_ie(const u8 *pbuf, sint ext_id, sint *len, sint limit);
 u8 rtw_update_rate_bymode(WLAN_BSSID_EX *pbss_network, u32 mode);
 
 u8 *rtw_get_ie_ex(const u8 *in_ie, uint in_len, u8 eid, const u8 *oui, u8 oui_len, u8 *ie, uint *ielen);
@@ -1938,7 +1984,7 @@ int rtw_get_sec_ie(u8 *in_ie, uint in_len, u8 *rsn_ie, u16 *rsn_len, u8 *wpa_ie,
 
 u8 rtw_is_wps_ie(u8 *ie_ptr, uint *wps_ielen);
 u8 *rtw_get_wps_ie_from_scan_queue(u8 *in_ie, uint in_len, u8 *wps_ie, uint *wps_ielen, enum bss_type frame_type);
-u8 *rtw_get_wps_ie(const u8 *in_ie, uint in_len, u8 *wps_ie, uint *wps_ielen);
+u8 *rtw_get_wps_ie(const u8 *in_ie, int in_len, u8 *wps_ie, uint *wps_ielen);
 u8 *rtw_get_wps_attr(u8 *wps_ie, uint wps_ielen, u16 target_attr_id , u8 *buf_attr, u32 *len_attr);
 u8 *rtw_get_wps_attr_content(u8 *wps_ie, uint wps_ielen, u16 target_attr_id , u8 *buf_content, uint *len_content);
 
@@ -1972,14 +2018,9 @@ void dump_ht_cap_ie_content(void *sel, const u8 *buf, u32 buf_len);
 void dump_wps_ie(void *sel, const u8 *ie, u32 ie_len);
 #endif	/*	CONFIG_RTW_DEBUG	*/
 
-void rtw_ies_get_chbw(u8 *ies, int ies_len, u8 *ch, u8 *bw, u8 *offset, u8 ht, u8 vht);
+RTW_FUNC_2G_5G_ONLY void rtw_ies_get_chbw(u8 *ies, int ies_len, u8 *ch, u8 *bw, u8 *offset, u8 ht, u8 vht);
 
 void rtw_bss_get_chbw(WLAN_BSSID_EX *bss, u8 *ch, u8 *bw, u8 *offset, u8 ht, u8 vht);
-
-bool rtw_is_chbw_grouped(u8 ch_a, u8 bw_a, u8 offset_a
-	, u8 ch_b, u8 bw_b, u8 offset_b);
-void rtw_sync_chbw(u8 *req_ch, u8 *req_bw, u8 *req_offset
-	, u8 *g_ch, u8 *g_bw, u8 *g_offset);
 
 #ifdef CONFIG_P2P
 u32 rtw_get_p2p_merged_ies_len(u8 *in_ie, u32 in_len);
@@ -2057,5 +2098,5 @@ int wifirate2_ratetbl_inx(unsigned char rate);
 /* For amsdu mode. */
 /*void rtw_set_spp_amsdu_mode(u8 mode, u8 *rsn_ie, int rsn_ie_len); */
 u8 rtw_check_amsdu_disable(u8 mode, u8 spp_opt);
-
+char *get_macaddr_str(char *str, void *sel, const u8 *addr);
 #endif /* IEEE80211_H */

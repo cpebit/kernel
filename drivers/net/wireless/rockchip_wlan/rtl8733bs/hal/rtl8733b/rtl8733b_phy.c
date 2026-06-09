@@ -603,18 +603,19 @@ void rtl8733b_set_tx_power_level(PADAPTER adapter, u8 channel)
 	struct hal_spec_t *hal_spec = GET_HAL_SPEC(adapter);
 	u8 path;
 
-	for (path = RF_PATH_A; path < hal_spec->rf_reg_path_num; ++path) {
 #ifdef CONFIG_TXPWR_PG_WITH_TSSI_OFFSET
-		if (hal_data->txpwr_pg_mode == TXPWR_PG_WITH_TSSI_OFFSET) {
-			_halrf_tssi_set_powerlevel_8733b(phydm, 0, path);
-		} else 
+	if (hal_data->txpwr_pg_mode == TXPWR_PG_WITH_TSSI_OFFSET) {
+		path = (u8)odm_get_bb_reg(phydm, 0x1884, BIT(20));
+		_halrf_tssi_set_powerlevel_8733b(phydm, 0, path);
+	} else 
 #endif
-		{
-			/*
-			* can't bypass unused path
-			* because phydm need all path values to calculate min diff
-			*/
-			set_tx_power_level_by_path(adapter, channel, path);
+	{
+		for (path = RF_PATH_A; path < hal_spec->rf_reg_path_num; ++path) {
+		/*
+		* can't bypass unused path
+		* because phydm need all path values to calculate min diff
+		*/
+		set_tx_power_level_by_path(adapter, channel, path);
 		}
 	}
 }

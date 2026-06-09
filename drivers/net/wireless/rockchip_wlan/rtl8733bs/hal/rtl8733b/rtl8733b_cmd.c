@@ -114,7 +114,7 @@ void _rtl8733b_set_FwPwrMode_cmd(PADAPTER adapter, u8 psmode, u8 rfon_ctrl)
 	u8 h2c[RTW_HALMAC_H2C_MAX_SIZE] = {0};
 	u8 PowerState = 0, awake_intvl = 1, rlbm = 0;
 	u8 allQueueUAPSD = 0;
-	char *fw_psmode_str = "";
+	char *fw_psmode_str = "UNSPECIFIED";
 #ifdef CONFIG_P2P
 	struct wifidirect_info *wdinfo = &adapter->wdinfo;
 #endif /* CONFIG_P2P */
@@ -212,8 +212,6 @@ void _rtl8733b_set_FwPwrMode_cmd(PADAPTER adapter, u8 psmode, u8 rfon_ctrl)
 			fw_psmode_str = "LPS";
 		else if (mode == 2)
 			fw_psmode_str = "WMMPS";
-		else
-			fw_psmode_str = "UNSPECIFIED";
 
 		RTW_INFO(FUNC_ADPT_FMT": fw ps mode = %s, drv ps mode = %d, rlbm = %d ,"
 				    "smart_ps = %d, allQueueUAPSD = %d, PowerState = %d\n",
@@ -527,7 +525,10 @@ C2HSPC_STAT_8733b(
 	}
 	psta->sta_stats.tx_retry_cnt = (C2H_SPECIAL_STATISTICS_GET_DATA3(CmdBuf) << 8) | C2H_SPECIAL_STATISTICS_GET_DATA2(CmdBuf);
 	psta->sta_stats.tx_retry_cnt_sum += psta->sta_stats.tx_retry_cnt;
+
+	enter_critical_bh(&pstapriv->tx_rpt_lock);
 	rtw_sctx_done(&pstapriv->gotc2h);
+	exit_critical_bh(&pstapriv->tx_rpt_lock);
 }
 #ifdef CONFIG_FW_HANDLE_TXBCN
 #define C2H_SUB_CMD_ID_FW_TBTT_RPT  0X23
@@ -567,8 +568,6 @@ static void c2h_tbtt_rpt(PADAPTER adapter, u8 *pdata)
  */
 static void process_c2h_event(PADAPTER adapter, u8 *c2h, u32 size)
 {
-	struct mlme_ext_priv *pmlmeext;
-	struct mlme_ext_info *pmlmeinfo;
 	u32 desc_size;
 	u8 id, seq;
 	u8 c2h_len, c2h_payload_len;
@@ -588,15 +587,17 @@ static void process_c2h_event(PADAPTER adapter, u8 *c2h, u32 size)
 		return;
 	}
 
-	pmlmeext = &adapter->mlmeextpriv;
-	pmlmeinfo = &pmlmeext->mlmext_info;
-
 	/* shift rx desc len */
 	pc2h_data = c2h + desc_size;
 	c2h_len = size - desc_size;
 
-	id = C2H_GET_CMD_ID(pc2h_data);
-	seq = C2H_GET_SEQ(pc2h_data);
+	if (c2h_len >= 4) {
+		id = C2H_GET_CMD_ID(pc2h_data);
+		seq = C2H_GET_SEQ(pc2h_data);
+	} else {
+		id = C2H_GET_CMD_ID_1BYTE(pc2h_data);
+		seq = C2H_GET_SEQ_1BYTE(pc2h_data);
+	}
 
 	/* shift 2 byte to remove cmd id & seq */
 	pc2h_payload = pc2h_data + 2;
@@ -707,6 +708,7 @@ void rtl8733b_c2h_handler_no_io(PADAPTER adapter, u8 *pbuf, u16 length)
 	case C2H_IQK_FINISH:
 	case C2H_MCC:
 	case C2H_BCN_EARLY_RPT:
+	case C2H_TX_PAUSE_RPT:
 	case C2H_LPS_STATUS_RPT:	
 	case C2H_EXTEND:
 		/* no I/O, process directly */

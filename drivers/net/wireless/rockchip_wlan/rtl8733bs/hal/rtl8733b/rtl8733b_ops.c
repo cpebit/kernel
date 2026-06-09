@@ -336,7 +336,7 @@ static void Hal_EfuseParseBTCoexistInfo(PADAPTER adapter, u8 *map, u8 mapvalid)
 
 static void Hal_EfuseParseChnlPlan(PADAPTER adapter, u8 *map, u8 autoloadfail)
 {
-	hal_com_config_channel_plan(
+	hal_com_parse_channel_plan(
 		adapter,
 		map ? &map[EEPROM_COUNTRY_CODE_8733B] : NULL,
 		map ? map[EEPROM_ChannelPlan_8733B] : 0xFF,
@@ -1501,7 +1501,7 @@ static void hw_var_set_mlme_sitesurvey(PADAPTER adapter, u8 enable)
 		rtw_hal_rcr_set_chk_bssid(adapter, MLME_SCAN_ENTER);
 
 		if (rtw_mi_get_ap_num(adapter) || rtw_mi_get_mesh_num(adapter))
-			StopTxBeacon(adapter);
+			StopTxBeacon_with_reason(adapter, CTRL_TX_BCN_BY_SCAN);
 	} else {
 		/* sitesurvey done
 		 * 1. enable rx data frame
@@ -1516,7 +1516,7 @@ static void hw_var_set_mlme_sitesurvey(PADAPTER adapter, u8 enable)
 
 		#ifdef CONFIG_AP_MODE
 		if (rtw_mi_get_ap_num(adapter) || rtw_mi_get_mesh_num(adapter)) {
-			ResumeTxBeacon(adapter);
+			ResumeTxBeacon_with_reason(adapter, CTRL_TX_BCN_BY_SCAN);
 			rtw_mi_tx_beacon_hdl(adapter);
 		}
 		#endif
@@ -1541,7 +1541,7 @@ static void hw_var_set_mlme_join(PADAPTER adapter, u8 type)
 	if (type == 0) {
 		/* prepare to join */
 		if (rtw_mi_get_ap_num(adapter) || rtw_mi_get_mesh_num(adapter))
-			StopTxBeacon(adapter);
+			StopTxBeacon_with_reason(adapter, CTRL_TX_BCN_BY_JOIN);
 
 		/* enable to rx data frame.Accept all data frame */
 		rtw_write16(adapter, REG_RXFLTMAP2_8733B, 0xFFFF);
@@ -1572,7 +1572,7 @@ static void hw_var_set_mlme_join(PADAPTER adapter, u8 type)
 		rtw_iface_disable_tsf_update(adapter);
 
 		if (rtw_mi_get_ap_num(adapter) || rtw_mi_get_mesh_num(adapter)) {
-			ResumeTxBeacon(adapter);
+			ResumeTxBeacon_with_reason(adapter, CTRL_TX_BCN_BY_JOIN);
 
 			/* reset TSF 1/2 after resume_tx_beacon */
 			val8 = BIT_TSFTR_RST_8733B | BIT_TSFTR_CLI0_RST_8733B;
@@ -1591,7 +1591,7 @@ static void hw_var_set_mlme_join(PADAPTER adapter, u8 type)
 		}
 
 		if (rtw_mi_get_ap_num(adapter) || rtw_mi_get_mesh_num(adapter)) {
-			ResumeTxBeacon(adapter);
+			ResumeTxBeacon_with_reason(adapter, CTRL_TX_BCN_BY_JOIN);
 
 			/* reset TSF 1/2 after resume_tx_beacon */
 			rtw_write8(adapter, REG_DUAL_TSF_RST_8733B, BIT_TSFTR_RST_8733B | BIT_TSFTR_CLI0_RST_8733B);
@@ -1961,13 +1961,12 @@ static void hw_port_reconfig(_adapter * if_ap, _adapter *if_port0)
 		rtw_hal_set_hwreg(if_port0, HW_VAR_BSSID, bssid);
 		#ifdef CONFIG_FW_MULTI_PORT_SUPPORT
 		rtw_set_default_port_id(if_port0);
+		#ifdef CONFIG_BT_COEXIST
+		if (GET_HAL_DATA(if_port0)->EEPROMBluetoothCoexist == _TRUE)
+			rtw_hal_set_wifi_btc_port_id_cmd(if_port0);
+		#endif
 		#endif
 	}
-
-#if defined(CONFIG_BT_COEXIST) && defined(CONFIG_FW_MULTI_PORT_SUPPORT)
-	if (GET_HAL_DATA(if_port0)->EEPROMBluetoothCoexist == _TRUE)
-		rtw_hal_set_wifi_btc_port_id_cmd(if_port0);
-#endif
 
 	if_ap->hw_port =HW_PORT0;
 	/* port mac addr switch to adapter mac addr */
@@ -2477,6 +2476,12 @@ u8 rtl8733b_sethwreg(PADAPTER adapter, u8 variable, u8 *val)
 #endif
 		break;
 
+#ifdef RTW_WKARD_KEEP_ALIVE_DROP_MAC
+	case HW_VAR_DROP_MACID:
+		rtw_write8(adapter, REG_MACID_DROP0_8733B, *val);
+		break;
+#endif
+
 	default:
 		ret = SetHwReg(adapter, variable, val);
 		break;
@@ -2844,6 +2849,12 @@ void rtl8733b_gethwreg(PADAPTER adapter, u8 variable, u8 *val)
 	case HW_VAR_BCN_CTRL_ADDR:
 		*((u32 *)val) = hw_bcn_ctrl_addr(adapter, adapter->hw_port);
 		break;
+
+#ifdef RTW_WKARD_KEEP_ALIVE_DROP_MAC
+	case HW_VAR_DROP_MACID:
+		*val = rtw_read8(adapter, REG_MACID_DROP0_8733B);
+		break;
+#endif
 
 	default:
 		GetHwReg(adapter, variable, val);

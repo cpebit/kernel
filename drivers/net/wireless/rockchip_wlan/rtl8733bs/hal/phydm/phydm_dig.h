@@ -89,6 +89,9 @@
 #define OFDM_FA_EXP_DURATION		12	/*us*/
 #define CCK_FA_EXP_DURATION		175	/*us*/
 
+/*==== [RSSI to IGI] =======================================*/
+#define RSSI_2_IGI(rssi) (rssi + 10)
+
 /*@--------------------Enum-----------------------------------*/
 enum phydm_dig_mode {
 	PHYDM_DIG_PERFORAMNCE_MODE	= 0,
@@ -177,7 +180,8 @@ struct phydm_dig_struct {
 	RTL8198F_SUPPORT || RTL8192F_SUPPORT || RTL8195B_SUPPORT ||\
 	RTL8822C_SUPPORT || RTL8814B_SUPPORT || RTL8721D_SUPPORT ||\
 	RTL8710C_SUPPORT || RTL8812F_SUPPORT || RTL8197G_SUPPORT ||\
-	RTL8733B_SUPPORT)
+	RTL8733B_SUPPORT || RTL8735B_SUPPORT || RTL8730A_SUPPORT ||\
+	RTL8822E_SUPPORT)
 	u8		rf_gain_idx;
 	u8		agc_table_idx;
 	u8		big_jump_lmt[16];
@@ -271,6 +275,12 @@ struct phydm_fa_struct {
 	u32		cnt_cck_txon;
 	u32		cnt_ofdm_txen;
 	u32		cnt_ofdm_txon;
+	u32		cnt_mpdu_crc32_ok;
+	u32		cnt_mpdu_crc32_error;
+	u32		cnt_mpdu_miss;
+	u32		cnt_mac664_report;
+	u8		cnt_mac664_type;
+	u32		cnt_bt_polluted;
 };
 
 #ifdef PHYDM_TDMA_DIG_SUPPORT

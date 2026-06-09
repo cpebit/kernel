@@ -50,7 +50,7 @@ int omac1_aes_vector(const u8 *key, size_t key_len, size_t num_elem,
 	if (TEST_FAIL())
 		return -1;
 
-	ctx = _aes_encrypt_init(key, key_len);
+	ctx = aes_encrypt_init(key, key_len);
 	if (ctx == NULL)
 		return -1;
 	os_memset(cbc, 0, AES_BLOCK_SIZE);
@@ -81,12 +81,12 @@ int omac1_aes_vector(const u8 *key, size_t key_len, size_t num_elem,
 			}
 		}
 		if (left > AES_BLOCK_SIZE)
-			_aes_encrypt(ctx, cbc, cbc);
+			wpa_aes_encrypt(ctx, cbc, cbc);
 		left -= AES_BLOCK_SIZE;
 	}
 
 	os_memset(pad, 0, AES_BLOCK_SIZE);
-	_aes_encrypt(ctx, pad, pad);
+	wpa_aes_encrypt(ctx, pad, pad);
 	gf_mulx(pad);
 
 	if (left || total_len == 0) {
@@ -110,8 +110,8 @@ int omac1_aes_vector(const u8 *key, size_t key_len, size_t num_elem,
 
 	for (i = 0; i < AES_BLOCK_SIZE; i++)
 		pad[i] ^= cbc[i];
-	_aes_encrypt(ctx, pad, mac);
-	_aes_encrypt_deinit(ctx);
+	wpa_aes_encrypt(ctx, pad, mac);
+	aes_encrypt_deinit(ctx);
 	return 0;
 }
 

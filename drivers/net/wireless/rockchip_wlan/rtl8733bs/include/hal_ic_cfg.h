@@ -44,6 +44,7 @@
 #define RTL8814C_SUPPORT				0
 #define RTL8735B_SUPPORT				0
 #define RTL8730A_SUPPORT				0
+#define RTL8822E_SUPPORT				0
 
 /*#if (RTL8188E_SUPPORT==1)*/
 #define RATE_ADAPTIVE_SUPPORT			0
@@ -81,6 +82,10 @@
 
 	#ifndef CONFIG_TXPWR_PG_WITH_PWR_IDX
 	#define CONFIG_TXPWR_PG_WITH_PWR_IDX
+	#endif
+
+	#ifndef CONFIG_TX_PAUSE_FW_CTRL
+	#define CONFIG_TX_PAUSE_FW_CTRL
 	#endif
 #endif
 
@@ -141,7 +146,7 @@
 	#ifndef CONFIG_TXPWR_PG_WITH_PWR_IDX
 	#define CONFIG_TXPWR_PG_WITH_PWR_IDX
 	#endif
-	#define CONFIG_STOP_RESUME_BCN_BY_TXPAUSE /*to fixed no bcn issue*/
+	#define CONFIG_STOP_RESUME_BCN_BY_TXPAUSE 0xFF /* all reason */ /*to fixed no bcn issue*/
 	#define CONFIG_TSF_SYNC
 #endif
 
@@ -193,6 +198,10 @@
 	#ifndef CONFIG_TXPWR_PG_WITH_PWR_IDX
 	#define CONFIG_TXPWR_PG_WITH_PWR_IDX
 	#endif
+
+	#ifndef CONFIG_TX_PAUSE_FW_CTRL
+	#define CONFIG_TX_PAUSE_FW_CTRL
+	#endif
 #endif
 
 #ifdef CONFIG_RTL8703B
@@ -228,6 +237,9 @@
 	#ifndef CONFIG_TXPWR_PG_WITH_PWR_IDX
 	#define CONFIG_TXPWR_PG_WITH_PWR_IDX
 	#endif
+
+	#define CONFIG_STOP_RESUME_BCN_BY_TXPAUSE 0x0E /* SCAN | JOIN | CORRECT_TSF */
+	#define CONFIG_TSF_SYNC_DRV_TRIGGER
 #endif
 
 #ifdef CONFIG_RTL8188GTV
@@ -251,6 +263,9 @@
 	#if defined(CONFIG_USB_HCI) && !defined(CONFIG_FW_OFFLOAD_SET_TXPWR_IDX)
 	#define CONFIG_FW_OFFLOAD_SET_TXPWR_IDX
 	#endif
+
+	#define CONFIG_STOP_RESUME_BCN_BY_TXPAUSE 0x0E /* SCAN | JOIN | CORRECT_TSF */
+	#define CONFIG_TSF_SYNC_DRV_TRIGGER
 #endif
 
 #ifdef CONFIG_RTL8822B
@@ -340,6 +355,10 @@
 
 	#ifndef CONFIG_TXPWR_PG_WITH_PWR_IDX
 	#define CONFIG_TXPWR_PG_WITH_PWR_IDX
+	#endif
+
+	#ifndef CONFIG_TX_PAUSE_FW_CTRL
+	#define CONFIG_TX_PAUSE_FW_CTRL
 	#endif
 #endif /* CONFIG_RTL8822B */
 
@@ -450,6 +469,10 @@
 		#define CONFIG_NB_VALUE         RTW_NB_CONFIG_WIDTH_10      /* RTW_NB_CONFIG_NONE / RTW_NB_CONFIG_WIDTH_10 / RTW_NB_CONFIG_WIDTH_5       */
 	#endif
 	#define CONFIG_SUPPORT_DYNAMIC_TXPWR
+
+	#ifndef CONFIG_TX_PAUSE_FW_CTRL
+	#define CONFIG_TX_PAUSE_FW_CTRL
+	#endif
 #endif /* CONFIG_RTL8822C */
 
 #ifdef CONFIG_RTL8821C
@@ -501,6 +524,10 @@
 	#endif
 
 	#define CONFIG_BT_EFUSE_MASK
+
+	#ifndef CONFIG_TX_PAUSE_FW_CTRL
+	#define CONFIG_TX_PAUSE_FW_CTRL
+	#endif
 #endif /*CONFIG_RTL8821C*/
 
 #ifdef CONFIG_RTL8710B
@@ -617,6 +644,10 @@
 	#ifndef CONFIG_TXPWR_PG_WITH_TSSI_OFFSET
 	#define CONFIG_TXPWR_PG_WITH_TSSI_OFFSET
 	#endif
+
+	#ifndef CONFIG_TX_PAUSE_FW_CTRL
+	#define CONFIG_TX_PAUSE_FW_CTRL
+	#endif
 #endif /* CONFIG_RTL8814B */
 #ifdef CONFIG_RTL8733B
 	#undef RTL8733B_SUPPORT
@@ -719,5 +750,125 @@
 	#define CONFIG_BT_EFUSE_MASK
 
 	#define CONFIG_WRITE_BCN_LEN_TO_FW
+
+	#ifndef CONFIG_TX_PAUSE_FW_CTRL
+	#define CONFIG_TX_PAUSE_FW_CTRL
+	#endif
 #endif /* CONFIG_RTL8733B */
+
+#ifdef CONFIG_RTL8822E
+	#undef RTL8822E_SUPPORT
+	#define RTL8822E_SUPPORT				1
+	/*#define DBG_LA_MODE*/
+	#ifndef CONFIG_FW_C2H_PKT
+		#define CONFIG_FW_C2H_PKT
+	#endif /* CONFIG_FW_C2H_PKT */
+	#define RTW_TX_PA_BIAS	/* Adjust TX PA Bias from eFuse */
+
+	#ifdef CONFIG_WOWLAN
+		#define CONFIG_GTK_OL
+		/*#define CONFIG_ARP_KEEP_ALIVE*/
+
+		#ifdef CONFIG_GPIO_WAKEUP
+			#ifndef WAKEUP_GPIO_IDX
+				#define WAKEUP_GPIO_IDX	6	/* WIFI Chip Side */
+			#endif /* !WAKEUP_GPIO_IDX */
+		#endif /* CONFIG_GPIO_WAKEUP */
+	#endif /* CONFIG_WOWLAN */
+
+	#ifdef CONFIG_CONCURRENT_MODE
+		#define CONFIG_AP_PORT_SWAP
+		#define CONFIG_FW_MULTI_PORT_SUPPORT
+	#endif /* CONFIG_CONCURRENT_MODE */
+
+	/*
+	 * Beamforming related definition
+	 */
+	/* Only support new beamforming mechanism */
+	#ifdef CONFIG_BEAMFORMING
+		#define RTW_BEAMFORMING_VERSION_2
+	#endif /* CONFIG_BEAMFORMING */
+
+	#ifdef CONFIG_NO_FW
+		#ifdef CONFIG_RTW_MAC_HIDDEN_RPT
+			#undef CONFIG_RTW_MAC_HIDDEN_RPT
+		#endif
+	#else
+		#ifndef CONFIG_RTW_MAC_HIDDEN_RPT
+			#define CONFIG_RTW_MAC_HIDDEN_RPT
+		#endif
+	#endif
+
+	#ifndef DBG_RX_DFRAME_RAW_DATA
+		#define DBG_RX_DFRAME_RAW_DATA
+	#endif /* DBG_RX_DFRAME_RAW_DATA */
+
+	#ifndef RTW_IQK_FW_OFFLOAD
+		/* #define RTW_IQK_FW_OFFLOAD */
+	#endif /* RTW_IQK_FW_OFFLOAD */
+	#define CONFIG_ADVANCE_OTA
+
+	#ifdef CONFIG_MCC_MODE
+		#define CONFIG_MCC_MODE_V2
+		#define CONFIG_MCC_PHYDM_OFFLOAD
+	#endif /* CONFIG_MCC_MODE */
+
+	#if defined(CONFIG_TDLS) && defined(CONFIG_TDLS_CH_SW)
+		#define CONFIG_TDLS_CH_SW_V2
+	#endif
+
+	#ifndef RTW_CHANNEL_SWITCH_OFFLOAD
+		#ifdef CONFIG_TDLS_CH_SW_V2
+			#define RTW_CHANNEL_SWITCH_OFFLOAD
+		#endif
+	#endif /* RTW_CHANNEL_SWITCH_OFFLOAD */
+
+	#if defined(CONFIG_RTW_MESH) && !defined(RTW_PER_CMD_SUPPORT_FW)
+		/* Supported since fw v22.1 */
+		#define RTW_PER_CMD_SUPPORT_FW
+	#endif /* RTW_PER_CMD_SUPPORT_FW */
+	#define CONFIG_SUPPORT_FIFO_DUMP
+	#define CONFIG_HW_P0_TSF_SYNC
+	#define CONFIG_BCN_RECV_TIME
+
+	/*#define CONFIG_TCP_CSUM_OFFLOAD_TX*/
+	#if defined(CONFIG_TCP_CSUM_OFFLOAD_TX) && !defined(CONFIG_RTW_NETIF_SG)
+		#define CONFIG_RTW_NETIF_SG
+	#endif
+	#define CONFIG_TCP_CSUM_OFFLOAD_RX
+
+	#ifdef CONFIG_P2P_PS
+		#define CONFIG_P2P_PS_NOA_USE_MACID_SLEEP
+	#endif
+	#define CONFIG_RTS_FULL_BW
+
+	#ifdef CONFIG_LPS
+		#define CONFIG_LPS_ACK	/* Supported after FW v07 */
+		#define CONFIG_LPS_1T1R /* Supported after FW v07 */
+	#endif
+
+	#define CONFIG_BT_EFUSE_MASK
+
+	#ifndef CONFIG_TXPWR_PG_WITH_PWR_IDX
+	#define CONFIG_TXPWR_PG_WITH_PWR_IDX
+	#endif
+	#ifndef CONFIG_TXPWR_PG_WITH_TSSI_OFFSET
+	#define CONFIG_TXPWR_PG_WITH_TSSI_OFFSET
+	#endif
+
+	/* #define CONFIG_RTL8822E_XCAP_NEW_POLICY */
+
+	/*#define CONFIG_NARROWBAND_SUPPORTING*/
+	#ifdef CONFIG_NARROWBAND_SUPPORTING
+		#define CONFIG_NB_VALUE         RTW_NB_CONFIG_WIDTH_10      /* RTW_NB_CONFIG_NONE / RTW_NB_CONFIG_WIDTH_10 / RTW_NB_CONFIG_WIDTH_5       */
+	#endif
+	#define CONFIG_SUPPORT_DYNAMIC_TXPWR
+
+	#ifndef CONFIG_TX_PAUSE_FW_CTRL
+	#define CONFIG_TX_PAUSE_FW_CTRL
+	#endif
+#endif /* CONFIG_RTL8822E */
+
+
+
 #endif /*__HAL_IC_CFG_H__*/

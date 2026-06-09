@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2017 Realtek Corporation.
+ * Copyright(c) 2007 - 2021 Realtek Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -77,6 +77,7 @@ extern u8 rtw_rfc1042_header[];
 
 enum addba_rsp_ack_state {
 	RTW_RECV_ACK_OR_TIMEOUT,
+	RTW_RECV_REORDER_WOW
 };
 
 /* for Rx reordering buffer control */
@@ -259,7 +260,10 @@ struct recv_stat {
 
 	unsigned int rxdw1;
 
-#if !((defined(CONFIG_RTL8192E) || defined(CONFIG_RTL8814A) || defined(CONFIG_RTL8822B) || defined(CONFIG_RTL8821C) || defined(CONFIG_RTL8822C)) && defined(CONFIG_PCI_HCI))  /* exclude 8192ee, 8814ae, 8822be, 8821ce */
+#if !((defined(CONFIG_RTL8192E) || defined(CONFIG_RTL8814A) || defined(CONFIG_RTL8822B) \
+	|| defined(CONFIG_RTL8821C) || defined(CONFIG_RTL8822C) \
+	|| defined(CONFIG_RTL8822E)) && defined(CONFIG_PCI_HCI))
+	/* exclude 8192ee, 8814ae, 8822be, 8821ce */
 	unsigned int rxdw2;
 
 	unsigned int rxdw3;
@@ -836,14 +840,11 @@ __inline static u8 *recvframe_put(union recv_frame *precvframe, sint sz)
 
 	/* used for append sz bytes from ptr to rx_tail, update rx_tail and return the updated rx_tail to the caller */
 	/* after putting, rx_tail must be still larger than rx_end. */
-	unsigned char *prev_rx_tail;
 
 	/* RTW_INFO("recvframe_put: len=%d\n", sz); */
 
 	if (precvframe == NULL)
 		return NULL;
-
-	prev_rx_tail = precvframe->u.hdr.rx_tail;
 
 	precvframe->u.hdr.rx_tail += sz;
 
@@ -855,10 +856,7 @@ __inline static u8 *recvframe_put(union recv_frame *precvframe, sint sz)
 	precvframe->u.hdr.len += sz;
 
 	return precvframe->u.hdr.rx_tail;
-
 }
-
-
 
 __inline static u8 *recvframe_pull_tail(union recv_frame *precvframe, sint sz)
 {

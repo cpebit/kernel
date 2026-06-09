@@ -119,6 +119,10 @@ void configure_txpower_track(
 		configure_txpower_track_8814c(config);
 #endif
 
+#if RTL8822E_SUPPORT
+	if (dm->support_ic_type == ODM_RTL8822E)
+		configure_txpower_track_8822e(config);
+#endif
 
 }
 
@@ -766,7 +770,8 @@ odm_txpowertracking_callback_thermal_meter(
 	cali_info->tx_powercount = 0;
 }
 
-#if (RTL8822C_SUPPORT == 1 || RTL8814B_SUPPORT == 1 || RTL8733B_SUPPORT == 1 || RTL8814C_SUPPORT == 1)
+#if (RTL8822C_SUPPORT == 1 || RTL8814B_SUPPORT == 1 || RTL8733B_SUPPORT == 1 ||\
+	RTL8814C_SUPPORT == 1 || RTL8822E_SUPPORT == 1)
 void
 odm_txpowertracking_new_callback_thermal_meter(void *dm_void)
 {
@@ -816,7 +821,7 @@ odm_txpowertracking_new_callback_thermal_meter(void *dm_void)
 		"cali_info->txpowertrack_control=%d, tssi->thermal[RF_PATH_A]=%d tssi->thermal[RF_PATH_B]=%d\n",
 		cali_info->txpowertrack_control,  tssi->thermal[RF_PATH_A], tssi->thermal[RF_PATH_B]);
 
-	if (dm->support_ic_type == ODM_RTL8822C) {
+	if (dm->support_ic_type & (ODM_RTL8822C | ODM_RTL8822E)) {
 		for (i = 0; i < c.rf_path_count; i++)
 			thermal_value[i] = (u8)odm_get_rf_reg(dm, i, c.thermal_reg_addr, 0x7e);	/* 0x42: RF Reg[6:1] Thermal Trim*/
 	} else {
@@ -865,6 +870,7 @@ odm_txpowertracking_new_callback_thermal_meter(void *dm_void)
 
 		if (thermal_value_avg_count[j]) {            /* Calculate Average thermal_value after average enough times */
 			thermal_value[j] = (u8)(thermal_value_avg[j] / thermal_value_avg_count[j]);
+			cali_info->thermal_value_avg_pwrtrk[j] = thermal_value[j];
 			RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
 				"AVG Thermal Meter = 0x%X, tssi->thermal[%d] = 0x%x\n",
 				thermal_value[j], j, tssi->thermal[j]);
@@ -886,13 +892,14 @@ odm_txpowertracking_new_callback_thermal_meter(void *dm_void)
 	if( (*dm->is_scan_in_process == false) && (!iqk_info->rfk_forbidden)) {
 		/* Delta temperature is equal to or larger than 20 centigrade.*/
 		if (delta_LCK >= c.threshold_iqk) {
-			RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "delta_LCK(%d) >= threshold_iqk(%d)\n", delta_LCK, c.threshold_iqk);
+			RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "delta_LCK(%d) >= c.threshold_iqk(%d)\n", delta_LCK, c.threshold_iqk);
 			cali_info->thermal_value_lck = thermal_value[RF_PATH_A];
 
 			/*Use RTLCK, so close power tracking driver LCK*/
 			if ((!(dm->support_ic_type & ODM_RTL8814A)) &&
 			    (!(dm->support_ic_type & ODM_RTL8822B)) &&
-			    (!(dm->support_ic_type & ODM_RTL8733B))) {
+			    (!(dm->support_ic_type & ODM_RTL8733B)) &&
+			    (!(dm->support_ic_type & ODM_RTL8822E))) {
 				if (c.phy_lc_calibrate)
 					(*c.phy_lc_calibrate)(dm);
 			} else
@@ -976,7 +983,7 @@ odm_txpowertracking_new_callback_thermal_meter(void *dm_void)
 		}	
 	}
 
-	if (dm->support_ic_type & (ODM_RTL8822C | ODM_RTL8814B | ODM_RTL8814C))
+	if (dm->support_ic_type & (ODM_RTL8822C | ODM_RTL8814B | ODM_RTL8814C | ODM_RTL8822E))
 		for (p = RF_PATH_A; p < c.rf_path_count; p++)
 			(*c.odm_tx_pwr_track_set_pwr)(dm, tracking_method, p, 0);
 
