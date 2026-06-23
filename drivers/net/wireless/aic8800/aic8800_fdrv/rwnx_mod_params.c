@@ -53,7 +53,7 @@ struct rwnx_mod_params rwnx_mod_params = {
 	COMMON_PARAM(mutx, true, true)
 	COMMON_PARAM(mutx_on, true, true)
 	COMMON_PARAM(use_80, false, false)
-	COMMON_PARAM(custregd, true, true)
+	COMMON_PARAM(custregd, false, false)
 	COMMON_PARAM(custchan, false, false)
 	COMMON_PARAM(roc_dur_max, 500, 500)
 	COMMON_PARAM(listen_itv, 0, 0)
