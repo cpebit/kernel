@@ -71,6 +71,10 @@ bool rkisp_buf_dbg;
 module_param_named(buf_dbg, rkisp_buf_dbg, bool, 0644);
 MODULE_PARM_DESC(buf_dbg, "rkisp check output buf");
 
+bool rkisp_wrap_no_dvbm;
+module_param_named(no_dvbm, rkisp_wrap_no_dvbm, bool, 0644);
+MODULE_PARM_DESC(no_dvbm, "rkisp wrap without dvbm");
+
 static bool rkisp_rdbk_auto;
 module_param_named(rdbk_auto, rkisp_rdbk_auto, bool, 0644);
 MODULE_PARM_DESC(irq_dbg, "rkisp and vicap auto readback mode");
@@ -1229,12 +1233,18 @@ static int rkisp_resume(struct device *dev)
 			v4l2_subdev_call(p->subdevs[i], video, s_stream, on);
 	} else if (isp_dev->isp_inp & INP_CIF && !IS_HDR_RDBK(isp_dev->rd_mode)) {
 		if (!hw->is_single) {
-			int on = 1;
+			on = 1;
 
-			if (atomic_read(&hw->refcnt) == 2) {
-				/* isp0 and isp1 online, isp1 to runing first */
-				isp_tmp = hw->isp[!isp_dev->dev_id];
-				if (!IS_HDR_RDBK(isp_tmp->rd_mode) && !isp_dev->dev_id)
+			if (atomic_read(&hw->refcnt) > 1) {
+				/* the last online isp_vir to running first */
+				for (i = hw->dev_num - 1; i >= 0; i--) {
+					isp_tmp = hw->isp[i];
+					if (isp_tmp &&
+					    !IS_HDR_RDBK(isp_tmp->rd_mode) &&
+					    isp_tmp->isp_state & ISP_START)
+						break;
+				}
+				if (isp_dev->dev_id != i && i >= 0)
 					on = 0;
 			} else if (isp_dev->unite_div == ISP_UNITE_DIV2) {
 				isp_dev->unite_index = ISP_UNITE_LEFT;
@@ -1247,6 +1257,7 @@ static int rkisp_resume(struct device *dev)
 				rkisp_vicap_hw_link(isp_dev, on);
 			}
 		}
+		on = 1;
 		v4l2_subdev_call(p->subdevs[0], core, ioctl, RKISP_VICAP_CMD_QUICK_STREAM, &on);
 	}
 	return 0;

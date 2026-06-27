@@ -29,6 +29,7 @@
 #include "../../../../phy/rockchip/phy-rockchip-csi2-dphy-common.h"
 #include <linux/of_reserved_mem.h>
 #include <linux/of_address.h>
+#include "../../../i2c/cam-tb-setup.h"
 
 #define RKCIF_VERNO_LEN		10
 
@@ -1955,6 +1956,85 @@ static int _set_pipeline_default_fmt(struct rkcif_device *dev)
 	return 0;
 }
 
+#ifdef CONFIG_VIDEO_ROCKCHIP_THUNDER_BOOT_SETUP
+static void sditf_select_sensor_setting_for_thunderboot(struct sditf_priv *priv)
+{
+	struct rkcif_device *dev = priv->cif_dev;
+	struct v4l2_subdev_format fmt;
+	struct rk_sensor_setting sensor_setting = {0};
+	struct v4l2_subdev_frame_interval fi = {0};
+	struct rkmodule_hdr_cfg hdr_cfg;
+	int width = 0;
+	int height = 0;
+	int hdr_mode = 0;
+	int max_fps = 0;
+	int ret = 0;
+	bool is_match = false;
+	int cam_idx;
+
+	if (!dev->terminal_sensor.sd)
+		rkcif_update_sensor_info(&dev->stream[0]);
+	if (dev->terminal_sensor.sd) {
+		if (sscanf(dev->terminal_sensor.sd->name, "m%d", &cam_idx) != 1)
+			cam_idx = 0;
+		v4l2_info(&dev->v4l2_dev,
+			  "cam %s, idx %d\n",
+			  dev->terminal_sensor.sd->name, cam_idx);
+		if (cam_idx == 0) {
+			width = get_rk_cam_w();
+			height = get_rk_cam_h();
+			hdr_mode = get_rk_cam_hdr();
+			max_fps = get_rk_cam1_max_fps();
+		} else {
+			width = get_rk_cam2_w();
+			height = get_rk_cam2_h();
+			hdr_mode = get_rk_cam2_hdr();
+			max_fps = get_rk_cam2_max_fps();
+		}
+		fmt.pad = 0;
+		fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
+		fmt.reserved[0] = 0;
+		fmt.format.field = V4L2_FIELD_NONE;
+		ret = v4l2_subdev_call(dev->terminal_sensor.sd, pad, get_fmt, NULL, &fmt);
+		if (!ret) {
+			if (dev->rdbk_debug)
+				v4l2_info(&dev->v4l2_dev,
+					  "cmdline get %dx%d@%dfps, hdr_mode %d\n",
+					  width, height, max_fps, hdr_mode);
+			sensor_setting.fmt = fmt.format.code;
+			sensor_setting.width = width;
+			sensor_setting.height = height;
+			sensor_setting.mode = hdr_mode;
+			sensor_setting.fps = max_fps;
+			ret = v4l2_subdev_call(dev->terminal_sensor.sd,
+					       core, ioctl,
+					       RKCIS_CMD_SELECT_SETTING,
+					       &sensor_setting);
+			if (!ret)
+				is_match = true;
+		}
+		if (!is_match) {
+			fmt.format.width = width;
+			fmt.format.height = height;
+			v4l2_subdev_call(dev->terminal_sensor.sd, pad, set_fmt, NULL, &fmt);
+			v4l2_subdev_call(dev->terminal_sensor.sd, video, g_frame_interval, &fi);
+			fi.interval.numerator = 1;
+			fi.interval.denominator = max_fps;
+			v4l2_subdev_call(dev->terminal_sensor.sd, video, s_frame_interval, &fi);
+			v4l2_subdev_call(dev->terminal_sensor.sd,
+					 core, ioctl,
+					 RKMODULE_GET_HDR_CFG,
+					 &hdr_cfg);
+			hdr_cfg.hdr_mode = hdr_mode;
+			v4l2_subdev_call(dev->terminal_sensor.sd,
+					 core, ioctl,
+					 RKMODULE_SET_HDR_CFG,
+					 &hdr_cfg);
+		}
+	}
+}
+#endif
+
 static int subdev_asyn_register_itf(struct rkcif_device *dev)
 {
 	struct sditf_priv *sditf = NULL;
@@ -1971,6 +2051,10 @@ static int subdev_asyn_register_itf(struct rkcif_device *dev)
 	if (!dev->is_notifier_isp) {
 		for (i = 0; i < dev->sditf_cnt; i++) {
 			sditf = dev->sditf[i];
+#ifdef CONFIG_VIDEO_ROCKCHIP_THUNDER_BOOT_SETUP
+			if (dev->is_thunderboot)
+				sditf_select_sensor_setting_for_thunderboot(sditf);
+#endif
 			if (sditf)
 				ret = v4l2_async_register_subdev_sensor_common(&sditf->sd);
 		}
@@ -2778,7 +2862,7 @@ int rkcif_plat_init(struct rkcif_device *cif_dev, struct device_node *node, int 
 	cif_dev->pipe.close = rkcif_pipeline_close;
 	cif_dev->pipe.set_stream = rkcif_pipeline_set_stream;
 	cif_dev->isr_hdl = rkcif_irq_handler;
-	cif_dev->id_use_cnt = 0;
+	atomic_set(&cif_dev->id_use_cnt, 0);
 	memset(&cif_dev->sync_cfg, 0, sizeof(cif_dev->sync_cfg));
 	cif_dev->sditf_cnt = 0;
 	cif_dev->is_notifier_isp = false;
@@ -2968,6 +3052,27 @@ static const struct of_device_id rkcif_plat_of_match[] = {
 	{},
 };
 
+static void rkcif_parse_switch_info(struct rkcif_device *cif_dev)
+{
+	int ret = 0;
+	struct device_node *node = cif_dev->dev->of_node;
+
+	memset(&cif_dev->switch_info, 0, sizeof(cif_dev->switch_info));
+	ret = of_property_read_u32(node,
+				   OF_CIF_SWITCH_HOST_IDX,
+				   &cif_dev->switch_info.host_idx);
+	if (ret == 0) {
+		cif_dev->switch_info.is_use_switch = true;
+		cif_dev->switch_info.gpio_pin = devm_gpiod_get(cif_dev->dev, "switch", GPIOD_OUT_LOW);
+		if (IS_ERR(cif_dev->switch_info.gpio_pin))
+			dev_err(cif_dev->dev, "get switch gpio failed\n");
+		ret = of_property_read_u32(node,
+					   OF_CIF_SWITCH_GPIO_VAL,
+					   &cif_dev->switch_info.gpio_val);
+		dev_info(cif_dev->dev, "switch gpio val %d\n", cif_dev->switch_info.gpio_val);
+	}
+}
+
 static void rkcif_parse_dts(struct rkcif_device *cif_dev)
 {
 	int ret = 0;
@@ -2989,6 +3094,12 @@ static void rkcif_parse_dts(struct rkcif_device *cif_dev)
 		cif_dev->is_camera_over_bridge = true;
 	else
 		cif_dev->is_camera_over_bridge = false;
+	rkcif_parse_switch_info(cif_dev);
+	if (device_property_read_bool(cif_dev->dev, "no-detect-group-sync"))
+		cif_dev->is_detect_group_sync = false;
+	else
+		cif_dev->is_detect_group_sync = true;
+	dev_err(cif_dev->dev, "rkcif is_detect_group_sync %d\n", cif_dev->is_detect_group_sync);
 }
 
 static int rkcif_get_reserved_mem(struct rkcif_device *cif_dev)

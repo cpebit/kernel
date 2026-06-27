@@ -528,6 +528,7 @@ static void rkcif_show_format(struct rkcif_device *dev, struct seq_file *f)
 	u64 fps, timestamp0, timestamp1;
 	unsigned long flags;
 	u32 time_val = 0;
+	u32 remainder = 0;
 
 	if (atomic_read(&pipe->stream_cnt) < 1)
 		return;
@@ -581,9 +582,12 @@ static void rkcif_show_format(struct rkcif_device *dev, struct seq_file *f)
 		timestamp0 = stream->fps_stats.frm0_timestamp;
 		timestamp1 = stream->fps_stats.frm1_timestamp;
 		spin_unlock_irqrestore(&stream->fps_lock, flags);
-		fps = timestamp0 > timestamp1 ?
-		      timestamp0 - timestamp1 : timestamp1 - timestamp0;
-		fps = div_u64(fps, 1000000);
+		if (dev->sditf[0] && dev->sditf[0]->mode.rdbk_mode < RKISP_VICAP_RDBK_AIQ)
+			fps = dev->stream[0].readout.rate_time;
+		else
+			fps = timestamp0 > timestamp1 ?
+			      timestamp0 - timestamp1 : timestamp1 - timestamp0;
+		fps = div_u64(fps, 1000);
 
 		seq_puts(f, "Output Info:\n");
 		seq_printf(f, "\tformat:%s/%ux%u(%u,%u)\n",
@@ -593,23 +597,32 @@ static void rkcif_show_format(struct rkcif_device *dev, struct seq_file *f)
 		seq_printf(f, "\tcompact:%s\n", stream->is_compact ? "enable" : "disabled");
 		seq_printf(f, "\tframe amount:%d\n", stream->frame_idx - 1);
 		if (dev->inf_id == RKCIF_MIPI_LVDS) {
-			time_val = div_u64(stream->readout.early_time, 1000000);
-			seq_printf(f, "\tearly:%u ms\n", time_val);
+			time_val = div_u64(stream->readout.early_time, 1000);
+			time_val = div_u64_rem(time_val, 1000, &remainder);
+			seq_printf(f, "\tearly:%u.%03u ms\n", time_val, remainder);
 			if (dev->hdr.hdr_mode == NO_HDR ||
 			    dev->hdr.hdr_mode == HDR_COMPR) {
-				time_val = div_u64(stream->readout.readout_time, 1000000);
-				seq_printf(f, "\treadout:%u ms\n", time_val);
+				time_val = div_u64(stream->readout.readout_time, 1000);
+				time_val = div_u64_rem(time_val, 1000, &remainder);
+				seq_printf(f, "\tsingle readout:%u.%03u ms\n", time_val, remainder);
 			} else {
-				time_val = div_u64(stream->readout.readout_time, 1000000);
-				seq_printf(f, "\tsingle readout:%u ms\n", time_val);
-				time_val = div_u64(stream->readout.total_time, 1000000);
-				seq_printf(f, "\ttotal readout:%u ms\n", time_val);
+				time_val = div_u64(stream->readout.readout_time, 1000);
+				time_val = div_u64_rem(time_val, 1000, &remainder);
+				seq_printf(f, "\tsingle readout:%u.%03u ms\n", time_val, remainder);
+				time_val = div_u64(stream->readout.total_time, 1000);
+				time_val = div_u64_rem(time_val, 1000, &remainder);
+				seq_printf(f, "\ttotal readout:%u.%03u ms\n", time_val, remainder);
 
 			}
 		}
-		seq_printf(f, "\trate:%llu ms\n", fps);
-		fps = div_u64(1000, fps);
-		seq_printf(f, "\tfps:%llu\n", fps);
+		time_val = div_u64_rem(fps, 1000, &remainder);
+		seq_printf(f, "\trate:%u.%03u ms\n", time_val, remainder);
+		time_val = div_u64(stream->readout.readout_time, 1000);
+		time_val = div_u64_rem(fps - time_val, 1000, &remainder);
+		seq_printf(f, "\tvblank:%u.%03u ms\n", time_val, remainder);
+		fps = div_u64(1000000000, fps);
+		time_val = div_u64_rem(fps, 1000, &remainder);
+		seq_printf(f, "\tfps:%u.%03u \n", time_val, remainder);
 		seq_puts(f, "\tirq statistics:\n");
 		seq_printf(f, "\t\t\ttotal:%llu\n",
 			   dev->irq_stats.frm_end_cnt[0] +
@@ -657,6 +670,12 @@ static void rkcif_show_format(struct rkcif_device *dev, struct seq_file *f)
 			   dev->stream[1].total_buf_num,
 			   dev->stream[2].total_buf_num,
 			   dev->stream[3].total_buf_num);
+		if (dev->chip_id >= CHIP_RK3576_CIF)
+			seq_printf(f, "frame loss: %d %d %d %d\n",
+				   dev->stream[0].frame_loss,
+				   dev->stream[1].frame_loss,
+				   dev->stream[2].frame_loss,
+				   dev->stream[3].frame_loss);
 		if (dev->sditf[0])
 			rkcif_show_toisp_info(dev, f);
 		if (dev->reg_dbg)

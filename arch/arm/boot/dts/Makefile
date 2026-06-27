@@ -974,11 +974,13 @@ dtb-$(CONFIG_ARCH_RENESAS) += \
 dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 	rv1103b-evb1-v10.dtb \
 	rv1103b-evb1-v10-4k.dtb \
+	rv1103b-evb1-v10-amp.dtb \
 	rv1103b-evb1-v10-dual-cam.dtb \
 	rv1103b-evb1-v10-external-codec.dtb \
 	rv1103b-evb1-v10-thunderboot-spi-nand.dtb \
 	rv1103b-evb1-v10-thunderboot-spi-nor.dtb \
 	rv1103b-evb1-v10-spi-nor.dtb \
+	rv1103b-evb1-v12.dtb \
 	rv1103b-iotest-v10.dtb \
 	rv1103g-38x38-ipc-v10.dtb \
 	rv1103g-battery-ipc-v10.dtb \
@@ -1008,7 +1010,9 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 	rv1106b-evb2-v10-normal-spi-nor.dtb \
 	rv1106b-evb2-v10-normal-spi-nor-dual-cam.dtb \
 	rv1106b-evb2-v10-spi-nand.dtb \
+	rv1106b-evb2-v11-400w-spi-nand-tb.dtb \
 	rv1106b-evb3-v10.dtb \
+	rv1106b-evb3-v10-normal-spi-nor-quad-cam.dtb \
 	rv1106g-38x38-ipc-v10.dtb \
 	rv1106g-38x38-ipc-v10-spi-nand.dtb \
 	rv1106g-evb1-mcu-display-v11.dtb \

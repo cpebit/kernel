@@ -200,7 +200,7 @@ static inline void __check_heap_object(const void *ptr, unsigned long n,
  * alignment larger than the alignment of a 64-bit integer.
  * Setting ARCH_KMALLOC_MINALIGN in arch headers allows that.
  */
-#if defined(ARCH_DMA_MINALIGN) && ARCH_DMA_MINALIGN > 8 && !IS_ENABLED(CONFIG_ROCKCHIP_MINI_KERNEL)
+#if defined(ARCH_DMA_MINALIGN) && ARCH_DMA_MINALIGN > 8 && !IS_ENABLED(CONFIG_ROCKCHIP_KMALLOC_NO_USE_ARCH_DMA_MINALIGN)
 #define ARCH_KMALLOC_MINALIGN ARCH_DMA_MINALIGN
 #define KMALLOC_MIN_SIZE ARCH_DMA_MINALIGN
 #define KMALLOC_SHIFT_LOW ilog2(ARCH_DMA_MINALIGN)
@@ -602,6 +602,24 @@ static inline void *kmalloc_array(size_t n, size_t size, gfp_t flags)
 	if (__builtin_constant_p(n) && __builtin_constant_p(size))
 		return kmalloc(bytes, flags);
 	return __kmalloc(bytes, flags);
+}
+
+/**
+ * krealloc_array - reallocate memory for an array.
+ * @p: pointer to the memory chunk to reallocate
+ * @new_n: new number of elements to alloc
+ * @new_size: new size of a single member of the array
+ * @flags: the type of memory to allocate (see kmalloc)
+ */
+static __must_check inline void *
+krealloc_array(void *p, size_t new_n, size_t new_size, gfp_t flags)
+{
+	size_t bytes;
+
+	if (unlikely(check_mul_overflow(new_n, new_size, &bytes)))
+		return NULL;
+
+	return krealloc(p, bytes, flags);
 }
 
 /**

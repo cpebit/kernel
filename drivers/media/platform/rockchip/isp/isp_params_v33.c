@@ -1845,20 +1845,38 @@ isp_hdrdrc_enable(struct rkisp_isp_params_vdev *params_vdev, bool en, u32 id)
 }
 
 static void
+isp_gic_cfg_noise_curve(struct rkisp_isp_params_vdev *params_vdev,
+			const struct isp33_gic_cfg *arg, u32 id, bool direct)
+{
+	struct rkisp_device *dev = params_vdev->dev;
+	u32 i, val;
+
+	for (i = 0; i < ISP33_GIC_SIGMA_Y_NUM / 2; i++) {
+		val = ISP_PACK_2SHORT(arg->bfflt_vsigma_y[i * 2],
+				      arg->bfflt_vsigma_y[i * 2 + 1]);
+		rkisp_idx_write(dev, ISP33_GIC_SIGMA_Y0 + i * 4, val, id, direct);
+	}
+	val = arg->bfflt_vsigma_y[i * 2];
+	rkisp_idx_write(dev, ISP33_GIC_SIGMA_Y8, val, id, direct);
+}
+
+static void
 isp_gic_config(struct rkisp_isp_params_vdev *params_vdev,
 	       const struct isp33_gic_cfg *arg, u32 id)
 {
-	u32 value;
+	struct isp33_isp_params_cfg *params_rec = params_vdev->isp33_params + id;
+	struct isp33_gic_cfg *arg_rec = &params_rec->others.gic_cfg;
+	u32 value, ctrl;
 	s32 i;
 
-	value = isp3_param_read(params_vdev, ISP3X_GIC_CONTROL, id);
-	value &= ISP33_MODULE_EN;
-	value |= !!arg->bypass_en << 1 |
-		 !!arg->pro_mode << 2 |
-		 !!arg->manualnoisecurve_en << 3 |
-		 !!arg->manualnoisethred_en << 4 |
-		 !!arg->gain_bypass_en << 5;
-	isp3_param_write(params_vdev, value, ISP3X_GIC_CONTROL, id);
+	ctrl = isp3_param_read(params_vdev, ISP3X_GIC_CONTROL, id);
+	ctrl &= ISP33_MODULE_EN;
+	ctrl |= !!arg->bypass_en << 1 |
+		!!arg->pro_mode << 2 |
+		!!arg->manualnoisecurve_en << 3 |
+		!!arg->manualnoisethred_en << 4 |
+		!!arg->gain_bypass_en << 5;
+	isp3_param_write(params_vdev, ctrl, ISP3X_GIC_CONTROL, id);
 
 	value = (arg->medflt_minthred & 0xf) |
 		(arg->medflt_maxthred & 0xf) << 4 | arg->medflt_ratio << 16;
@@ -1881,13 +1899,9 @@ isp_gic_config(struct rkisp_isp_params_vdev *params_vdev,
 			       arg->bfflt_coeff2, 0);
 	isp3_param_write(params_vdev, value, ISP33_GIC_DISWGT_COEFF, id);
 
-	for (i = 0; i < ISP33_GIC_SIGMA_Y_NUM / 2; i++) {
-		value = ISP_PACK_2SHORT(arg->bfflt_vsigma_y[i * 2],
-					arg->bfflt_vsigma_y[i * 2 + 1]);
-		isp3_param_write(params_vdev, value, ISP33_GIC_SIGMA_Y0 + i * 4, id);
-	}
-	value = arg->bfflt_vsigma_y[i * 2];
-	isp3_param_write(params_vdev, value, ISP33_GIC_SIGMA_Y8, id);
+	if (!(ctrl & ISP33_MODULE_EN) || arg->manualnoisecurve_en)
+		memcpy(arg_rec->bfflt_vsigma_y, arg->bfflt_vsigma_y, sizeof(arg->bfflt_vsigma_y));
+	isp_gic_cfg_noise_curve(params_vdev, arg_rec, id, false);
 
 	value = (arg->luma_dx[0] & 0xf) | (arg->luma_dx[1] & 0xf) << 4 |
 		(arg->luma_dx[2] & 0xf) << 8 | (arg->luma_dx[3] & 0xf) << 12 |
@@ -2626,23 +2640,23 @@ isp_sharp_config(struct rkisp_isp_params_vdev *params_vdev,
 		 const struct isp33_sharp_cfg *arg, u32 id)
 {
 	struct isp33_isp_params_cfg *params_rec = params_vdev->isp33_params + id;
-	u32 i, value;
+	struct isp33_sharp_cfg *arg_rec = &params_rec->others.sharp_cfg;
+	u32 i, value, ctrl;
 
-	value = isp3_param_read(params_vdev, ISP3X_SHARP_EN, id);
-	value &= ISP33_MODULE_EN;
-
-	value |= !!arg->bypass << 1 |
-		 !!arg->local_gain_bypass << 2 |
-		 !!arg->tex_est_mode << 3 |
-		 !!arg->max_min_flt_mode << 4 |
-		 !!arg->detail_fusion_wgt_mode << 5 |
-		 !!arg->noise_calc_mode << 6 |
-		 !!arg->radius_step_mode << 7 |
-		 !!arg->noise_curve_mode << 8 |
-		 !!arg->gain_wgt_mode << 9 |
-		 !!arg->detail_lp_en << 10 |
-		 (arg->debug_mode & 0x7) << 12;
-	isp3_param_write(params_vdev, value, ISP3X_SHARP_EN, id);
+	ctrl = isp3_param_read(params_vdev, ISP3X_SHARP_EN, id);
+	ctrl &= ISP33_MODULE_EN;
+	ctrl |= !!arg->bypass << 1 |
+		!!arg->local_gain_bypass << 2 |
+		!!arg->tex_est_mode << 3 |
+		!!arg->max_min_flt_mode << 4 |
+		!!arg->detail_fusion_wgt_mode << 5 |
+		!!arg->noise_calc_mode << 6 |
+		!!arg->radius_step_mode << 7 |
+		!!arg->noise_curve_mode << 8 |
+		!!arg->gain_wgt_mode << 9 |
+		!!arg->detail_lp_en << 10 |
+		(arg->debug_mode & 0x7) << 12;
+	isp3_param_write(params_vdev, ctrl, ISP3X_SHARP_EN, id);
 
 	value = ISP_PACK_2SHORT(arg->fst_noise_scale, arg->fst_sigma_scale);
 	isp3_param_write(params_vdev, value, ISP33_SHARP_TEXTURE0, id);
@@ -2891,8 +2905,12 @@ isp_sharp_config(struct rkisp_isp_params_vdev *params_vdev,
 	isp3_param_write(params_vdev, value, ISP33_SHARP_NOISE_CLIP, id);
 
 	/* SHARP_NOISE_CURVE read back is not the config value, need to save */
-	isp_sharp_cfg_noise_curve(params_vdev, arg, id, false);
-	memcpy(&params_rec->others.sharp_cfg, arg, sizeof(struct isp33_sharp_cfg));
+	if (!(ctrl & ISP33_MODULE_EN) || arg->noise_curve_mode)
+		memcpy(arg_rec->noise_curve_ext,
+		       arg->noise_curve_ext, sizeof(arg->noise_curve_ext));
+	arg_rec->noise_count_thred_ratio = arg->noise_count_thred_ratio;
+	arg_rec->noise_clip_scale = arg->noise_clip_scale;
+	isp_sharp_cfg_noise_curve(params_vdev, arg_rec, id, false);
 }
 
 static void
@@ -3229,6 +3247,8 @@ isp_bay3d_enable(struct rkisp_isp_params_vdev *params_vdev, bool en, u32 id)
 			return;
 		}
 
+		isp3_param_write(params_vdev, 0, ISP3X_MI_BAY3D_IIR_WR_LENGTH, id);
+		isp3_param_write(params_vdev, 0, ISP3X_MI_BAY3D_IIR_RD_LENGTH, id);
 		value = priv_val->bay3d_iir_size;
 		isp3_param_write(params_vdev, value, ISP3X_MI_BAY3D_IIR_WR_SIZE, id);
 		value = priv_val->buf_3dnr_iir.dma_addr + value * id;
@@ -3248,12 +3268,16 @@ isp_bay3d_enable(struct rkisp_isp_params_vdev *params_vdev, bool en, u32 id)
 			isp3_param_write(params_vdev, value, ISP3X_GAIN_CTRL, id);
 		}
 
+		isp3_param_write(params_vdev, 0, ISP3X_MI_BAY3D_DS_WR_LENGTH, id);
+		isp3_param_write(params_vdev, 0, ISP3X_MI_BAY3D_DS_RD_LENGTH, id);
 		value = priv_val->bay3d_ds_size;
 		isp3_param_write(params_vdev, value, ISP3X_MI_BAY3D_DS_WR_SIZE, id);
 		value = priv_val->buf_3dnr_ds.dma_addr + value * id;
 		isp3_param_write(params_vdev, value, ISP3X_MI_BAY3D_DS_WR_BASE, id);
 		isp3_param_write(params_vdev, value, ISP3X_MI_BAY3D_DS_RD_BASE, id);
 
+		isp3_param_write(params_vdev, 0, ISP3X_MI_BAY3D_CUR_WR_LENGTH, id);
+		isp3_param_write(params_vdev, 0, ISP3X_MI_BAY3D_CUR_RD_LENGTH, id);
 		value = priv_val->bay3d_wgt_size;
 		isp3_param_write(params_vdev, value, ISP3X_MI_BAY3D_CUR_WR_SIZE, id);
 		isp3_param_write(params_vdev, value, ISP32_MI_BAY3D_CUR_RD_SIZE, id);
@@ -3725,10 +3749,11 @@ void __isp_isr_meas_config(struct rkisp_isp_params_vdev *params_vdev,
 	struct rkisp_isp_params_ops_v33 *ops = params_vdev->priv_ops;
 	u64 module_cfg_update = new_params->module_cfg_update;
 
-	params_vdev->cur_frame_id = new_params->frame_id;
 	if (type == RKISP_PARAMS_SHD)
 		return;
 
+	params_vdev->cur_frame_id = new_params->frame_id;
+	params_vdev->exposure = new_params->exposure;
 	v4l2_dbg(4, rkisp_debug, &params_vdev->dev->v4l2_dev,
 		 "%s id:%d seq:%d module_cfg_update:0x%llx\n",
 		 __func__, id, new_params->frame_id, module_cfg_update);
@@ -3788,7 +3813,10 @@ void rkisp_params_cfgsram_v33(struct rkisp_isp_params_vdev *params_vdev, bool is
 	struct isp33_isp_params_cfg *params = params_vdev->isp33_params + id;
 
 	if (is_reset) {
+		isp3_param_set_bits(params_vdev, ISP3X_ISP_CTRL1,
+				    ISP33_GIC_FST_FRAME | ISP32_SHP_FST_FRAME, id);
 		isp_sharp_cfg_noise_curve(params_vdev, &params->others.sharp_cfg, id, true);
+		isp_gic_cfg_noise_curve(params_vdev, &params->others.gic_cfg, id, true);
 		params->others.enh_cfg.iir_wr = true;
 		params->others.hist_cfg.iir_wr = true;
 	}
@@ -3940,12 +3968,12 @@ rkisp_params_check_bigmode_v33(struct rkisp_isp_params_vdev *params_vdev)
 	struct rkisp_device *dev = params_vdev->dev;
 	struct rkisp_hw_dev *hw = params_vdev->dev->hw_dev;
 
-	dev->multi_index = 0;
+	dev->multi_index = dev->dev_id;
+	if (dev->unite_div > ISP_UNITE_DIV1)
+		dev->multi_index = 0;
 	dev->multi_mode = 0;
-	if (!hw->is_single) {
+	if (!hw->is_single)
 		dev->is_frm_rd = true;
-		dev->multi_index = dev->dev_id;
-	}
 
 	return dev->is_bigmode = false;
 }
@@ -4075,9 +4103,9 @@ static int rkisp_init_mesh_buf(struct rkisp_isp_params_vdev *params_vdev,
 				rkisp_free_buffer(params_vdev->dev, buf);
 			} else {
 				is_alloc = false;
-				buf->dma_fd = dma_buf_fd(buf->dbuf, O_CLOEXEC);
-				if (buf->dma_fd < 0)
+				if (rkisp_buf_get_fd(ispdev, buf, false) < 0)
 					goto err;
+				mesh_head = (struct isp2x_mesh_head *)buf->vaddr;
 			}
 		}
 		if (is_alloc) {
@@ -4088,9 +4116,9 @@ static int rkisp_init_mesh_buf(struct rkisp_isp_params_vdev *params_vdev,
 				goto err;
 			}
 			mesh_head = (struct isp2x_mesh_head *)buf->vaddr;
-			mesh_head->stat = MESH_BUF_INIT;
-			mesh_head->data_oft = ALIGN(sizeof(struct isp2x_mesh_head), 16);
 		}
+		mesh_head->stat = MESH_BUF_INIT;
+		mesh_head->data_oft = ALIGN(sizeof(struct isp2x_mesh_head), 16);
 		buf++;
 	}
 
@@ -4455,9 +4483,8 @@ rkisp_params_clear_fstflg(struct rkisp_isp_params_vdev *params_vdev)
 	if (params_vdev->dev->hw_dev->is_single)
 		return;
 	value &= (ISP3X_YNR_FST_FRAME | ISP3X_ADRC_FST_FRAME |
-		  ISP3X_CNR_FST_FRAME | ISP33_GIC_FST_FRAME |
-		  ISP33_ENH_FST_FRAME | ISP33_YHIST_FST_FRAME |
-		  ISP3X_RAW3D_FST_FRAME | ISP32_SHP_FST_FRAME);
+		  ISP3X_CNR_FST_FRAME | ISP3X_RAW3D_FST_FRAME |
+		  ISP33_ENH_FST_FRAME | ISP33_YHIST_FST_FRAME);
 	for (i = 0; i < params_vdev->dev->unite_div && value; i++)
 		isp3_param_clear_bits(params_vdev, ISP3X_ISP_CTRL1, value, i);
 }

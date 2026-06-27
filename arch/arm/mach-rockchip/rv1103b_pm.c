@@ -18,6 +18,7 @@
 #include <dt-bindings/suspend/rockchip-rv1103b.h>
 #include <linux/irqchip/arm-gic.h>
 #include <linux/rockchip/rockchip_pm_config.h>
+#include <linux/suspend.h>
 
 #include "rkpm_gicv2.h"
 #include "rkpm_helpers.h"
@@ -26,6 +27,7 @@
 #include "rv1103b_pm.h"
 
 #define RV1103B_PM_REG_REGION_MEM_SIZE		SZ_4K
+#define SLEEP_RESERVE_MEM_SIZE			SZ_4K
 
 enum {
 	RV1103B_GPIO_PULL_NONE,
@@ -62,6 +64,10 @@ struct rv1103b_sleep_ddr_data {
 static struct rv1103b_sleep_ddr_data ddr_data;
 
 static struct rk_sleep_config slp_cfg;
+
+static u32 sleep_rsv_mem_phy;
+static u32 *sleep_rsv_mem;
+static suspend_state_t pm_suspend_state = PM_SUSPEND_MEM;
 
 static void __iomem *pericru_base;
 static void __iomem *venccru_base;
@@ -356,6 +362,55 @@ static struct reg_region pd_pmu1_reg_rgns[] = {
 	{ REG_REGION(0x08, 0x18, 4, &qos_spi2ahb_base, 0)},
 };
 
+static struct reg_region pd_pmu0_reg_rgns[] = {
+	/* pmu0_cru */
+	{ REG_REGION(0x300, 0x300, 4, &pmu0cru_base, WMSK_VAL)},
+	{ REG_REGION(0x304, 0x304, 4, &pmu0cru_base, 0)},
+	{ REG_REGION(0x308, 0x308, 4, &pmu0cru_base, WMSK_VAL)},
+	{ REG_REGION(0x800, 0x808, 4, &pmu0cru_base, WMSK_VAL)},
+	{ REG_REGION(0xd00, 0xd00, 4, &pmu0cru_base, 0)},
+	{ REG_REGION(0xd04, 0xd04, 4, &pmu0cru_base, WMSK_VAL)},
+
+	/* pmu_grf */
+	{ REG_REGION(0x000, 0x01c, 4, &pmugrf_base, WMSK_VAL)},
+	{ REG_REGION(0x020, 0x028, 4, &pmugrf_base, 0)},
+	{ REG_REGION(0x040, 0x040, 4, &pmugrf_base, WMSK_VAL)},
+	{ REG_REGION(0x050, 0x050, 4, &pmugrf_base, WMSK_VAL)},
+	{ REG_REGION(0x060, 0x060, 4, &pmugrf_base, WMSK_VAL)},
+	{ REG_REGION(0x200, 0x22c, 4, &pmugrf_base, 0)},
+
+	/* pmu_sgrf */
+	{ REG_REGION(0x000, 0x004, 4, &pmusgrf_base, WMSK_VAL)},
+	{ REG_REGION(0x020, 0x020, 4, &pmusgrf_base, 0)},
+
+	/* gpio0 */
+	{ REG_REGION(0x000, 0x00c, 4, &gpio_base[0], WMSK_VAL)},
+	{ REG_REGION(0x018, 0x044, 4, &gpio_base[0], WMSK_VAL)},
+	{ REG_REGION(0x048, 0x048, 4, &gpio_base[0], 0)},
+	{ REG_REGION(0x060, 0x064, 4, &gpio_base[0], WMSK_VAL)},
+	{ REG_REGION(0x080, 0x084, 4, &gpio_base[0], WMSK_VAL)},
+	{ REG_REGION(0x110, 0x124, 4, &gpio_base[0], WMSK_VAL)},
+	{ REG_REGION(0x100, 0x108, 4, &gpio_base[0], WMSK_VAL)},
+
+	/* pmu0_ioc */
+	{ REG_REGION(0x000, 0x004, 4, &ioc0_base, WMSK_VAL)},
+	{ REG_REGION(0x100, 0x10c, 4, &ioc0_base, WMSK_VAL)},
+	{ REG_REGION(0x300, 0x300, 4, &ioc0_base, WMSK_VAL)},
+	{ REG_REGION(0x400, 0x400, 4, &ioc0_base, WMSK_VAL)},
+	{ REG_REGION(0x500, 0x500, 4, &ioc0_base, WMSK_VAL)},
+	{ REG_REGION(0x600, 0x600, 4, &ioc0_base, WMSK_VAL)},
+	{ REG_REGION(0x700, 0x700, 4, &ioc0_base, WMSK_VAL)},
+	{ REG_REGION(0x800, 0x804, 4, &ioc0_base, WMSK_VAL)},
+	{ REG_REGION(0x808, 0x808, 4, &ioc0_base, 0)},
+	{ REG_REGION(0x900, 0x900, 4, &ioc0_base, WMSK_VAL)},
+
+	/* pmu0_ioc pull */
+	{ REG_REGION(0x200, 0x200, 4, &ioc0_base, WMSK_VAL)},
+
+	/* gpio0 int en */
+	{ REG_REGION(0x010, 0x014, 4, &gpio_base[0], WMSK_VAL)},
+};
+
 static struct reg_region pvtpll_core_reg_rgns[] = {
 	{ REG_REGION(0x020, 0x024, 4, &pvtpll_core_base, WMSK_VAL)},
 	{ REG_REGION(0x020, 0x024, 4, &pvtpll_npu_base, WMSK_VAL)},
@@ -365,6 +420,56 @@ static struct reg_region pvtpll_logic_reg_rgns[] = {
 	{ REG_REGION(0x020, 0x024, 4, &pvtpll_vepu_base, WMSK_VAL)},
 	{ REG_REGION(0x020, 0x024, 4, &pvtpll_isp_base, WMSK_VAL)},
 };
+
+#define SYS_REG_DEC_BW(n)		(2 >> (((n) >> 2) & 0x3))
+#define SYS_REG_DEC_COL(n)		(9 + (((n) >> 9) & 0x3))
+#define SYS_REG_DEC_BK(n)		(3 - (((n) >> 8) & 0x1))
+#define SYS_REG_DEC_CS0_ROW(os_reg2, os_reg3)		\
+		((((((os_reg2) >> 6 & 0x3) |		\
+		 ((((os_reg3) >> 5) & 0x1) << 2)) + 1) & 0x7) + 12)
+
+static void init_sleep_reserve_mem(void)
+{
+	u32 os_reg2, os_reg3;
+	u32 bw, col, bk, cs0_row, cap;
+
+	if (sleep_rsv_mem != NULL)
+		goto mem_ok;
+
+	os_reg2 = readl_relaxed(pmugrf_base + RV1103B_PMUGRF_OS_REG(2));
+	os_reg3 = readl_relaxed(pmugrf_base + RV1103B_PMUGRF_OS_REG(3));
+	bw = SYS_REG_DEC_BW(os_reg2);
+	col = SYS_REG_DEC_COL(os_reg2);
+	bk = SYS_REG_DEC_BK(os_reg2);
+	cs0_row = SYS_REG_DEC_CS0_ROW(os_reg2, os_reg3);
+
+	cap = 1u << (bw + col + bk + cs0_row);
+
+	/* last 4k of ddr */
+	sleep_rsv_mem_phy = cap - SLEEP_RESERVE_MEM_SIZE;
+	rkpm_printstr("sleep_rsv_mem_phy:");
+	rkpm_printhex(sleep_rsv_mem_phy);
+	rkpm_printstr("\n");
+
+	sleep_rsv_mem = (u32 *)ioremap(sleep_rsv_mem_phy, SLEEP_RESERVE_MEM_SIZE);
+	if (sleep_rsv_mem == NULL) {
+		rkpm_printstr("can't map sleep_rsv_mem, halt!!!");
+		rkpm_printhex(sleep_rsv_mem_phy);
+		asm("b .");
+	} else {
+		rkpm_printstr("map sleep_rsv_mem:");
+		rkpm_printhex((u32)sleep_rsv_mem);
+		rkpm_printstr("\n");
+	}
+
+mem_ok:
+	/* save data for ddr.bin */
+	sleep_rsv_mem[0] = PMU_SUSPEND_MAGIC;
+	sleep_rsv_mem[1] = __pa_symbol(cpu_resume);
+	sleep_rsv_mem[2] = readl_relaxed(pmugrf_base + RV1103B_PMUGRF_OS_REG(2));
+	sleep_rsv_mem[3] = readl_relaxed(pmugrf_base + RV1103B_PMUGRF_OS_REG(3));
+	sleep_rsv_mem[4] = readl_relaxed(pmugrf_base + RV1103B_PMUGRF_OS_REG(4));
+}
 
 #define PLL_LOCKED_TIMEOUT		600000U
 
@@ -452,6 +557,20 @@ static void  rv1103b_dbg_sleep_enter_info(void)
 	rkpm_printstr(", ");
 	rkpm_printdec(++sleep_cnt);
 	rkpm_printch('\n');
+
+	switch (pm_suspend_state) {
+	case PM_SUSPEND_MEM_ULTRA:
+		rkpm_printstr("ultra\n");
+		break;
+	case PM_SUSPEND_MEM_LITE:
+		rkpm_printstr("lite\n");
+		break;
+	case PM_SUSPEND_MEM:
+		rkpm_printstr("deep\n");
+		break;
+	default:
+		break;
+	}
 
 	if (cfg & RKPM_SLP_ARMPD)
 		rkpm_printstr("armpd\n");
@@ -721,7 +840,7 @@ static void ddr_sleep_config_restore(void)
 static void suspend_workaround_timeout_wkup(void)
 {
 	int wkup;
-	u32 delta_cnt;
+	u64 delta_cnt;
 
 	if (ddr_data.entered_pmu_fsm)
 		return;
@@ -737,7 +856,7 @@ static void suspend_workaround_timeout_wkup(void)
 	delta_cnt = readl_relaxed(pmu_base + RV1103B_PMU1_WAKEUP_TIMEOUT);
 
 	if (slp_cfg.mode_config & RKPM_SLP_PMU_PMUALIVE_32K)
-		delta_cnt = delta_cnt / 32 * 24000;
+		delta_cnt = delta_cnt * 24000000 / 32768;
 
 	rk_hptimer_v2_config_sleep_timeout_int(hptimer_base, delta_cnt);
 }
@@ -893,10 +1012,16 @@ static void pmu_sleep_config(void)
 			  BIT(RV1103B_PMU_INPUT_CLAMP) |
 			  0);
 
+		pmu1_ddr_con =
+			BIT(RV1103B_PMU_DDR_SREF_C) |
+			BIT(RV1103B_PMU_DDR_SREF_A) |
+			0;
+
 		/* resume from pmusram */
 		writel_relaxed(BITS_WITH_WMASK(2, 0x3, 10),
 			       pmusgrf_base + RV1103B_PMUSGRF_SOC_CON(1));
-	} else if (cfg & RKPM_SLP_ARMOFF_LOGOFF) {
+	} else if ((cfg & RKPM_SLP_ARMOFF_LOGOFF) ||
+		   (pm_suspend_state == PM_SUSPEND_MEM_ULTRA)) {
 		/* pmu reset hold */
 		/* except lpmcu */
 		writel_relaxed(0xffff3fff, pmugrf_base + RV1103B_PMUGRF_SOC_CON(4));
@@ -904,7 +1029,7 @@ static void pmu_sleep_config(void)
 		writel_relaxed(0x007f007e, pmugrf_base + RV1103B_PMUGRF_SOC_CON(5));
 		writel_relaxed(0xffffffff, pmugrf_base + RV1103B_PMUGRF_SOC_CON(6));
 
-		/* resume from pmusram */
+		/* resume from bootrom */
 		writel_relaxed(BITS_WITH_WMASK(0, 0x3, 10),
 			       pmusgrf_base + RV1103B_PMUSGRF_SOC_CON(1));
 	} else if (cfg & RKPM_SLP_ARMOFF_PMUOFF) {
@@ -1001,6 +1126,11 @@ static void pmu_sleep_restore(void)
 	ddr_data.gpio0_int_st = readl_relaxed(gpio_base[0] + RV1103B_GPIO_INT_STATUS);
 
 	resume_workaround_timeout_wkup();
+
+	if (pm_suspend_state == PM_SUSPEND_MEM_ULTRA)
+		sleep_rsv_mem[0] = 0;
+
+	writel_relaxed(0, pmugrf_base + RV1103B_PMUGRF_OS_REG(9));
 
 	writel_relaxed(0xffff0000, pmu_base + RV1103B_PMU0_PWR_CON);
 	writel_relaxed(0xffff0000, pmu_base + RV1103B_PMU0_INFO_TX_CON);
@@ -1112,10 +1242,41 @@ static void gpio0_set_lvl(u32 pin_id, int lvl)
 			       gpio_base[0] + RV1103B_GPIO_SWPORT_DR_H);
 }
 
+static void sleep_pin_config(void)
+{
+	u32 en_msk = slp_cfg.sleep_pin_config[0] & 0x3;
+	u32 act_val = slp_cfg.sleep_pin_config[1] & 0x3;
+
+	/* pwr0 sleep: gpio0_a3 */
+	if (en_msk & RKPM_SLEEP_PIN0_EN) {
+		writel_relaxed(BITS_WITH_WMASK(0, 0x3, 0),
+			       pmugrf_base + RV1103B_PMUGRF_SOC_CON(1));
+		writel_relaxed(BITS_WITH_WMASK(act_val & 0x1, 0x1, 4),
+			       pmugrf_base + RV1103B_PMUGRF_SOC_CON(1));
+		writel_relaxed(BITS_WITH_WMASK(1, 0xf, 12), ioc0_base + 0x0);
+		dsb();
+		writel_relaxed(BITS_WITH_WMASK(0, 0x3, 6), ioc0_base + 0x200);
+	}
+
+	/* pwr1 sleep: gpio_a4 */
+	if (en_msk & RKPM_SLEEP_PIN1_EN) {
+		writel_relaxed(BITS_WITH_WMASK(0, 0x3, 2),
+			       pmugrf_base + RV1103B_PMUGRF_SOC_CON(1));
+		writel_relaxed(BITS_WITH_WMASK((act_val >> 1) & 0x1, 0x1, 5),
+			       pmugrf_base + RV1103B_PMUGRF_SOC_CON(1));
+		writel_relaxed(BITS_WITH_WMASK(1, 0xf, 0), ioc0_base + 0x4);
+		dsb();
+		writel_relaxed(BITS_WITH_WMASK(0, 0x3, 8), ioc0_base + 0x200);
+	}
+}
+
 static void gpio_config(void)
 {
 	u32 iomux, dir, lvl, pull, id;
 	u32 cfg, i;
+
+	if (pm_suspend_state == PM_SUSPEND_MEM_ULTRA)
+		return;
 
 	ddr_data.gpio0a_iomux_l = readl_relaxed(ioc0_base + 0);
 	ddr_data.gpio0a_iomux_h = readl_relaxed(ioc0_base + 0x4);
@@ -1153,10 +1314,15 @@ static void gpio_config(void)
 		writel_relaxed(0x01ff01ff, pmu_base + RV1103B_PMU0_INFO_TX_CON);
 		writel_relaxed(BITS_WITH_WMASK(0x5, 0xf, 4), ioc1_base + 0x8); /* gpio0_b1 */
 	}
+
+	sleep_pin_config();
 }
 
 static void gpio_restore(void)
 {
+	if (pm_suspend_state == PM_SUSPEND_MEM_ULTRA)
+		return;
+
 	writel_relaxed(WITH_16BITS_WMSK(ddr_data.gpio0_ddr_l),
 		       gpio_base[0] + RV1103B_GPIO_SWPORT_DDR_L);
 	writel_relaxed(WITH_16BITS_WMSK(ddr_data.gpio0_ddr_h),
@@ -1304,8 +1470,36 @@ static void pd_pmu1_regs_restore(void)
 	rkpm_printch('b');
 }
 
+static void pd_pmu0_regs_save(void)
+{
+	rkpm_printch('a');
+
+	rkpm_reg_rgn_save(pd_pmu0_reg_rgns, ARRAY_SIZE(pd_pmu0_reg_rgns));
+	rkpm_printch('b');
+}
+
+static void pd_pmu0_regs_restore(void)
+{
+	rkpm_printch('a');
+
+	rkpm_bootdata_cpusp = RV1103B_PMUSRAM_BASE + (SZ_8K - 8);
+	rkpm_bootdata_cpu_code = __pa_symbol(cpu_resume);
+	rkpm_bootdata_l2ctlr_f = 1;
+	rkpm_bootdata_l2ctlr = rv1103b_l2_config();
+
+	/* copy resume code and data to pmusram */
+	memcpy(pmusram_base, rockchip_slp_cpu_resume,
+	       rv1103b_bootram_sz + 0x50);
+	rkpm_printch('b');
+
+	rkpm_reg_rgn_restore(pd_pmu0_reg_rgns, ARRAY_SIZE(pd_pmu0_reg_rgns));
+	rkpm_printch('c');
+}
+
 static void hptimer_init(void)
 {
+	rk_hptimer_v2_clear_int_st(hptimer_base, RK_HPTIMER_V2_INT_SYNC);
+
 	if (rk_hptimer_get_mode(hptimer_base) == RK_HPTIMER_HARD_ADJUST_MODE)
 		return;
 
@@ -1350,6 +1544,7 @@ static void rkpm_reg_rgns_init(void)
 	rkpm_alloc_region_mem(vd_core_reg_rgns, ARRAY_SIZE(vd_core_reg_rgns));
 	rkpm_alloc_region_mem(vd_log_reg_rgns, ARRAY_SIZE(vd_log_reg_rgns));
 	rkpm_alloc_region_mem(pd_pmu1_reg_rgns, ARRAY_SIZE(pd_pmu1_reg_rgns));
+	rkpm_alloc_region_mem(pd_pmu0_reg_rgns, ARRAY_SIZE(pd_pmu0_reg_rgns));
 	rkpm_alloc_region_mem(pvtpll_core_reg_rgns, ARRAY_SIZE(pvtpll_core_reg_rgns));
 	rkpm_alloc_region_mem(pvtpll_logic_reg_rgns, ARRAY_SIZE(pvtpll_logic_reg_rgns));
 }
@@ -1361,6 +1556,7 @@ static void rkpm_regs_rgn_dump(void)
 	rkpm_dump_reg_rgns(vd_core_reg_rgns, ARRAY_SIZE(vd_core_reg_rgns));
 	rkpm_dump_reg_rgns(vd_log_reg_rgns, ARRAY_SIZE(vd_log_reg_rgns));
 	rkpm_dump_reg_rgns(pd_pmu1_reg_rgns, ARRAY_SIZE(pd_pmu1_reg_rgns));
+	rkpm_dump_reg_rgns(pd_pmu0_reg_rgns, ARRAY_SIZE(pd_pmu0_reg_rgns));
 	rkpm_dump_reg_rgns(pvtpll_core_reg_rgns, ARRAY_SIZE(pvtpll_core_reg_rgns));
 	rkpm_dump_reg_rgns(pvtpll_logic_reg_rgns, ARRAY_SIZE(pvtpll_logic_reg_rgns));
 }
@@ -1397,6 +1593,13 @@ static int rv1103b_suspend_enter(suspend_state_t state)
 	if (config != NULL)
 		memcpy(&slp_cfg, config, sizeof(slp_cfg));
 
+	pm_suspend_state = mem_sleep_current;
+	if (pm_suspend_state == PM_SUSPEND_MEM_ULTRA) {
+		init_sleep_reserve_mem();
+		slp_cfg.mode_config &= ~0x1f;
+		writel_relaxed(0, pmu_base + RV1103B_PMU1_WAKEUP_TIMEOUT);
+	}
+
 	mode_cfg = slp_cfg.mode_config;
 
 	rv1103b_dbg_sleep_enter_info();
@@ -1422,29 +1625,41 @@ static int rv1103b_suspend_enter(suspend_state_t state)
 	vd_core_regs_save();
 	rkpm_printch('4');
 
-	if (mode_cfg & (RKPM_SLP_ARMOFF_LOGOFF | RKPM_SLP_ARMOFF_PMUOFF))
+	if ((mode_cfg & (RKPM_SLP_ARMOFF_LOGOFF | RKPM_SLP_ARMOFF_PMUOFF)) ||
+	    (pm_suspend_state == PM_SUSPEND_MEM_ULTRA))
 		vd_log_regs_save();
 	rkpm_printch('5');
 
-	if (mode_cfg & RKPM_SLP_ARMOFF_PMUOFF)
+	if ((mode_cfg & RKPM_SLP_ARMOFF_PMUOFF) ||
+	    (pm_suspend_state == PM_SUSPEND_MEM_ULTRA))
 		pd_pmu1_regs_save();
 	rkpm_printch('6');
 
 	hptimer_suspend();
+	rkpm_printch('7');
+
+	if (pm_suspend_state == PM_SUSPEND_MEM_ULTRA)
+		pd_pmu0_regs_save();
 
 	rkpm_regs_rgn_dump();
 
 	rkpm_printstr("-WFI-");
 	cpu_suspend(0, rockchip_lpmode_enter);
 
+	if (pm_suspend_state == PM_SUSPEND_MEM_ULTRA)
+		pd_pmu0_regs_restore();
+	rkpm_printch('7');
+
 	hptimer_resume();
 	rkpm_printch('6');
 
-	if (mode_cfg & RKPM_SLP_ARMOFF_PMUOFF)
+	if ((mode_cfg & RKPM_SLP_ARMOFF_PMUOFF) ||
+	    (pm_suspend_state == PM_SUSPEND_MEM_ULTRA))
 		pd_pmu1_regs_restore();
 	rkpm_printch('5');
 
-	if (mode_cfg & (RKPM_SLP_ARMOFF_LOGOFF | RKPM_SLP_ARMOFF_PMUOFF))
+	if ((mode_cfg & (RKPM_SLP_ARMOFF_LOGOFF | RKPM_SLP_ARMOFF_PMUOFF)) ||
+	    (pm_suspend_state == PM_SUSPEND_MEM_ULTRA))
 		vd_log_regs_restore();
 	rkpm_printch('4');
 
