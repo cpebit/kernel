@@ -4009,10 +4009,11 @@ void __isp_isr_meas_config(struct rkisp_isp_params_vdev *params_vdev,
 		(struct rkisp_isp_params_ops_v3x *)params_vdev->priv_ops;
 	u64 module_cfg_update = new_params->module_cfg_update;
 
-	params_vdev->cur_frame_id = new_params->frame_id;
 	if (type == RKISP_PARAMS_SHD)
 		return;
 
+	params_vdev->cur_frame_id = new_params->frame_id;
+	params_vdev->exposure = new_params->exposure;
 	v4l2_dbg(4, rkisp_debug, &params_vdev->dev->v4l2_dev,
 		 "%s id:%d seq:%d module_cfg_update:0x%llx\n",
 		 __func__, id, new_params->frame_id, module_cfg_update);
@@ -4495,6 +4496,7 @@ static int rkisp_init_mesh_buf(struct rkisp_isp_params_vdev *params_vdev,
 	u32 mesh_size, buf_size;
 	int i, ret, id = meshsize->unite_isp_id;
 	int buf_cnt = meshsize->buf_cnt;
+	bool is_alloc;
 
 	priv_val = params_vdev->priv_val;
 	if (!priv_val) {
@@ -4527,14 +4529,26 @@ static int rkisp_init_mesh_buf(struct rkisp_isp_params_vdev *params_vdev,
 		buf->is_need_vaddr = true;
 		buf->is_need_dbuf = true;
 		buf->is_need_dmafd = true;
-		buf->size = buf_size;
-		ret = rkisp_alloc_buffer(params_vdev->dev, buf);
-		if (ret) {
-			dev_err(dev, "%s failed\n", __func__);
-			goto err;
+		is_alloc = true;
+		if (buf->mem_priv) {
+			if (buf_size > buf->size) {
+				rkisp_free_buffer(params_vdev->dev, buf);
+			} else {
+				is_alloc = false;
+				if (rkisp_buf_get_fd(ispdev, buf, false) < 0)
+					goto err;
+				mesh_head = (struct isp2x_mesh_head *)buf->vaddr;
+			}
 		}
-
-		mesh_head = (struct isp2x_mesh_head *)buf->vaddr;
+		if (is_alloc) {
+			buf->size = buf_size;
+			ret = rkisp_alloc_buffer(params_vdev->dev, buf);
+			if (ret) {
+				dev_err(dev, "%s failed\n", __func__);
+				goto err;
+			}
+			mesh_head = (struct isp2x_mesh_head *)buf->vaddr;
+		}
 		mesh_head->stat = MESH_BUF_INIT;
 		mesh_head->data_oft = ALIGN(sizeof(struct isp2x_mesh_head), 16);
 		buf++;

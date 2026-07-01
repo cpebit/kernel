@@ -103,4 +103,15 @@ struct rkisp_rx_buf {
 	bool is_uncompact;
 };
 
+struct rkisp_vicap_sof {
+	u64 timestamp;
+	u32 sequence;
+	u32 exp[3];
+	u32 gain[3];
+	u32 hts;
+	u32 vts;
+	u32 pclk;
+	bool is_exp_active;
+};
+
 #endif

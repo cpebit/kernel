@@ -53,8 +53,6 @@
 #define CLK_PWM2				42
 #define DCLK_DECOM_SRC				43
 #define CCLK_SDMMC1				44
-#define CLK_CORE_CRYPTO				45
-#define CLK_PKA_CRYPTO				46
 #define CLK_CORE_RGA				47
 #define MCLK_SAI_SRC				48
 #define CLK_FREQ_PWM0_SRC			49
@@ -179,9 +177,7 @@
 #define HCLK_SDMMC1				168
 #define HCLK_SAI				169
 #define MCLK_SAI				170
-#define ACLK_CRYPTO				171
 #define HCLK_CRYPTO				172
-#define HCLK_RK_RNG_NS				173
 #define HCLK_RK_RNG_S				174
 #define PCLK_OTPC_NS				175
 #define CLK_OTPC_ROOT_NS			176
@@ -221,6 +217,13 @@
 #define CLK_REF_USBPHY				230
 
 #define CLK_NR_CLKS				(CLK_REF_USBPHY + 1)
+
+#define CLK_CORE_CRYPTO				1
+#define CLK_PKA_CRYPTO				2
+#define ACLK_CRYPTO				3
+#define HCLK_RK_RNG_NS				4
+
+#define CLK_NR_GRF_CLKS				(HCLK_RK_RNG_NS + 1)
 
 // PERICRU_SOFTRST_CON00(Offset:0xA00)
 #define SRST_ARESETN_PERI_BIU			0x00000002

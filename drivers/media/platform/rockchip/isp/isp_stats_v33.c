@@ -38,23 +38,40 @@ static int
 rkisp_stats_get_sharp_stats(struct rkisp_isp_stats_vdev *stats_vdev,
 			    struct rkisp33_stat_buffer *pbuf)
 {
-	struct isp33_sharp_stat *sharp;
-	u32 i, val;
+	struct rkisp_device *dev = stats_vdev->dev;
+	struct rkisp_isp_params_vdev *params = &dev->params_vdev;
+	struct isp33_isp_params_cfg *params_rec = params->isp33_params + dev->unite_index;
+	struct isp33_sharp_cfg *sharp_arg_rec = &params_rec->others.sharp_cfg;
+	struct isp33_gic_cfg *gic_arg_rec = &params_rec->others.gic_cfg;
+	struct isp33_sharp_stat *sharp_stat = NULL;
+	u16 noise_curve[ISP33_SHARP_NOISE_CURVE_NUM];
+	u32 i, val, size = sizeof(noise_curve);
+	bool is_sharp_curve_mode, is_gic_curve_mode;
 
-	if (!pbuf)
-		return 0;
-
+	if (pbuf)
+		sharp_stat = &pbuf->stat.sharp;
 	val = isp3_stats_read(stats_vdev, ISP3X_SHARP_EN);
 	if (val & 0x1) {
-		sharp = &pbuf->stat.sharp;
+		is_sharp_curve_mode = !!(val & BIT(8));
+		val = isp3_stats_read(stats_vdev, ISP3X_GIC_CONTROL);
+		is_gic_curve_mode = (!(val & 1) || !!(val & BIT(3)));
+		/* noise_curve_ext noise_curve and bfflt_vsigma_y are of the same size */
 		for (i = 0; i < ISP33_SHARP_NOISE_CURVE_NUM / 2; i++) {
 			val = isp3_stats_read(stats_vdev, ISP33_SHARP_NOISE_CURVE0 + i * 4);
-			sharp->noise_curve[i * 2] = val & 0x7ff;
-			sharp->noise_curve[i * 2 + 1] = (val >> 16) & 0x7ff;
+			noise_curve[i * 2] = val & 0x7ff;
+			noise_curve[i * 2 + 1] = (val >> 16) & 0x7ff;
 		}
 		val = isp3_stats_read(stats_vdev, ISP33_SHARP_NOISE_CURVE8);
-		sharp->noise_curve[i * 2] = val & 0x7ff;
-		pbuf->meas_type |= ISP33_STAT_SHARP;
+		noise_curve[i * 2] = val & 0x7ff;
+		if (sharp_stat) {
+			pbuf->meas_type |= ISP33_STAT_SHARP;
+			memcpy(sharp_stat->noise_curve, noise_curve, size);
+		}
+		/* save hardware curve for next frame config if resume or multi-sensor */
+		if (!is_sharp_curve_mode)
+			memcpy(sharp_arg_rec->noise_curve_ext, noise_curve, size);
+		if (!is_gic_curve_mode)
+			memcpy(gic_arg_rec->bfflt_vsigma_y, noise_curve, size);
 	}
 	return 0;
 }
@@ -504,10 +521,26 @@ rkisp_get_stat_size_v33(struct rkisp_isp_stats_vdev *stats_vdev,
 	stats_vdev->vdev_fmt.fmt.meta.buffersize = sizes[0];
 }
 
+static void rkisp_stats_stop_v33(struct rkisp_isp_stats_vdev *stats_vdev)
+{
+	struct rkisp_device *dev = stats_vdev->dev;
+	u32 val, addr;
+
+	/* aiq crash or exit first */
+	if (dev->isp_state & ISP_START &&
+	    stats_vdev->stats_buf[0].mem_priv) {
+		rkisp_stats_update_buf(stats_vdev);
+		addr = stats_vdev->stats_buf[0].dma_addr;
+		readl_poll_timeout(dev->hw_dev->base_addr + ISP33_W3A_AEBIG_ADDR_SHD,
+				   val, val == addr, 5000, 50000);
+	}
+}
+
 static struct rkisp_isp_stats_ops rkisp_isp_stats_ops_tbl = {
 	.isr_hdl = rkisp_stats_isr_v33,
 	.send_meas = rkisp_stats_send_meas_v33,
 	.get_stat_size = rkisp_get_stat_size_v33,
+	.stats_stop = rkisp_stats_stop_v33,
 };
 
 void rkisp_stats_first_ddr_config_v33(struct rkisp_isp_stats_vdev *stats_vdev)

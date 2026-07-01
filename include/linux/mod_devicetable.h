@@ -447,6 +447,9 @@ struct hv_vmbus_device_id {
 
 struct rpmsg_device_id {
 	char name[RPMSG_NAME_SIZE];
+#ifdef CONFIG_NO_GKI
+	kernel_ulong_t driver_data;
+#endif
 };
 
 /* i2c */
@@ -669,6 +672,8 @@ struct x86_cpu_id {
 	__u16 model;
 	__u16 steppings;
 	__u16 feature;	/* bit index */
+	/* Solely for kernel-internal use: DO NOT EXPORT to userspace! */
+	__u16 flags;
 	kernel_ulong_t driver_data;
 };
 

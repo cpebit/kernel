@@ -1000,6 +1000,32 @@ void rkisp_vicap_hw_link(struct rkisp_device *dev, int on)
 	v4l2_subdev_call(sd, core, ioctl, RKISP_VICAP_CMD_HW_LINK, &on);
 }
 
+static struct rkisp_device *find_next_isp(struct rkisp_device *dev)
+{
+	struct rkisp_hw_dev *hw = dev->hw_dev;
+	struct rkisp_device *isp = NULL;
+	int i, id = dev->dev_id;
+
+	for (i = id + 1; i < hw->dev_num; i++) {
+		isp = hw->isp[i];
+		if (!isp || (isp && !(isp->isp_state & ISP_START)))
+			continue;
+		break;
+	}
+	if (i == hw->dev_num) {
+		isp = NULL;
+		for (i = 0; i < id; i++) {
+			isp = hw->isp[i];
+			if (!isp || (isp && !(isp->isp_state & ISP_START)))
+				continue;
+			break;
+		}
+		if (i == id)
+			isp = NULL;
+	}
+	return isp;
+}
+
 static void rkisp_rdbk_trigger_handle(struct rkisp_device *dev, u32 cmd)
 {
 	struct rkisp_hw_dev *hw = dev->hw_dev;
@@ -1034,11 +1060,11 @@ static void rkisp_rdbk_trigger_handle(struct rkisp_device *dev, u32 cmd)
 		/* fast offline switch to online for multi sensor or unite mode
 		 * one isp running first and switch to online, then other isp running
 		 */
-		if (!IS_HDR_RDBK(dev->rd_mode) &&
+		if (!IS_HDR_RDBK(dev->rd_mode) && !hw->is_single &&
 		    (dev->unite_div > ISP_UNITE_DIV1 || atomic_read(&hw->refcnt) == 1))
 			isp = dev;
 		else
-			isp = hw->isp[!dev->dev_id];
+			isp = find_next_isp(dev);
 		if (isp &&
 		    isp->isp_state & ISP_START &&
 		    !IS_HDR_RDBK(isp->rd_mode)) {
@@ -1193,7 +1219,7 @@ static void rkisp_multi_online_switch(struct rkisp_device *dev)
 {
 	struct rkisp_hw_dev *hw = dev->hw_dev;
 	struct rkisp_device *isp = NULL;
-	int val = 0, id = dev->dev_id;
+	int val = 0;
 	unsigned long lock_flags = 0;
 	bool is_switch = false;
 	bool to_online = false;
@@ -1214,7 +1240,7 @@ static void rkisp_multi_online_switch(struct rkisp_device *dev)
 		dev->params_vdev.rdbk_times = 2;
 	}
 
-	isp = hw->isp[!id];
+	isp = find_next_isp(dev);
 	if (isp && isp->isp_state & ISP_START) {
 		if (!IS_HDR_RDBK(isp->rd_mode)) {
 			is_switch = true;
@@ -1276,7 +1302,7 @@ void rkisp_check_idle(struct rkisp_device *dev, u32 irq)
 	}
 	spin_unlock_irqrestore(&dev->hw_dev->rdbk_lock, lock_flags);
 
-	/* two virtual isp online frame end switch to other isp */
+	/* multi virtual isp online frame end switch to other isp */
 	if (!hw->is_single && !IS_HDR_RDBK(dev->rd_mode))
 		rkisp_multi_online_switch(dev);
 
@@ -2380,8 +2406,12 @@ static int rkisp_isp_start(struct rkisp_device *dev)
 	       CIF_ISP_CTRL_ISP_INFORM_ENABLE | CIF_ISP_CTRL_ISP_CFG_UPD_PERMANENT;
 	if (dev->isp_ver == ISP_V20)
 		val |= NOC_HURRY_PRIORITY(2) | NOC_HURRY_W_MODE(2) | NOC_HURRY_R_MODE(1);
-	if (atomic_read(&hw->refcnt) == 1)
+	if (atomic_read(&hw->refcnt) == 1) {
 		hw->cur_dev_id = dev->dev_id;
+		if (dev->isp_ver == ISP_V33)
+			rkisp_unite_set_bits(dev, ISP_ACQ_H_OFFS, ISP21_SENSOR_INDEX(7),
+					     ISP21_SENSOR_INDEX(dev->dev_id), false);
+	}
 	rkisp_unite_write(dev, CIF_ISP_CTRL, val, false);
 	rkisp_clear_reg_cache_bits(dev, CIF_ISP_CTRL, CIF_ISP_CTRL_ISP_CFG_UPD);
 
@@ -3370,6 +3400,7 @@ end:
 	}
 	if (dbufs->is_first) {
 		stream->memory = 0;
+		stream->out_fmt.plane_fmt[0].bytesperline = 0;
 		if (dbufs->is_uncompact)
 			stream->memory = SW_CSI_RAW_WR_SIMG_MODE;
 		rkisp_dmarx_set_fmt(stream, stream->out_fmt);
@@ -4021,6 +4052,19 @@ err:
 	return ret;
 }
 
+static int rkisp_vicap_sof(struct rkisp_device *dev, struct rkisp_vicap_sof *sof)
+{
+	dev->vicap_sof = *sof;
+	if (!IS_HDR_RDBK(dev->rd_mode) &&
+	    sof->sequence - atomic_read(&dev->isp_sdev.frm_sync_seq) > 0) {
+		v4l2_dbg(4, rkisp_debug, &dev->v4l2_dev,
+			 "vicap sof %d, isp sof %d\n",
+			 sof->sequence, atomic_read(&dev->isp_sdev.frm_sync_seq));
+		atomic_set(&dev->isp_sdev.frm_sync_seq, sof->sequence);
+	}
+	return 0;
+}
+
 static long rkisp_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 {
 	struct rkisp_device *isp_dev = sd_to_isp_dev(sd);
@@ -4201,6 +4245,9 @@ static long rkisp_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		break;
 	case RKISP_CMD_SET_FPN:
 		ret = rkisp_set_fpn(isp_dev, arg);
+		break;
+	case RKISP_VICAP_CMD_SOF:
+		ret = rkisp_vicap_sof(isp_dev, arg);
 		break;
 	default:
 		ret = -ENOIOCTLCMD;
@@ -4499,6 +4546,13 @@ void rkisp_save_tb_info(struct rkisp_device *isp_dev)
 		break;
 	default:
 		break;
+	}
+
+	if (head->rkisp_tb_resmem_head_size != size) {
+		v4l2_err(&isp_dev->v4l2_dev, "The size of thunderboot resmem structure in mcu and kernel is not equal mcu: %#x kernel: %#x\n",
+			 head->rkisp_tb_resmem_head_size,
+			 size);
+		head->complete = 0;
 	}
 
 	if (size && size < isp_dev->resmem_size) {
