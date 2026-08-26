@@ -2888,7 +2888,7 @@ static int rv1103b_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 	phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x17);
 
 	/* Set Tx HS eye height tuning to 3'b011(462 mV)*/
-	phy_update_bits(rphy->phy_base + 0x124, GENMASK(4, 2), (0x03 << 2));
+	phy_update_bits(rphy->phy_base + 0x124, GENMASK(4, 2), (0x07 << 2));
 
 	/* Bypass Squelch detector calibration */
 	phy_update_bits(rphy->phy_base + 0x1a4, GENMASK(7, 4), (0x01 << 4));
