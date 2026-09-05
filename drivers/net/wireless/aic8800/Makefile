@@ -14,7 +14,13 @@ export CONFIG_RESV_MEM_SUPPORT = y
 ###################################
 
 ########## Platform support list ##########
-export CONFIG_PLATFORM_ROCKCHIP = y
+# Off deliberately. Every site this gates is either dead on our build
+# (the rockchip_wifi_power()/set_carddetect() sequence is inside an #if 0,
+# the OOB wake IRQ needs CONFIG_GPIO_WAKEUP, the custom MAC needs
+# CONFIG_USE_CUSTOMER_MAC, and btlpm is not built) or actively harmful:
+# it skips aicbsp_sdio_exit() on power-down and powers the chip up for
+# Bluetooth from an initcall that always times out. See the commit message.
+export CONFIG_PLATFORM_ROCKCHIP = n
 export CONFIG_PLATFORM_ROCKCHIP2 = n
 export CONFIG_PLATFORM_ALLWINNER = n
 export CONFIG_PLATFORM_AMLOGIC = n

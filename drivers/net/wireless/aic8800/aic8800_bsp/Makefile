@@ -80,7 +80,7 @@ $(MODULE_NAME)-y +=	aicwf_firmware_array.o
 endif
 
 ########## Platform support list ##########
-CONFIG_PLATFORM_ROCKCHIP ?= y
+CONFIG_PLATFORM_ROCKCHIP ?= n
 CONFIG_PLATFORM_ROCKCHIP2 ?= n
 CONFIG_PLATFORM_ALLWINNER ?= n
 CONFIG_PLATFORM_INGENIC_T20 ?= n
