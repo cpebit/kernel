@@ -68,6 +68,18 @@ struct usb_ep *usb_ep_autoconfig_ss(
 {
 	struct usb_ep	*ep;
 
+	/* look for an exact address match if possible */
+	list_for_each_entry (ep, &gadget->ep_list, ep_list) {
+		if (usb_gadget_ep_match_desc(gadget, ep, desc, ep_comp)) {
+			if (ep->address == desc->bEndpointAddress)
+				goto found_ep;
+			else if (isdigit(ep->name[2]) &&
+				simple_strtoul(&ep->name[2], NULL, 10) == (desc->bEndpointAddress & 0x7F)
+			)
+				goto found_ep;
+		}
+	}
+
 	if (gadget->ops->match_ep) {
 		ep = gadget->ops->match_ep(gadget, desc, ep_comp);
 		if (ep)
