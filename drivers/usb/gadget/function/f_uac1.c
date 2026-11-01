@@ -1436,7 +1436,7 @@ static int set_ep_max_packet_size(const struct f_uac1_opts *opts,
 	}
 
 	max_size_bw = num_channels(chmask) * ssize *
-		((srate / (factor / (1 << (ep_desc->bInterval - 1)))) + 1);
+		((srate / (factor / (1 << (ep_desc->bInterval - 1)))));
 	ep_desc->wMaxPacketSize = cpu_to_le16(min_t(u16, max_size_bw,
 						    max_size_ep));
 
