@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2021 Realtek Corporation.
+ * Copyright(c) 2007 - 2019 Realtek Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -27,7 +27,7 @@ extern void indicate_wx_scan_complete_event(_adapter *padapter);
 	  (addr[4] == 0xff) && (addr[5] == 0xff)) ? _TRUE : _FALSE \
 	)
 
-u8 rtw_validate_bssid(const u8 *bssid)
+u8 rtw_validate_bssid(u8 *bssid)
 {
 	u8 ret = _TRUE;
 
@@ -76,13 +76,11 @@ u8 rtw_do_join(_adapter *padapter)
 	_list	*plist, *phead;
 	u8 *pibss = NULL;
 	struct	mlme_priv	*pmlmepriv = &(padapter->mlmepriv);
-	struct sitesurvey_parm *parm = NULL;
+	struct sitesurvey_parm parm;
 	_queue	*queue	= &(pmlmepriv->scanned_queue);
 	u8 ret = _SUCCESS;
 
-	parm = (struct sitesurvey_parm *)rtw_zmalloc(sizeof(struct sitesurvey_parm));
-	if (!parm)
-		return _FAIL;
+
 	_enter_critical_bh(&(pmlmepriv->scanned_queue.lock), &irqL);
 	phead = get_list_head(queue);
 	plist = get_next(phead);
@@ -96,14 +94,14 @@ u8 rtw_do_join(_adapter *padapter)
 
 	pmlmepriv->to_join = _TRUE;
 
-	rtw_init_sitesurvey_parm(padapter, parm);
-	_rtw_memcpy(&(parm->ssid[0]), &pmlmepriv->assoc_ssid, sizeof(NDIS_802_11_SSID));
-	parm->ssid_num = 1;
+	rtw_init_sitesurvey_parm(padapter, &parm);
+	_rtw_memcpy(&parm.ssid[0], &pmlmepriv->assoc_ssid, sizeof(NDIS_802_11_SSID));
+	parm.ssid_num = 1;
 
 	if (pmlmepriv->assoc_ch) {
-		parm->ch_num = 1;
-		parm->ch[0].hw_value = pmlmepriv->assoc_ch;
-		parm->ch[0].flags = 0;
+		parm.ch_num = 1;
+		parm.ch[0].hw_value = pmlmepriv->assoc_ch;
+		parm.ch[0].flags = 0;
 	}
 
 	if (_rtw_queue_empty(queue) == _TRUE) {
@@ -120,7 +118,7 @@ u8 rtw_do_join(_adapter *padapter)
 
 			if ((ssc_chk == SS_ALLOW) || (ssc_chk == SS_DENY_BUSY_TRAFFIC) ){
 				/* submit site_survey_cmd */
-				ret = rtw_sitesurvey_cmd(padapter, parm);
+				ret = rtw_sitesurvey_cmd(padapter, &parm);
 				if (_SUCCESS != ret)
 					pmlmepriv->to_join = _FALSE;
 			} else {
@@ -140,14 +138,14 @@ u8 rtw_do_join(_adapter *padapter)
 		select_ret = rtw_select_and_join_from_scanned_queue(pmlmepriv);
 		if (select_ret == _SUCCESS) {
 			u32 join_timeout = MAX_JOIN_TIMEOUT;
-#ifdef CONFIG_ECSA
+
 #if defined(CONFIG_CONCURRENT_MODE) && defined(CONFIG_AP_MODE)
 			struct rf_ctl_t *rfctl;
 			rfctl = adapter_to_rfctl(padapter);
 			if (rfctl->ap_csa_en == CSA_STA_JOINBSS)
-				join_timeout += (rfctl->ap_csa_cnt_input * 100);
+				join_timeout += (rfctl->ap_csa_switch_cnt * 100);
 #endif
-#endif
+
 			pmlmepriv->to_join = _FALSE;
 			_set_timer(&pmlmepriv->assoc_timer, join_timeout);
 		} else {
@@ -177,21 +175,12 @@ u8 rtw_do_join(_adapter *padapter)
 
 				pmlmepriv->to_join = _FALSE;
 				#endif /* CONFIG_AP_MODE */
-
-			} else if (pmlmepriv->need_to_roam == _TRUE || rtw_to_roam(padapter) > 0) {
-				/* can't associate ; reset under-linking			 */
-				_clr_fwstate_(pmlmepriv, WIFI_UNDER_LINKING);
-				rtw_set_to_roam(padapter, 0);
-				rtw_indicate_disconnect(padapter, 0, TRUE);
-				pmlmepriv->to_join = _FALSE;
-				ret = _FAIL;
-
 			} else {
 				/* can't associate ; reset under-linking			 */
 				_clr_fwstate_(pmlmepriv, WIFI_UNDER_LINKING);
+
 				/* when set_ssid/set_bssid for rtw_do_join(), but there are no desired bss in scanning queue */
 				/* we try to issue sitesurvey firstly			 */
-
 				if (pmlmepriv->LinkDetectInfo.bBusyTraffic == _FALSE
 				    || rtw_to_roam(padapter) > 0
 				   ) {
@@ -199,7 +188,7 @@ u8 rtw_do_join(_adapter *padapter)
 
 					if ((ssc_chk == SS_ALLOW) || (ssc_chk == SS_DENY_BUSY_TRAFFIC)){
 						/* RTW_INFO(("rtw_do_join() when   no desired bss in scanning queue\n"); */
-						ret = rtw_sitesurvey_cmd(padapter, parm);
+						ret = rtw_sitesurvey_cmd(padapter, &parm);
 						if (_SUCCESS != ret)
 							pmlmepriv->to_join = _FALSE;
 					} else {
@@ -219,8 +208,7 @@ u8 rtw_do_join(_adapter *padapter)
 	}
 
 exit:
-	if (parm)
-		rtw_mfree(parm, sizeof(struct sitesurvey_parm));
+
 	return ret;
 }
 
@@ -232,7 +220,7 @@ u8 rtw_set_802_11_bssid(_adapter *padapter, u8 *bssid)
 	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
 
 
-	RTW_PRINT("set bssid:" MAC_FMT "\n", MAC_ARG(bssid));
+	RTW_PRINT("set bssid:%pM\n", bssid);
 
 	if ((bssid[0] == 0x00 && bssid[1] == 0x00 && bssid[2] == 0x00 && bssid[3] == 0x00 && bssid[4] == 0x00 && bssid[5] == 0x00) ||
 	    (bssid[0] == 0xFF && bssid[1] == 0xFF && bssid[2] == 0xFF && bssid[3] == 0xFF && bssid[4] == 0xFF && bssid[5] == 0xFF)) {
@@ -394,7 +382,7 @@ exit:
 }
 
 u8 rtw_set_802_11_connect(_adapter *padapter,
-			  const u8 *bssid, NDIS_802_11_SSID *ssid, u16 ch)
+			  u8 *bssid, NDIS_802_11_SSID *ssid, u16 ch)
 {
 	_irqL irqL;
 	u8 status = _SUCCESS;
@@ -653,7 +641,7 @@ exit:
 u8 rtw_set_acs_sitesurvey(_adapter *adapter)
 {
 	struct rf_ctl_t *rfctl = adapter_to_rfctl(adapter);
-	struct sitesurvey_parm *parm = NULL;
+	struct sitesurvey_parm parm;
 	u8 uch;
 	u8 ch_num = 0;
 	int i;
@@ -665,19 +653,17 @@ u8 rtw_set_acs_sitesurvey(_adapter *adapter)
 	if (!rtw_mi_get_ch_setting_union(adapter, &uch, NULL, NULL))
 		goto exit;
 
-	parm = (struct sitesurvey_parm *)rtw_zmalloc(sizeof(struct sitesurvey_parm));
-	if (!parm)
-		return ret;
-	parm->scan_mode = SCAN_PASSIVE;
-	parm->bw = CHANNEL_WIDTH_20;
-	parm->acs = 1;
+	_rtw_memset(&parm, 0, sizeof(struct sitesurvey_parm));
+	parm.scan_mode = SCAN_PASSIVE;
+	parm.bw = CHANNEL_WIDTH_20;
+	parm.acs = 1;
 
 	for (band = BAND_ON_2_4G; band < BAND_MAX; band++) {
 		if (band == BAND_ON_2_4G) {
 			center_chs_num = center_chs_2g_num;
 			center_chs = center_chs_2g;
 		} else
-		#if CONFIG_IEEE80211_BAND_5GHZ
+		#ifdef CONFIG_IEEE80211_BAND_5GHZ
 		if (band == BAND_ON_5G) {
 			center_chs_num = center_chs_5g_num;
 			center_chs = center_chs_5g;
@@ -694,23 +680,22 @@ u8 rtw_set_acs_sitesurvey(_adapter *adapter)
 		if (rfctl->ch_sel_within_same_band) {
 			if (rtw_is_2g_ch(uch) && band != BAND_ON_2_4G)
 				continue;
-			#if CONFIG_IEEE80211_BAND_5GHZ
+			#ifdef CONFIG_IEEE80211_BAND_5GHZ
 			if (rtw_is_5g_ch(uch) && band != BAND_ON_5G)
 				continue;
 			#endif
 		}
 
-		ch_num = center_chs_num(CHANNEL_WIDTH_20);
-		for (i = 0; i < ch_num && parm->ch_num < RTW_CHANNEL_SCAN_AMOUNT; i++) {
-			parm->ch[parm->ch_num].hw_value = center_chs(CHANNEL_WIDTH_20, i);
-			parm->ch[parm->ch_num].flags = RTW_IEEE80211_CHAN_PASSIVE_SCAN;
-			parm->ch_num++;
+		ch_num = center_chs_num(CHANNEL_WIDTH_20);	
+		for (i = 0; i < ch_num && parm.ch_num < RTW_CHANNEL_SCAN_AMOUNT; i++) {
+			parm.ch[parm.ch_num].hw_value = center_chs(CHANNEL_WIDTH_20, i);
+			parm.ch[parm.ch_num].flags = RTW_IEEE80211_CHAN_PASSIVE_SCAN;
+			parm.ch_num++;
 		}
 	}
 
-	ret = rtw_set_802_11_bssid_list_scan(adapter, parm);
-	if (parm)
-		rtw_mfree(parm, sizeof(struct sitesurvey_parm));
+	ret = rtw_set_802_11_bssid_list_scan(adapter, &parm);
+
 exit:
 	return ret;
 }
@@ -749,15 +734,15 @@ u8 rtw_set_802_11_authentication_mode(_adapter *padapter, NDIS_802_11_AUTHENTICA
 u8 rtw_set_802_11_add_wep(_adapter *padapter, NDIS_802_11_WEP *wep)
 {
 
-	/*u8		bdefaultkey;*/
-	/*u8		btransmitkey;*/
+	u8		bdefaultkey;
+	u8		btransmitkey;
 	sint		keyid, res;
 	struct security_priv *psecuritypriv = &(padapter->securitypriv);
 	u8		ret = _SUCCESS;
 
 
-	/*bdefaultkey = (wep->KeyIndex & 0x40000000) > 0 ? _FALSE : _TRUE;*/
-	/*btransmitkey = (wep->KeyIndex & 0x80000000) > 0 ? _TRUE  : _FALSE;*/
+	bdefaultkey = (wep->KeyIndex & 0x40000000) > 0 ? _FALSE : _TRUE; /* for ??? */
+	btransmitkey = (wep->KeyIndex & 0x80000000) > 0 ? _TRUE  : _FALSE;	/* for ??? */
 	keyid = wep->KeyIndex & 0x3fffffff;
 
 	if (keyid >= 4) {
@@ -789,9 +774,11 @@ u8 rtw_set_802_11_add_wep(_adapter *padapter, NDIS_802_11_WEP *wep)
 
 	if (res == _FAIL)
 		ret = _FALSE;
-
 exit:
+
+
 	return ret;
+
 }
 
 /*
@@ -830,14 +817,14 @@ u16 rtw_get_cur_max_rate(_adapter *adapter)
 	short_GI = query_ra_short_GI(psta, rtw_get_tx_bw_mode(adapter, psta));
 
 #ifdef CONFIG_80211N_HT
-	if (is_highest_support_ht(psta->wireless_mode)) {
+	if (is_supported_ht(psta->wireless_mode)) {
 		max_rate = rtw_ht_mcs_rate((psta->cmn.bw_mode == CHANNEL_WIDTH_40) ? 1 : 0
 			, short_GI
 			, psta->htpriv.ht_cap.supp_mcs_set
 		);
 	}
 #ifdef CONFIG_80211AC_VHT
-	else if (is_highest_support_vht(psta->wireless_mode))
+	else if (is_supported_vht(psta->wireless_mode))
 		max_rate = ((rtw_vht_mcs_to_data_rate(psta->cmn.bw_mode, short_GI, pmlmepriv->vhtpriv.vht_highest_rate) + 1) >> 1) * 10;
 #endif /* CONFIG_80211AC_VHT */
 	else
@@ -902,13 +889,12 @@ int rtw_set_scan_mode(_adapter *adapter, RT_SCAN_TYPE scan_mode)
 *
 * Return _SUCCESS or _FAIL
 */
-int rtw_set_channel_plan(_adapter *adapter, u8 channel_plan, u8 chplan_6g
-	, enum rtw_env_t env, enum rtw_regd_inr inr)
+int rtw_set_channel_plan(_adapter *adapter, u8 channel_plan, u8 chplan_6g, enum rtw_regd_inr inr)
 {
 	struct registry_priv *regsty = adapter_to_regsty(adapter);
 
 	if (!REGSTY_REGD_SRC_FROM_OS(regsty))
-		return rtw_set_chplan_cmd(adapter, RTW_CMDF_WAIT_ACK, channel_plan, chplan_6g, env, inr);
+		return rtw_set_chplan_cmd(adapter, RTW_CMDF_WAIT_ACK, channel_plan, chplan_6g, inr);
 	RTW_WARN("%s(): not applied\n", __func__);
 	return _SUCCESS;
 }
@@ -920,45 +906,17 @@ int rtw_set_channel_plan(_adapter *adapter, u8 channel_plan, u8 chplan_6g
 *
 * Return _SUCCESS or _FAIL
 */
-int rtw_set_country(_adapter *adapter, const char *country_code
-	, enum rtw_env_t env, enum rtw_regd_inr inr)
+int rtw_set_country(_adapter *adapter, const char *country_code, enum rtw_regd_inr inr)
 {
 #ifdef CONFIG_RTW_IOCTL_SET_COUNTRY
-#if ((0 - CONFIG_RTW_IOCTL_SET_COUNTRY - 1) == 1) && ((CONFIG_RTW_IOCTL_SET_COUNTRY + 0) != -2) /* defined to empty */
-#undef CONFIG_RTW_IOCTL_SET_COUNTRY
-#define CONFIG_RTW_IOCTL_SET_COUNTRY 1
-#endif
-#else /* not defined */
-#define CONFIG_RTW_IOCTL_SET_COUNTRY 1
-#endif
-
-#if CONFIG_RTW_IOCTL_SET_COUNTRY
 	struct registry_priv *regsty = adapter_to_regsty(adapter);
 
 	if (!REGSTY_REGD_SRC_FROM_OS(regsty))
-		return rtw_set_country_cmd(adapter, RTW_CMDF_WAIT_ACK, country_code, env, inr);
+		return rtw_set_country_cmd(adapter, RTW_CMDF_WAIT_ACK, country_code, inr);
 #endif
 	RTW_WARN("%s(): not applied\n", __func__);
 	return _SUCCESS;
 }
-
-#if CONFIG_IEEE80211_BAND_6GHZ
-/*
-* rtw_set_env -
-* @adapter: pointer to _adapter structure
-* @env: environment
-*
-* Return _SUCCESS or _FAIL
-*/
-int rtw_set_env(_adapter *adapter, enum rtw_env_t env, enum rtw_regd_inr inr)
-{
-	struct registry_priv *regsty = adapter_to_regsty(adapter);
-
-	return rtw_set_env_cmd(adapter, RTW_CMDF_WAIT_ACK, env
-		, REGSTY_REGD_SRC_FROM_OS(regsty) ? REGD_SRC_OS : REGD_SRC_RTK_PRIV
-		, inr);
-}
-#endif
 
 /*
 * rtw_set_band -

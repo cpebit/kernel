@@ -17,10 +17,7 @@
 #ifdef __KERNEL__
 	#include <linux/if_arp.h>
 	#include <net/ip.h>
-	#include <linux/version.h>
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0))
 	#include <net/ipx.h>
-#endif
 	#include <linux/atalk.h>
 	#include <linux/udp.h>
 	#include <linux/if_pppox.h>
@@ -172,7 +169,6 @@ static __inline__ void __nat25_generate_ipv4_network_addr(unsigned char *network
 }
 
 
-#ifdef _NET_INET_IPX_H_
 static __inline__ void __nat25_generate_ipx_network_addr_with_node(unsigned char *networkAddr,
 		unsigned int *ipxNetAddr, unsigned char *ipxNodeAddr)
 {
@@ -204,7 +200,6 @@ static __inline__ void __nat25_generate_apple_network_addr(unsigned char *networ
 	memcpy(networkAddr + 1, (unsigned char *)network, 2);
 	networkAddr[3] = *node;
 }
-#endif
 
 
 static __inline__ void __nat25_generate_pppoe_network_addr(unsigned char *networkAddr,
@@ -251,9 +246,9 @@ static int update_nd_link_layer_addr(unsigned char *data, int len, unsigned char
 		if (len >= 8) {
 			mac = scan_tlv(&data[8], len - 8, 1, 1);
 			if (mac) {
-				RTW_INFO("Router Solicitation, replace MAC From: "MAC_FMT", To: "MAC_FMT"\n",
-					MAC_ARG(mac),
-					MAC_ARG(replace_mac));
+				RTW_INFO("Router Solicitation, replace MAC From: %02x:%02x:%02x:%02x:%02x:%02x, To: %02x:%02x:%02x:%02x:%02x:%02x\n",
+					mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+					replace_mac[0], replace_mac[1], replace_mac[2], replace_mac[3], replace_mac[4], replace_mac[5]);
 				memcpy(mac, replace_mac, 6);
 				return 1;
 			}
@@ -262,9 +257,9 @@ static int update_nd_link_layer_addr(unsigned char *data, int len, unsigned char
 		if (len >= 16) {
 			mac = scan_tlv(&data[16], len - 16, 1, 1);
 			if (mac) {
-				RTW_INFO("Router Advertisement, replace MAC From: "MAC_FMT", To: "MAC_FMT"\n",
-					MAC_ARG(mac),
-					MAC_ARG(replace_mac));
+				RTW_INFO("Router Advertisement, replace MAC From: %02x:%02x:%02x:%02x:%02x:%02x, To: %02x:%02x:%02x:%02x:%02x:%02x\n",
+					mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+					replace_mac[0], replace_mac[1], replace_mac[2], replace_mac[3], replace_mac[4], replace_mac[5]);
 				memcpy(mac, replace_mac, 6);
 				return 1;
 			}
@@ -273,9 +268,9 @@ static int update_nd_link_layer_addr(unsigned char *data, int len, unsigned char
 		if (len >= 24) {
 			mac = scan_tlv(&data[24], len - 24, 1, 1);
 			if (mac) {
-				RTW_INFO("Neighbor Solicitation, replace MAC From: "MAC_FMT", To: "MAC_FMT"\n",
-					MAC_ARG(mac),
-					MAC_ARG(replace_mac));
+				RTW_INFO("Neighbor Solicitation, replace MAC From: %02x:%02x:%02x:%02x:%02x:%02x, To: %02x:%02x:%02x:%02x:%02x:%02x\n",
+					mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+					replace_mac[0], replace_mac[1], replace_mac[2], replace_mac[3], replace_mac[4], replace_mac[5]);
 				memcpy(mac, replace_mac, 6);
 				return 1;
 			}
@@ -284,9 +279,9 @@ static int update_nd_link_layer_addr(unsigned char *data, int len, unsigned char
 		if (len >= 24) {
 			mac = scan_tlv(&data[24], len - 24, 2, 1);
 			if (mac) {
-				RTW_INFO("Neighbor Advertisement, replace MAC From: "MAC_FMT", To: "MAC_FMT"\n",
-					MAC_ARG(mac),
-					MAC_ARG(replace_mac));
+				RTW_INFO("Neighbor Advertisement, replace MAC From: %02x:%02x:%02x:%02x:%02x:%02x, To: %02x:%02x:%02x:%02x:%02x:%02x\n",
+					mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+					replace_mac[0], replace_mac[1], replace_mac[2], replace_mac[3], replace_mac[4], replace_mac[5]);
 				memcpy(mac, replace_mac, 6);
 				return 1;
 			}
@@ -295,9 +290,9 @@ static int update_nd_link_layer_addr(unsigned char *data, int len, unsigned char
 		if (len >= 40) {
 			mac = scan_tlv(&data[40], len - 40, 2, 1);
 			if (mac) {
-				RTW_INFO("Redirect,  replace MAC From: "MAC_FMT", To: "MAC_FMT"\n",
-					MAC_ARG(mac),
-					MAC_ARG(replace_mac));
+				RTW_INFO("Redirect,  replace MAC From: %02x:%02x:%02x:%02x:%02x:%02x, To: %02x:%02x:%02x:%02x:%02x:%02x\n",
+					mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+					replace_mac[0], replace_mac[1], replace_mac[2], replace_mac[3], replace_mac[4], replace_mac[5]);
 				memcpy(mac, replace_mac, 6);
 				return 1;
 			}
@@ -335,7 +330,6 @@ static __inline__ int __nat25_network_hash(unsigned char *networkAddr)
 		x = networkAddr[7] ^ networkAddr[8] ^ networkAddr[9] ^ networkAddr[10];
 
 		return x & (NAT25_HASH_SIZE - 1);
-#ifdef _NET_INET_IPX_H_
 	} else if (networkAddr[0] == NAT25_IPX) {
 		unsigned long x;
 
@@ -349,7 +343,6 @@ static __inline__ int __nat25_network_hash(unsigned char *networkAddr)
 		x = networkAddr[1] ^ networkAddr[2] ^ networkAddr[3];
 
 		return x & (NAT25_HASH_SIZE - 1);
-#endif
 	} else if (networkAddr[0] == NAT25_PPPOE) {
 		unsigned long x;
 
@@ -896,7 +889,6 @@ int nat25_db_handle(_adapter *priv, struct sk_buff *skb, int method)
 		}
 	}
 
-#ifdef _NET_INET_IPX_H
 	/*---------------------------------------------------*/
 	/*         Handle IPX and Apple Talk frame          */
 	/*---------------------------------------------------*/
@@ -1117,7 +1109,6 @@ int nat25_db_handle(_adapter *priv, struct sk_buff *skb, int method)
 
 		return -1;
 	}
-#endif
 
 	/*---------------------------------------------------*/
 	/*                Handle PPPoE frame                */

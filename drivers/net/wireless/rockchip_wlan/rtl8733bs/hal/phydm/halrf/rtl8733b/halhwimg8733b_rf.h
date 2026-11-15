@@ -23,7 +23,7 @@
  *
  *****************************************************************************/
 
-/*Image2HeaderVersion: R3 1.5.11*/
+/*Image2HeaderVersion: R3 1.5.10.1*/
 #if (RTL8733B_SUPPORT == 1)
 #ifndef __INC_MP_RF_HW_IMG_8733B_H
 #define __INC_MP_RF_HW_IMG_8733B_H
@@ -32,7 +32,6 @@
  * into driver source code to reduce code size if necessary.
  * #define CONFIG_8733B_DRV_DIS
  * #define CONFIG_8733BTSSI_DRV_DIS
- * #define CONFIG_8733B_TYPE12_DRV_DIS
  */
 
 #define CONFIG_8733B
@@ -45,10 +44,15 @@
     #undef CONFIG_8733BTSSI
 #endif
 
-#define CONFIG_8733B_TYPE12
-#ifdef CONFIG_8733B_TYPE12_DRV_DIS
-    #undef CONFIG_8733B_TYPE12
-#endif
+struct txpwr_lmt_t_8733b {
+	u8			reg;
+	u8			band:1;
+	u8			bw:3;
+	u8			rs:2;
+	u8			ntx:2;
+	u8			ch;
+	s8			val;
+};
 
 /******************************************************************************
  *                           radioa.TXT
@@ -94,15 +98,6 @@ u32 odm_get_version_mp_8733b_txpowertracktssi(void);
 void
 odm_read_and_config_mp_8733b_txpwr_lmt(struct dm_struct *dm);
 u32 odm_get_version_mp_8733b_txpwr_lmt(void);
-
-/******************************************************************************
- *                           txpwr_lmt_type12.TXT
- ******************************************************************************/
-
-/* tc: Test Chip, mp: mp Chip*/
-void
-odm_read_and_config_mp_8733b_txpwr_lmt_type12(struct dm_struct *dm);
-u32 odm_get_version_mp_8733b_txpwr_lmt_type12(void);
 
 /******************************************************************************
  *                           txxtaltrack.TXT

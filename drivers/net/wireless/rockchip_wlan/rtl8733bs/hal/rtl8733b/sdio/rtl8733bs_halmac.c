@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2019 - 2023 Realtek Corporation.
+ * Copyright(c) 2019 Realtek Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -26,7 +26,7 @@ static u8 sdio_write_data_rsvd_page(void *d, u8 *pBuf, u32 size)
 	struct dvobj_priv *drv;
 	struct halmac_adapter *halmac;
 	struct halmac_api *api;
-	u32 desclen, len, alloc_sz;
+	u32 desclen, len;
 	u8 *buf;
 	u8 ret;
 
@@ -36,8 +36,7 @@ static u8 sdio_write_data_rsvd_page(void *d, u8 *pBuf, u32 size)
 	api = HALMAC_GET_API(halmac);
 	desclen = rtl8733b_get_tx_desc_size(dvobj_get_primary_adapter(drv));
 	len = desclen + size;
-	alloc_sz = rtw_sdio_cmd53_align_size(drv, len);
-	buf = rtw_zmalloc(alloc_sz);
+	buf = rtw_zmalloc(len);
 	if (!buf)
 		return 0;
 	_rtw_memcpy(buf + desclen, pBuf, size);
@@ -53,7 +52,7 @@ static u8 sdio_write_data_rsvd_page(void *d, u8 *pBuf, u32 size)
 	else
 		ret = 0;
 
-	rtw_mfree(buf, alloc_sz);
+	rtw_mfree(buf, len);
 
 	return ret;
 }
